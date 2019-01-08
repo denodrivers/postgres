@@ -43,7 +43,7 @@ export class Client {
     }
 
     async query(text: string) {
-        await this.connection.query(text);
+        return await this.connection.query(text);
     }
 
     async end() {

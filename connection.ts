@@ -44,7 +44,6 @@ export class Connection {
     
     // TODO: add types
     async startup(config: ConnectionParams) {
-        console.log(1)
         const writer = this._fooWriter
             .addInt16(3)
             .addInt16(0);
@@ -55,7 +54,6 @@ export class Connection {
             writer.addCString(key).addCString(val);
         })
         
-        console.log(2)
         writer.addCString('client_encoding').addCString("'utf-8'");
         const bodyBuffer = writer.addCString('').flush();
         var length = bodyBuffer.length + 4;
@@ -64,8 +62,6 @@ export class Connection {
             .addInt32(length)
             .add(bodyBuffer)
             .join();
-        
-        console.log(3);
 
         await this.bufWriter.write(buffer);
         await this.bufWriter.flush();
@@ -135,8 +131,9 @@ export class Connection {
     }
 
     processReadyForQuery(msg: Message) {
+        // TODO: make an enum of transaction statuses 
         const txStatus = decoder.decode(msg.body.slice(0, 1));
-        console.log('ready for query!', txStatus);
+        console.log('ready for query, transaction status', txStatus);
     }
 
     // TODO: make it iterator?
@@ -162,39 +159,51 @@ export class Connection {
         } else if (msg.type == "n") {
             // TODO: handle this message type properly
             console.log("no data", msg);
-            return;
+            return [];
         } else {
             throw new Error(`Unexpected frame: ${msg.type}`);
         }
 
         // TODO: refactor
-        while (true) {
+        const results = [];
+        let isDone = false;
+        while (!isDone) {
             msg = await this.receiveMessage();
-            if (msg.type != "D") {
-                break
+            switch(msg.type) {
+                case "D":
+                    const dataRow = this.parseDataRow(msg);
+                    results.push(dataRow);
+                    break;
+                // TODO: handle other types of messages
+                default:
+                    isDone = true;
+                    break;    
             }
-            this.parseDataRow(msg);
         }
+
+        return results;
     }
 
     parseDataRow(msg: Message) {
-        const ncols = readInt16BE(msg.body, 0);
-        console.log("parseDatarow", ncols)
+        // TODO: refactor this method, it should be implemented in PacketReader
+        const fieldCount = readInt16BE(msg.body, 0);
         let index = 2;
         const row = [];
 
-        for (let i = 0; i < ncols; i++) {
-            const colSize = readInt32BE(msg.body, index);
+        for (let i = 0; i < fieldCount; i++) {
+            const colLength = readInt32BE(msg.body, index);
             index += 4;
-            if (colSize == -1) {
+            if (colLength == -1) {
                 row.push(null);
             } else {
-                const slice = msg.body.slice(index, index + colSize);
-                row.push(new TextDecoder().decode(slice));
-                index += colSize;
+                // TODO: avoid additional allocation here
+                const data = msg.body.slice(index, index + colLength);
+                // TODO: we're not handling binary data here properly
+                row.push(decoder.decode(data));
+                index += colLength;
             }
         }
-        console.log(row);
+
         return row;
     }
 
