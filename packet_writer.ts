@@ -1,9 +1,10 @@
-//binary data writer tuned for creating
-//postgres message packets as effeciently as possible by reusing the
-//same buffer to avoid memcpy and limit memory allocations
+// Based on https://github.com/brianc/node-buffer-writer
+// License MIT
+
+// TODO: copy this method, not worth the import
 import { copyBytes } from "https://deno.land/x/net/util.ts";
 
-export class FooWriter {
+export class PacketWriter {
     private size: number;
     private buffer: Uint8Array;
     private offset: number;

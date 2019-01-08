@@ -1,7 +1,7 @@
-import { dial, Reader, Writer } from "deno";
+import { Reader, Writer } from "deno";
 import { BufReader, BufWriter } from "https://deno.land/x/net/bufio.ts";
-import { FooWriter } from "./buffer.ts";
-import { BufferedReader, readUInt32BE, readInt32BE, readInt16BE, readUInt16BE } from "./buffered_reader.ts";
+import { PacketWriter } from "./packet_writer.ts";
+import { readUInt32BE, readInt32BE, readInt16BE, readUInt16BE } from "./utils.ts";
 
 export interface ConnectionParams {
     database?: string;
@@ -25,26 +25,18 @@ class Message {
 export class Connection {
     private bufReader: BufReader;
     private bufWriter: BufWriter;
-    private _fooWriter: FooWriter;
-    private fooreader: Reader;
-    private _reader: BufferedReader;
+    private packetWriter: PacketWriter;
 
     constructor(private reader: Reader, private writer: Writer) {
         this.bufReader = new BufReader(reader);
-        this.fooreader = reader;
         this.bufWriter = new BufWriter(writer);
-        this._fooWriter = new FooWriter();
-        this._reader = new BufferedReader({
-            stream: reader,
-            headerSize: 1,
-            lengthPadding: -4
-        });
+        this.packetWriter = new PacketWriter();
     }
 
     
     // TODO: add types
     async startup(config: ConnectionParams) {
-        const writer = this._fooWriter
+        const writer = this.packetWriter
             .addInt16(3)
             .addInt16(0);
 
@@ -58,7 +50,7 @@ export class Connection {
         const bodyBuffer = writer.addCString('').flush();
         var length = bodyBuffer.length + 4;
 
-        var buffer = new FooWriter()
+        var buffer = new PacketWriter()
             .addInt32(length)
             .add(bodyBuffer)
             .join();
@@ -138,12 +130,12 @@ export class Connection {
 
     // TODO: make it iterator?
     async query(query: string) {
-        this._fooWriter.clear();
+        this.packetWriter.clear();
 
         const txt = new TextEncoder().encode(query);
         const length = 1 + 4 + txt.byteLength;
 
-        const buffer = this._fooWriter
+        const buffer = this.packetWriter
             .addCString(query)
             .flush(0x51);
 
