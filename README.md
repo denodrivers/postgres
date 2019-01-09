@@ -4,10 +4,12 @@
 ToDo:
 
 - [x] connecting to database
+- [x] termination of connection
+- [x] simple queries
+- [ ] row description
 - [ ] handling passwords
-- [ ] termination of connection
-- [ ] simple queries
 - [ ] parametrized queries
+- [ ] connection pool
 
 
 Currently this module is being developed based on excellent work of [node-postgres](https://github.com/brianc/node-postgres) 
