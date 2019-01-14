@@ -30,26 +30,6 @@ export class PostgresError extends Error {
     }
 }
 
-const TOKEN_TO_FIELD_NAME = {
-    "S": "severity",
-    "C": "code",
-    "M": "message",
-    "D": "detail",
-    "H": "hint",
-    "P": "position",
-    "p": "internalPosition",
-    "q": "internalQuery",
-    "W": "where",
-    "s": "schema",
-    "t": "table",
-    "c": "column",
-    "d": "dataType",
-    "n": "constraint",
-    "F": "file",
-    "L": "line",
-    "R": "routine",
-}
-
 export function parseError(msg: Message): PostgresError {
     // https://www.postgresql.org/docs/current/protocol-error-fields.html
     const errorFields: any = {};
