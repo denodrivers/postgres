@@ -294,16 +294,19 @@ export class Connection {
         await this.bufWriter.flush();
 
         let msg: Message;
-
-        msg = await this.readMessage();
-        console.log(msg);
-        msg = await this.readMessage();
-        console.log(msg);
         
         const result = new QueryResult();
         msg = await this.readMessage();
 
         switch (msg.type) {
+            // parse completion
+            case '1':
+                // TODO:
+                break;
+            // bind completion
+            case '2':
+                // TODO:
+                break;
             // row description
             case "T":
                 result.handleRowDescription(this.handleRowDescription(msg));
