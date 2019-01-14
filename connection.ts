@@ -2,6 +2,9 @@ import { Reader, Writer } from "deno";
 import { BufReader, BufWriter } from "https://deno.land/x/net/bufio.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { readUInt32BE, readInt32BE, readInt16BE, readUInt16BE } from "./utils.ts";
+import { PacketReader } from "./packet_reader.ts";
+import { QueryResult } from "./query.ts";
+
 
 export interface ConnectionParams {
     database?: string;
@@ -12,20 +15,46 @@ export interface ConnectionParams {
     application_name?: string;
 }
 
-const decoder = new TextDecoder();
+enum Format {
+    TEXT = 0,
+    BINARY = 1,
+}
 
-class Message {
+export class Message {
     constructor(
         public type: string,
-        public length: number,
+        public byteCount: number,
         public body: Uint8Array,
-    ) {}
+    ) { }
 }
+
+
+class Column {
+    constructor(
+        public name: string,
+        public tableOid: number,
+        public index: number,
+        public typeOid: number,
+        public columnLength: number,
+        public typeModifier: number,
+        public format: Format,
+    ) { }
+}
+
+export class RowDescription {
+    constructor(
+        public columnCount: number,
+        public columns: Column[],
+    ) { }
+}
+
 
 export class Connection {
     private bufReader: BufReader;
     private bufWriter: BufWriter;
     private packetWriter: PacketWriter;
+    private decoder: TextDecoder = new TextDecoder();
+    private encoder: TextEncoder = new TextEncoder();
 
     constructor(private reader: Reader, private writer: Writer) {
         this.bufReader = new BufReader(reader);
@@ -33,7 +62,19 @@ export class Connection {
         this.packetWriter = new PacketWriter();
     }
 
-    
+    /** Read single message send by backend */
+    async readMessage(): Promise<Message> {
+        // TODO: reuse buffer instead of allocating new ones each for each read
+        const header = new Uint8Array(5);
+        await this.bufReader.readFull(header);
+        const msgType = this.decoder.decode(header.slice(0, 1));
+        const msgLength = readUInt32BE(header, 1) - 4;
+        const msgBody = new Uint8Array(msgLength);
+        await this.bufReader.readFull(msgBody);
+
+        return new Message(msgType, msgLength, msgBody);
+    }
+
     // TODO: add types
     async startup(config: ConnectionParams) {
         const writer = this.packetWriter
@@ -45,7 +86,7 @@ export class Connection {
             const val = config[key];
             writer.addCString(key).addCString(val);
         })
-        
+
         writer.addCString('client_encoding').addCString("'utf-8'");
         const bodyBuffer = writer.addCString('').flush();
         var length = bodyBuffer.length + 4;
@@ -57,41 +98,36 @@ export class Connection {
 
         await this.bufWriter.write(buffer);
         await this.bufWriter.flush();
-        
-        this.handleAuth(await this.receiveMessage());
+
+        let msg: Message;
+
+        msg = await this.readMessage();
+        this.handleAuth(msg);
 
         // TODO: refactor
         let isDone = false;
         while (!isDone) {
-            const msg = await this.receiveMessage();
+            msg = await this.readMessage();
             switch (msg.type) {
-                case 'K':
+                // backend key data
+                case "K":
                     this.processBackendKeyData(msg);
                     break;
-                case 'S':
+                // parameter status    
+                case "S":
                     this.processParameterStatus(msg);
                     break;
-                case 'Z':
+                // ready for query
+                case "Z":
                     this.processReadyForQuery(msg);
                     isDone = true;
                     break;
                 default:
-                    throw new Error(`unknown response for startup: ${msg.type}`);
+                    throw new Error(`Unknown response for startup: ${msg.type}`);
             }
         }
     }
 
-    async receiveMessage(): Promise<Message> {
-        const header = new Uint8Array(5);
-        await this.bufReader.readFull(header);
-        const msgType = decoder.decode(header.slice(0, 1));
-        const msgLength = readUInt32BE(header, 1) - 4;
-        const msgBody = new Uint8Array(msgLength);
-        await this.bufReader.readFull(msgBody);
-
-        return new Message(msgType, msgLength, msgBody);
-    }
-    
     async handleAuth(msg: Message) {
         const code = readUInt32BE(msg.body, 0);
         switch (code) {
@@ -114,6 +150,7 @@ export class Connection {
     processBackendKeyData(msg: Message) {
         const pid = readUInt32BE(msg.body, 0);
         const secretKey = readUInt32BE(msg.body, 4);
+        // TODO: save those values on connection
         console.log('process backend key', pid, secretKey);
     }
 
@@ -123,17 +160,13 @@ export class Connection {
     }
 
     processReadyForQuery(msg: Message) {
-        // TODO: make an enum of transaction statuses 
-        const txStatus = decoder.decode(msg.body.slice(0, 1));
+        // TODO: make an enum of transaction statuses
+        const txStatus = this.decoder.decode(msg.body.slice(0, 1));
         console.log('ready for query, transaction status', txStatus);
     }
 
-    // TODO: make it iterator?
     async query(query: string) {
         this.packetWriter.clear();
-
-        const txt = new TextEncoder().encode(query);
-        const length = 1 + 4 + txt.byteLength;
 
         const buffer = this.packetWriter
             .addCString(query)
@@ -142,57 +175,93 @@ export class Connection {
         await this.bufWriter.write(buffer);
         await this.bufWriter.flush();
 
-        let msg = await this.receiveMessage();    
-        if (msg.type == "T") {
-            // TODO: handle this message and create RowDescription
-            //  class
+        const result = new QueryResult();
 
-            // console.log('RowDescription', msg);
-        } else if (msg.type == "n") {
-            // TODO: handle this message type properly
-            console.log("no data", msg);
-            return [];
-        } else {
-            throw new Error(`Unexpected frame: ${msg.type}`);
+        let msg: Message;
+
+        msg = await this.readMessage();
+
+        switch (msg.type) {
+            // row description
+            case "T":
+                result.handleRowDescription(this.handleRowDescription(msg));
+                break;
+            // no data    
+            case "n":
+                // TODO: handle this message type properly
+                console.log("no data", msg);
+                return result;
+            default:
+                throw new Error(`Unexpected frame: ${msg.type}`);
         }
 
         // TODO: refactor
-        const results = [];
         let isDone = false;
         while (!isDone) {
-            msg = await this.receiveMessage();
-            switch(msg.type) {
+            msg = await this.readMessage();
+            switch (msg.type) {
+                // data row
                 case "D":
-                    const dataRow = this.parseDataRow(msg);
-                    results.push(dataRow);
+                    // this is actually packet read 
+                    const foo = this.parseDataRow(msg, Format.TEXT);
+                    result.handleDataRow(foo)
                     break;
-                // TODO: handle other types of messages
-                default:
+                // command complete
+                case "C":
                     isDone = true;
-                    break;    
+                    break;
+
+                // TODO: handle other types of messages
+
+                default:
+                    throw new Error(`Unexpected frame: ${msg.type}`);
             }
         }
 
-        return results;
+        return result;
     }
 
-    parseDataRow(msg: Message) {
-        // TODO: refactor this method, it should be implemented in PacketReader
-        const fieldCount = readInt16BE(msg.body, 0);
-        let index = 2;
+    handleRowDescription(msg: Message): RowDescription {
+        const packetReader = new PacketReader(msg.body);
+        const columnCount = packetReader.readInt16();
+        const columns = [];
+
+        for (let i = 0; i < columnCount; i++) {
+            // TODO: if one of columns has 'format' == 'binary',
+            //  all of them will be in same format?
+            const column = new Column(
+                packetReader.readCString(), // name
+                packetReader.readInt32(),   // tableOid
+                packetReader.readInt16(),   // index
+                packetReader.readInt32(),   // dataTypeOid
+                packetReader.readInt16(),   // column
+                packetReader.readInt32(),   // typeModifier
+                packetReader.readInt16(),   // format
+            )
+            columns.push(column);
+        }
+
+        return new RowDescription(columnCount, columns);
+    }
+
+    parseDataRow(msg: Message, format: Format): any[] {
+        const packetReader = new PacketReader(msg.body);
+        const fieldCount = packetReader.readInt16();
         const row = [];
 
         for (let i = 0; i < fieldCount; i++) {
-            const colLength = readInt32BE(msg.body, index);
-            index += 4;
+            const colLength = packetReader.readInt32();
+
             if (colLength == -1) {
                 row.push(null);
+                continue;
+            }
+
+            if (format === Format.TEXT) {
+                const foo = packetReader.readString(colLength);
+                row.push(foo)
             } else {
-                // TODO: avoid additional allocation here
-                const data = msg.body.slice(index, index + colLength);
-                // TODO: we're not handling binary data here properly
-                row.push(decoder.decode(data));
-                index += colLength;
+                row.push(packetReader.readBytes(colLength))
             }
         }
 

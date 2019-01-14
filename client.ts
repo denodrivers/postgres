@@ -6,7 +6,6 @@ import { Connection, ConnectionParams } from "./connection.ts";
 //  default values, read from env variables as well
 const DEFAULT_CONNECTION_PARAMS = {
     database: "postgres",
-    // TODO: deno can't parse "localhost"
     host: "127.0.0.1",
     port: 5432,
     user: "postgres",
@@ -35,7 +34,6 @@ export class Client {
         const { host, port } = this.connectionParams;
         let addr = `${host}:${port}`;
 
-        console.log("connecting to", addr);
         const conn = await dial("tcp", addr);
         this.connection = new Connection(conn, conn);
 
@@ -47,7 +45,7 @@ export class Client {
     }
 
     async end() {
+        // TODO: this method is not finished, close "conn" from `connect` is not closed properly
         await this.connection.end();
-        // TODO: clone "conn"
     }
 }
