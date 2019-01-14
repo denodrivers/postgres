@@ -21,11 +21,15 @@ enum Format {
 }
 
 export class Message {
+    public reader: PacketReader;
+
     constructor(
         public type: string,
         public byteCount: number,
         public body: Uint8Array,
-    ) { }
+    ) {
+        this.reader = new PacketReader(body);
+     }
 }
 
 
@@ -222,21 +226,20 @@ export class Connection {
     }
 
     handleRowDescription(msg: Message): RowDescription {
-        const packetReader = new PacketReader(msg.body);
-        const columnCount = packetReader.readInt16();
+        const columnCount = msg.reader.readInt16();
         const columns = [];
 
         for (let i = 0; i < columnCount; i++) {
             // TODO: if one of columns has 'format' == 'binary',
             //  all of them will be in same format?
             const column = new Column(
-                packetReader.readCString(), // name
-                packetReader.readInt32(),   // tableOid
-                packetReader.readInt16(),   // index
-                packetReader.readInt32(),   // dataTypeOid
-                packetReader.readInt16(),   // column
-                packetReader.readInt32(),   // typeModifier
-                packetReader.readInt16(),   // format
+                msg.reader.readCString(), // name
+                msg.reader.readInt32(),   // tableOid
+                msg.reader.readInt16(),   // index
+                msg.reader.readInt32(),   // dataTypeOid
+                msg.reader.readInt16(),   // column
+                msg.reader.readInt32(),   // typeModifier
+                msg.reader.readInt16(),   // format
             )
             columns.push(column);
         }
@@ -245,12 +248,11 @@ export class Connection {
     }
 
     parseDataRow(msg: Message, format: Format): any[] {
-        const packetReader = new PacketReader(msg.body);
-        const fieldCount = packetReader.readInt16();
+        const fieldCount = msg.reader.readInt16();
         const row = [];
 
         for (let i = 0; i < fieldCount; i++) {
-            const colLength = packetReader.readInt32();
+            const colLength = msg.reader.readInt32();
 
             if (colLength == -1) {
                 row.push(null);
@@ -258,10 +260,10 @@ export class Connection {
             }
 
             if (format === Format.TEXT) {
-                const foo = packetReader.readString(colLength);
+                const foo = msg.reader.readString(colLength);
                 row.push(foo)
             } else {
-                row.push(packetReader.readBytes(colLength))
+                row.push(msg.reader.readBytes(colLength))
             }
         }
 
