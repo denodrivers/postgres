@@ -1,5 +1,11 @@
 import { RowDescription } from "./connection.ts";
 
+export interface QueryConfig {
+    text: string;
+    args?: any[];
+    name?: string;
+}
+
 export class QueryResult {
     private rowDescription: RowDescription;
     public rows: any[] = []; // actual results
@@ -44,5 +50,14 @@ export class QueryResult {
 
 export class Query {
     public text: string;
-    public result: QueryResult = new QueryResult();
+    public args: any[];
+    public name: string;
+    public result: QueryResult;
+
+    constructor(config: QueryConfig) {
+        this.text = config.text;
+        this.args = config.args || [];
+        this.name = config.name || "";
+        this.result = new QueryResult();
+    }
 }
