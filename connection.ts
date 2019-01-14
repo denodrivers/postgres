@@ -286,27 +286,50 @@ export class Connection {
             .flush(0x45);
         await this.bufWriter.write(buffer3);
 
-        // sync message
+        // flush message
         this.packetWriter.clear();
         const buffer4 = this.packetWriter
-            .flush(0x53);
+            .flush(0x48);
         await this.bufWriter.write(buffer4);        
         await this.bufWriter.flush();
 
         let msg: Message;
         
         const result = new QueryResult();
+        
+        let bindComplete = false;
+        while(!bindComplete) {
+            msg = await this.readMessage();
+
+            switch (msg.type) {
+                // parse completion
+                case '1':
+                    // TODO:
+                    break;
+                // bind completion
+                case '2':
+                    // TODO:
+                    bindComplete = true;
+                    break;
+                // row description
+                case "T":
+                    result.handleRowDescription(this.handleRowDescription(msg));
+                    break;
+                // no data    
+                case "n":
+                    return result;
+                // error
+                case "E":
+                    const error = parseError(msg);
+                    throw error;
+                default:
+                    throw new Error(`Unexpected frame: ${msg.type}`);
+            }
+        }
+        
         msg = await this.readMessage();
 
         switch (msg.type) {
-            // parse completion
-            case '1':
-                // TODO:
-                break;
-            // bind completion
-            case '2':
-                // TODO:
-                break;
             // row description
             case "T":
                 result.handleRowDescription(this.handleRowDescription(msg));
@@ -343,6 +366,20 @@ export class Connection {
                 default:
                     throw new Error(`Unexpected frame: ${msg.type}`);
             }
+        }
+    
+        
+        // send 'sync' message
+        this.packetWriter.clear();
+        const buffer5 = this.packetWriter
+            .flush(0x53);
+        await this.bufWriter.write(buffer5);
+        await this.bufWriter.flush();
+
+        msg = await this.readMessage();
+
+        if (msg.type !== "Z") {
+            throw new Error(`Unexpected frame: ${msg.type}`);
         }
 
         return result;
