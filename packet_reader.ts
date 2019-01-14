@@ -7,19 +7,23 @@ export class PacketReader {
 
     constructor(private buffer: Uint8Array) {}
 
-    readInt16() {
+    readInt16(): number {
         const value = readInt16BE(this.buffer, this.offset)
         this.offset += 2;
         return value;
     }
 
-    readInt32() {
+    readInt32(): number {
         const value = readInt32BE(this.buffer, this.offset)
         this.offset += 4;
         return value;
     }
 
-    readBytes(length: number) {
+    readByte(): number {
+        return this.readBytes(1)[0];
+    }
+
+    readBytes(length: number): Uint8Array {
         const start = this.offset;
         const end = start + length;
         const slice = this.buffer.slice(start, end);
@@ -27,12 +31,12 @@ export class PacketReader {
         return slice;
     }
 
-    readString(length: number) {
+    readString(length: number): string {
         const bytes = this.readBytes(length)
         return this.decoder.decode(bytes);
     }
 
-    readCString() {
+    readCString(): string {
         const start = this.offset;
         // find next null byte
         const end = this.buffer.indexOf(0, start);

@@ -1,9 +1,10 @@
 import { Reader, Writer } from "deno";
-import { BufReader, BufWriter } from "https://deno.land/x/net/bufio.ts";
+import { BufReader, BufWriter } from "https://deno.land/x/io/bufio.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { readUInt32BE, readInt32BE, readInt16BE, readUInt16BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
 import { QueryResult } from "./query.ts";
+import { parseError } from "./error.ts";
 
 
 export interface ConnectionParams {
@@ -195,6 +196,9 @@ export class Connection {
                 // TODO: handle this message type properly
                 console.log("no data", msg);
                 return result;
+            case "E":
+                const error = parseError(msg);
+                throw new Error(error.message);
             default:
                 throw new Error(`Unexpected frame: ${msg.type}`);
         }
@@ -306,8 +310,6 @@ export class Connection {
                 break;
             // no data    
             case "n":
-                // TODO: handle this message type properly
-                console.log("no data", msg);
                 return result;
             default:
                 throw new Error(`Unexpected frame: ${msg.type}`);
