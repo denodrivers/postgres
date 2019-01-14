@@ -13,14 +13,15 @@ ToDo:
 - [ ] DSN style connection parameters
 - [ ] reading connection parameters from environmental variables
 - [x] termination of connection
-- [x] simple queries (no arguments)
-- [ ] parsing Postgres data types to native JS types
+- [x] simple queries (no arguments) 
+- [ ] parsing Postgres data types to native TS types
 - [x] row description
 - [ ] parametrized queries
 - [ ] connection pooling
+- [x] parsing error response
 
 ## Example
-```
+```ts
 import { Client } from "./main.ts";
 
 async function main() {
