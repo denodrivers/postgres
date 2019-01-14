@@ -169,7 +169,7 @@ export class Connection {
         console.log('ready for query, transaction status', txStatus);
     }
 
-    async query(query: string) {
+    private async _simpleQuery(query: string) {
         this.packetWriter.clear();
 
         const buffer = this.packetWriter
@@ -183,6 +183,120 @@ export class Connection {
 
         let msg: Message;
 
+        msg = await this.readMessage();
+
+        switch (msg.type) {
+            // row description
+            case "T":
+                result.handleRowDescription(this.handleRowDescription(msg));
+                break;
+            // no data    
+            case "n":
+                // TODO: handle this message type properly
+                console.log("no data", msg);
+                return result;
+            default:
+                throw new Error(`Unexpected frame: ${msg.type}`);
+        }
+
+        // TODO: refactor
+        let isDone = false;
+        while (!isDone) {
+            msg = await this.readMessage();
+            switch (msg.type) {
+                // data row
+                case "D":
+                    // this is actually packet read 
+                    const foo = this.parseDataRow(msg, Format.TEXT);
+                    result.handleDataRow(foo)
+                    break;
+                // command complete
+                case "C":
+                    isDone = true;
+                    break;
+
+                // TODO: handle other types of messages
+
+                default:
+                    throw new Error(`Unexpected frame: ${msg.type}`);
+            }
+        }
+
+        return result;
+    }
+
+    async query(query: string, ...args: any[]) {
+        if (args.length === 0) {
+            return this._simpleQuery(query);
+        }
+        
+        this.packetWriter.clear();
+
+
+        // prepare statement
+        const buffer = this.packetWriter
+            .addCString("") // TODO: handle named queries
+            .addCString(query)
+            .addInt16(0)
+            .flush(0x50);
+        await this.bufWriter.write(buffer);
+
+        // bind statement
+        this.packetWriter.clear();
+        this.packetWriter
+            .addCString("") // unnamed portal
+            .addCString("") // unnamed prepared statement
+            .addInt16(0) // TODO: handle binary arguments here
+            .addInt16(args.length);
+
+        args.forEach(arg => {
+            if (arg === null || typeof arg === 'undefined') {
+                this.packetWriter.addInt32(-1)
+            } else if (arg instanceof Uint8Array) {
+                this.packetWriter.addInt32(arg.length)
+                this.packetWriter.add(arg);
+            } else {
+                const byteLength = this.encoder.encode(arg).length;
+                this.packetWriter.addInt32(byteLength);
+                this.packetWriter.addString(arg);
+            }
+        });
+
+        this.packetWriter.addInt16(0);
+        const buffer1 = this.packetWriter.flush(0x42);
+
+        await this.bufWriter.write(buffer1);
+
+        // describe message
+        this.packetWriter.clear();
+        const buffer2 = this.packetWriter
+            .addCString("P")
+            .flush(0x44);
+        await this.bufWriter.write(buffer2);
+
+        // execute message
+        this.packetWriter.clear();
+        const buffer3 = this.packetWriter
+            .addCString("") // unnamed portal
+            .addInt32(0)
+            .flush(0x45);
+        await this.bufWriter.write(buffer3);
+
+        // sync message
+        this.packetWriter.clear();
+        const buffer4 = this.packetWriter
+            .flush(0x53);
+        await this.bufWriter.write(buffer4);        
+        await this.bufWriter.flush();
+
+        let msg: Message;
+
+        msg = await this.readMessage();
+        console.log(msg);
+        msg = await this.readMessage();
+        console.log(msg);
+        
+        const result = new QueryResult();
         msg = await this.readMessage();
 
         switch (msg.type) {

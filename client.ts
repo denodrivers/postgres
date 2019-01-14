@@ -40,8 +40,11 @@ export class Client {
         await this.connection.startup({ ...this.connectionParams });
     }
 
-    async query(text: string) {
-        return await this.connection.query(text);
+    // TODO: allow to use object config for query
+    // TODO: can we use more specific type for args?
+    async query(text: string, ...args: any[]) {
+        // TODO: create query object
+        return await this.connection.query(text, ...args);
     }
 
     async end() {
