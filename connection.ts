@@ -198,7 +198,7 @@ export class Connection {
                 return result;
             case "E":
                 const error = parseError(msg);
-                throw new Error(error.message);
+                throw error;
             default:
                 throw new Error(`Unexpected frame: ${msg.type}`);
         }
@@ -311,6 +311,10 @@ export class Connection {
             // no data    
             case "n":
                 return result;
+            // error
+            case "E":
+                const error = parseError(msg);
+                throw error;
             default:
                 throw new Error(`Unexpected frame: ${msg.type}`);
         }

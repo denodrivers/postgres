@@ -1,7 +1,6 @@
 import { Message } from "./connection.ts";
 
-// TODO: this should probably be extension of Error
-export interface PostgresError {
+export interface ErrorFields {
     severity: string;
     code: string;
     message: string;
@@ -21,8 +20,39 @@ export interface PostgresError {
     routine?: string;
 }
 
+export class PostgresError extends Error {
+    public fields: ErrorFields;
+
+    constructor(fields: ErrorFields) {
+        super(fields.message);
+        this.fields = fields;
+        this.name = "PostgresError";
+    }
+}
+
+const TOKEN_TO_FIELD_NAME = {
+    "S": "severity",
+    "C": "code",
+    "M": "message",
+    "D": "detail",
+    "H": "hint",
+    "P": "position",
+    "p": "internalPosition",
+    "q": "internalQuery",
+    "W": "where",
+    "s": "schema",
+    "t": "table",
+    "c": "column",
+    "d": "dataType",
+    "n": "constraint",
+    "F": "file",
+    "L": "line",
+    "R": "routine",
+}
+
 export function parseError(msg: Message): PostgresError {
-    const error: any = {};
+    // https://www.postgresql.org/docs/current/protocol-error-fields.html
+    const errorFields: any = {};
 
     let byte: number;
     let char: string;
@@ -34,55 +64,55 @@ export function parseError(msg: Message): PostgresError {
 
         switch (char) {
             case "S":
-                error.severity = errorMsg;
+                errorFields.severity = errorMsg;
                 break;
             case "C":
-                error.code = errorMsg
+                errorFields.code = errorMsg
                 break;
             case "M":
-                error.message = errorMsg;
+                errorFields.message = errorMsg;
                 break;
             case "D":
-                error.detail = errorMsg;
+                errorFields.detail = errorMsg;
                 break;
             case "H":
-                error.hint = errorMsg;
+                errorFields.hint = errorMsg;
                 break;
             case "P":
-                error.position = errorMsg;
+                errorFields.position = errorMsg;
                 break;
             case "p":
-                error.internalPosition = errorMsg;
+                errorFields.internalPosition = errorMsg;
                 break;
             case "q":
-                error.internalQuery = errorMsg;
+                errorFields.internalQuery = errorMsg;
                 break;
             case "W":
-                error.where = errorMsg;
+                errorFields.where = errorMsg;
                 break;
             case "s":
-                error.schema = errorMsg;
+                errorFields.schema = errorMsg;
                 break;
             case "t":
-                error.table = errorMsg;
+                errorFields.table = errorMsg;
                 break;
             case "c":
-                error.column = errorMsg;
+                errorFields.column = errorMsg;
                 break;
             case "d":
-                error.dataTypeName = errorMsg;
+                errorFields.dataTypeName = errorMsg;
                 break;
             case "n":
-                error.constraint = errorMsg;
+                errorFields.constraint = errorMsg;
                 break;
             case "F":
-                error.file = errorMsg;
+                errorFields.file = errorMsg;
                 break;
             case "L":
-                error.line = errorMsg;
+                errorFields.line = errorMsg;
                 break;
             case "R":
-                error.routine = errorMsg;
+                errorFields.routine = errorMsg;
                 break;
             default:
                 // from Postgres docs
@@ -92,5 +122,5 @@ export function parseError(msg: Message): PostgresError {
         }
     }
 
-    return error as PostgresError;
+    return new PostgresError(errorFields);
 }
