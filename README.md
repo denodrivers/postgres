@@ -1,16 +1,39 @@
 # deno-postgres
 **WORK IN PROGRESS** PostgreSQL driver for Deno
 
+`deno-postgres` is being developed based on excellent work of [node-postgres](https://github.com/brianc/node-postgres) 
+and [pq](https://github.com/lib/pq).
+
+Most of functionality is not yet implemented.
+
 ToDo:
 
 - [x] connecting to database
+- [ ] password handling
+- [ ] DSN style connection parameters
+- [ ] reading connection parameters from environmental variables
 - [x] termination of connection
-- [x] simple queries
-- [ ] row description
-- [ ] handling passwords
+- [x] simple queries (no arguments)
+- [ ] parsing Postgres data types to native JS types
+- [x] row description
 - [ ] parametrized queries
-- [ ] connection pool
+- [ ] connection pooling
 
+## Example
+```
+import { Client } from "./main.ts";
 
-Currently this module is being developed based on excellent work of [node-postgres](https://github.com/brianc/node-postgres) 
-as well as [pq](https://github.com/lib/pq).
+async function main() {
+    const client = new Client({ user: "user", database: "test" });
+    await client.connect();
+    const result = await client.query('SELECT $1::text as message', 'Hello world!');
+    console.log(result.rows);
+    await client.end();
+}
+
+main();
+```
+
+## API
+
+`deno-postgres` follows `node-postgres` API to make transition for Node devs as easy as possible.
