@@ -7,5 +7,8 @@ install:
 services:
   - postgresql
 
+before_script:
+  - psql -f tests/before_script.sql -U postgres
+
 script:
-  - deno --version
+  - deno test.ts --allow-net
