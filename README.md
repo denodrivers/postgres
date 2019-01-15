@@ -19,6 +19,7 @@ ToDo:
 - [ ] parametrized queries
 - [ ] connection pooling
 - [x] parsing error response
+- [ ] SSL
 
 ## Example
 ```ts

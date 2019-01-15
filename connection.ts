@@ -30,7 +30,7 @@ export class Message {
         public body: Uint8Array,
     ) {
         this.reader = new PacketReader(body);
-     }
+    }
 }
 
 
@@ -229,21 +229,19 @@ export class Connection {
         return result;
     }
 
-    async query(query: string, ...args: any[]) {
-        if (args.length === 0) {
-            return this._simpleQuery(query);
-        }
-        
+    async _sendPrepareMessage(query: string) {
         this.packetWriter.clear();
 
-
-        // prepare statement
         const buffer = this.packetWriter
             .addCString("") // TODO: handle named queries
             .addCString(query)
             .addInt16(0)
             .flush(0x50);
         await this.bufWriter.write(buffer);
+    }
+
+    async _sendBindMessage(args: any[]) {
+        this.packetWriter.clear();
 
         // bind statement
         this.packetWriter.clear();
@@ -267,38 +265,60 @@ export class Connection {
         });
 
         this.packetWriter.addInt16(0);
-        const buffer1 = this.packetWriter.flush(0x42);
+        const buffer = this.packetWriter.flush(0x42);
+        await this.bufWriter.write(buffer);
+    }
 
-        await this.bufWriter.write(buffer1);
-
-        // describe message
+    async _sendDescribeMessage() {
         this.packetWriter.clear();
-        const buffer2 = this.packetWriter
+
+        const buffer = this.packetWriter
             .addCString("P")
             .flush(0x44);
-        await this.bufWriter.write(buffer2);
+        await this.bufWriter.write(buffer);
+    }
 
-        // execute message
+    async _sendExecuteMessage() {
         this.packetWriter.clear();
-        const buffer3 = this.packetWriter
+
+        const buffer = this.packetWriter
             .addCString("") // unnamed portal
             .addInt32(0)
             .flush(0x45);
-        await this.bufWriter.write(buffer3);
+        await this.bufWriter.write(buffer);
+    }
 
-        // flush message
+    async _sendFlushMessage() {
         this.packetWriter.clear();
-        const buffer4 = this.packetWriter
+
+        const buffer = this.packetWriter
             .flush(0x48);
-        await this.bufWriter.write(buffer4);        
+        await this.bufWriter.write(buffer);
+    }
+
+    async _sendSyncMessage() {
+        this.packetWriter.clear();
+
+        const buffer = this.packetWriter
+            .flush(0x53);
+        await this.bufWriter.write(buffer);
+    }
+
+    async _preparedQuery(query: string, ...args: any[]) {
+        await this._sendPrepareMessage(query);
+        await this._sendBindMessage(args);
+        await this._sendDescribeMessage();
+        await this._sendExecuteMessage();
+        await this._sendSyncMessage();
+        // send all messages to backend
         await this.bufWriter.flush();
 
         let msg: Message;
-        
+
         const result = new QueryResult();
-        
+
         let bindComplete = false;
-        while(!bindComplete) {
+        while (!bindComplete) {
             msg = await this.readMessage();
 
             switch (msg.type) {
@@ -326,7 +346,7 @@ export class Connection {
                     throw new Error(`Unexpected frame: ${msg.type}`);
             }
         }
-        
+
         msg = await this.readMessage();
 
         switch (msg.type) {
@@ -367,13 +387,8 @@ export class Connection {
                     throw new Error(`Unexpected frame: ${msg.type}`);
             }
         }
-    
-        
-        // send 'sync' message
-        this.packetWriter.clear();
-        const buffer5 = this.packetWriter
-            .flush(0x53);
-        await this.bufWriter.write(buffer5);
+
+        await this._sendSyncMessage();
         await this.bufWriter.flush();
 
         msg = await this.readMessage();
@@ -383,6 +398,13 @@ export class Connection {
         }
 
         return result;
+    }
+
+    async query(query: string, ...args: any[]) {
+        if (args.length === 0) {
+            return this._simpleQuery(query);
+        }
+        return this._preparedQuery(query, ...args);
     }
 
     handleRowDescription(msg: Message): RowDescription {
