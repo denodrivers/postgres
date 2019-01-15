@@ -224,6 +224,16 @@ export class Connection {
             case "E":
                 await this._processError(msg);
                 break;
+            // notice response
+            case "N":
+                // TODO:
+                console.log("TODO: handle notice");
+                break;
+            // command complete
+            // TODO: this is duplicated in next loop
+            case "C":
+                result.done();
+                break;
             default:
                 throw new Error(`Unexpected frame: ${msg.type}`);
         }
