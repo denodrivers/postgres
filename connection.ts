@@ -3,7 +3,7 @@ import { BufReader, BufWriter } from "https://deno.land/x/io/bufio.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { readUInt32BE, readInt32BE, readInt16BE, readUInt16BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
-import { QueryResult } from "./query.ts";
+import { QueryResult, Query } from "./query.ts";
 import { parseError } from "./error.ts";
 
 
@@ -170,11 +170,11 @@ export class Connection {
         console.log('ready for query, transaction status', txStatus);
     }
 
-    private async _simpleQuery(query: string) {
+    private async _simpleQuery(query: Query): Promise<QueryResult> {
         this.packetWriter.clear();
 
         const buffer = this.packetWriter
-            .addCString(query)
+            .addCString(query.config.text)
             .flush(0x51);
 
         await this.bufWriter.write(buffer);
@@ -304,9 +304,9 @@ export class Connection {
         await this.bufWriter.write(buffer);
     }
 
-    async _preparedQuery(query: string, ...args: any[]) {
-        await this._sendPrepareMessage(query);
-        await this._sendBindMessage(args);
+    async _preparedQuery(query: Query): Promise<QueryResult> {
+        await this._sendPrepareMessage(query.config.text);
+        await this._sendBindMessage(query.config.args);
         await this._sendDescribeMessage();
         await this._sendExecuteMessage();
         await this._sendSyncMessage();
@@ -315,7 +315,7 @@ export class Connection {
 
         let msg: Message;
 
-        const result = new QueryResult();
+        const result = query.result;
 
         let bindComplete = false;
         while (!bindComplete) {
@@ -400,11 +400,11 @@ export class Connection {
         return result;
     }
 
-    async query(query: string, ...args: any[]) {
-        if (args.length === 0) {
-            return this._simpleQuery(query);
+    async query(query: Query): Promise<QueryResult> {
+        if (query.config.args.length === 0) {
+            return await this._simpleQuery(query);
         }
-        return this._preparedQuery(query, ...args);
+        return await this._preparedQuery(query);
     }
 
     handleRowDescription(msg: Message): RowDescription {
@@ -452,7 +452,7 @@ export class Connection {
         return row;
     }
 
-    async end() {
+    async end(): Promise<void> {
         const terminationMessage = new Uint8Array([0x58, 0x00, 0x00, 0x00, 0x04]);
         await this.bufWriter.write(terminationMessage);
         await this.bufWriter.flush();

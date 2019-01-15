@@ -1,4 +1,5 @@
 import { RowDescription } from "./connection.ts";
+import { Connection } from "./connection.ts";
 
 export interface QueryConfig {
     text: string;
@@ -49,15 +50,13 @@ export class QueryResult {
 }
 
 export class Query {
-    public text: string;
-    public args: any[];
-    public name: string;
     public result: QueryResult;
 
-    constructor(config: QueryConfig) {
-        this.text = config.text;
-        this.args = config.args || [];
-        this.name = config.name || "";
+    constructor(public connection: Connection, public config: QueryConfig) {
         this.result = new QueryResult();
+    }
+
+    async execute(): Promise<QueryResult> {
+        return await this.connection.query(this);
     }
 }

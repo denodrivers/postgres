@@ -1,6 +1,6 @@
 import { dial } from "deno";
 import { Connection, ConnectionParams } from "./connection.ts";
-import { Query, QueryConfig } from "./query.ts";
+import { Query, QueryConfig, QueryResult } from "./query.ts";
 
 
 // TODO: refactor this to properly use
@@ -41,9 +41,8 @@ export class Client {
         await this.connection.startup({ ...this.connectionParams });
     }
 
-    // TODO: allow to use object config for query
     // TODO: can we use more specific type for args?
-    async query(text: string | QueryConfig, ...args: any[]) {
+    async query(text: string | QueryConfig, ...args: any[]): Promise<QueryResult> {
         let config: QueryConfig;
 
         if (typeof(text) === "string") {
@@ -51,13 +50,12 @@ export class Client {
         } else {
             config = text;
         }
-        const query = new Query(config);
+        const query = new Query(this.connection, config);
 
-        return await this.connection.query(config.text, ...config.args);
+        return await query.execute();
     }
 
-    async end() {
-        // TODO: this method is not finished, close "conn" from `connect` is not closed properly
+    async end(): Promise<void> {
         await this.connection.end();
     }
 }
