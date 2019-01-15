@@ -21,6 +21,12 @@ enum Format {
     BINARY = 1,
 }
 
+enum TransactionStatus {
+    Idle = "I",
+    IdleInTransaction = "T",
+    InFailedTransaction = "E",
+};
+
 export class Message {
     public reader: PacketReader;
 
@@ -60,6 +66,11 @@ export class Connection {
     private packetWriter: PacketWriter;
     private decoder: TextDecoder = new TextDecoder();
     private encoder: TextEncoder = new TextEncoder();
+
+    private _transactionStatus?: TransactionStatus;
+    private _pid?: number;
+    private _secretKey?: number;
+    private _parameters: {[key: string]: string} = {};
 
     constructor(private conn: Conn) {
         this.bufReader = new BufReader(conn);
@@ -116,15 +127,15 @@ export class Connection {
             switch (msg.type) {
                 // backend key data
                 case "K":
-                    this.processBackendKeyData(msg);
+                    this._processBackendKeyData(msg);
                     break;
                 // parameter status    
                 case "S":
-                    this.processParameterStatus(msg);
+                    this._processParameterStatus(msg);
                     break;
                 // ready for query
                 case "Z":
-                    this.processReadyForQuery(msg);
+                    this._processReadyForQuery(msg);
                     isDone = true;
                     break;
                 default:
@@ -152,22 +163,31 @@ export class Connection {
         }
     }
 
-    processBackendKeyData(msg: Message) {
-        const pid = readUInt32BE(msg.body, 0);
-        const secretKey = readUInt32BE(msg.body, 4);
-        // TODO: save those values on connection
-        console.log('process backend key', pid, secretKey);
+    private _processBackendKeyData(msg: Message) {
+        this._pid = msg.reader.readInt32();
+        this._secretKey = msg.reader.readInt32();
     }
 
-    processParameterStatus(msg: Message) {
-        // TODO: handle Timezone and server version
-        // console.log('process parameter status')
+    private _processParameterStatus(msg: Message) {
+        // TODO: should we save all parameters?
+        const key = msg.reader.readCString();
+        const value = msg.reader.readCString();
+        this._parameters[key] = value;
     }
 
-    processReadyForQuery(msg: Message) {
-        // TODO: make an enum of transaction statuses
-        const txStatus = this.decoder.decode(msg.body.slice(0, 1));
-        console.log('ready for query, transaction status', txStatus);
+    private _processReadyForQuery(msg: Message) {
+        const txStatus = msg.reader.readByte();
+        this._transactionStatus = String.fromCharCode(txStatus) as TransactionStatus;
+    }
+
+    private async _readReadyForQuery() {
+        const msg = await this.readMessage();
+
+        if (msg.type !== 'Z') {
+            throw new Error(`Unexpected message type: ${msg.type}, expected "Z" (ReadyForQuery)`);
+        }
+
+        this._processReadyForQuery(msg);
     }
 
     private async _simpleQuery(query: Query): Promise<QueryResult> {
