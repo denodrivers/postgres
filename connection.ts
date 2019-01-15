@@ -3,7 +3,7 @@ import { BufReader, BufWriter } from "https://deno.land/x/io/bufio.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { readUInt32BE, readInt32BE, readInt16BE, readUInt16BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
-import { QueryResult, Query } from "./query.ts";
+import { QueryResult, Query, QueryConfig } from "./query.ts";
 import { parseError } from "./error.ts";
 
 
@@ -91,18 +91,25 @@ export class Connection {
         return new Message(msgType, msgLength, msgBody);
     }
 
+    // TODO: rewrite this function not to use new PacketWriter
     private async _sendStartupMessage(connParams: ConnectionParams) {
-        const writer = this.packetWriter
-            .addInt16(3)
-            .addInt16(0);
+        const writer = this.packetWriter;
+        
+        // protocol version - 3.0, written as 
+        writer.addInt16(3).addInt16(0);
 
+        // TODO: recognize other parameters
         ["user", "database", "application_name"].forEach(function (key) {
             const val = connParams[key];
             writer.addCString(key).addCString(val);
         })
 
+        // eplicitly set utf-8 encoding
         writer.addCString('client_encoding').addCString("'utf-8'");
-        const bodyBuffer = writer.addCString('').flush();
+        // terminator after all parameters were writter
+        writer.addCString("");
+
+        const bodyBuffer = writer.flush();
         var length = bodyBuffer.length + 4;
 
         var buffer = new PacketWriter()
@@ -248,18 +255,18 @@ export class Connection {
         }
     }
 
-    async _sendPrepareMessage(query: string) {
+    async _sendPrepareMessage(config: QueryConfig) {
         this.packetWriter.clear();
 
         const buffer = this.packetWriter
-            .addCString("") // TODO: handle named queries
-            .addCString(query)
+            .addCString("") // TODO: handle named queries (config.name)
+            .addCString(config.text)
             .addInt16(0)
             .flush(0x50);
         await this.bufWriter.write(buffer);
     }
 
-    async _sendBindMessage(args: any[]) {
+    async _sendBindMessage(config: QueryConfig) {
         this.packetWriter.clear();
 
         // bind statement
@@ -268,9 +275,9 @@ export class Connection {
             .addCString("") // unnamed portal
             .addCString("") // unnamed prepared statement
             .addInt16(0) // TODO: handle binary arguments here
-            .addInt16(args.length);
+            .addInt16(config.args.length);
 
-        args.forEach(arg => {
+        config.args.forEach(arg => {
             if (arg === null || typeof arg === 'undefined') {
                 this.packetWriter.addInt32(-1)
             } else if (arg instanceof Uint8Array) {
@@ -329,55 +336,64 @@ export class Connection {
         throw error;
     }
 
+    private async _readParseComplete() {
+        const msg = await this.readMessage();
+
+        switch (msg.type) {
+            // parse completed
+            case "1":
+                // TODO: add to already parsed queries if
+                // query has name, so it's not parsed again
+                break;
+            // error response
+            case "E":
+                await this._processError(msg);
+                break;
+            default: 
+                throw new Error(`Unexpected frame: ${msg.type}`);
+        }
+    }
+
+    private async _readBindComplete() {
+        const msg = await this.readMessage();
+
+        switch (msg.type) {
+            // bind completed
+            case "2":
+                // no-op
+                break;
+            // error response
+            case "E":
+                await this._processError(msg);
+                break;
+            default:
+                throw new Error(`Unexpected frame: ${msg.type}`);
+        }
+    }
+
+    // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
+    //  sent after error response is received in prepared statements?
     async _preparedQuery(query: Query): Promise<QueryResult> {
-        await this._sendPrepareMessage(query.config.text);
-        await this._sendBindMessage(query.config.args);
+        await this._sendPrepareMessage(query.config);
+        await this._sendBindMessage(query.config);
         await this._sendDescribeMessage();
         await this._sendExecuteMessage();
         await this._sendSyncMessage();
         // send all messages to backend
         await this.bufWriter.flush();
 
-        let msg: Message;
-
+        await this._readParseComplete();
+        await this._readBindComplete();
+        
         const result = query.result;
-
-        let bindComplete = false;
-        while (!bindComplete) {
-            msg = await this.readMessage();
-
-            switch (msg.type) {
-                // parse completion
-                case '1':
-                    // TODO:
-                    break;
-                // bind completion
-                case '2':
-                    // TODO:
-                    bindComplete = true;
-                    break;
-                // row description
-                case "T":
-                    result.handleRowDescription(this.handleRowDescription(msg));
-                    break;
-                // no data    
-                case "n":
-                    return result;
-                // error
-                case "E":
-                    await this._processError(msg);
-                    break;
-                default:
-                    throw new Error(`Unexpected frame: ${msg.type}`);
-            }
-        }
-
+        let msg: Message;
         msg = await this.readMessage();
 
         switch (msg.type) {
             // row description
             case "T":
-                result.handleRowDescription(this.handleRowDescription(msg));
+                const rowDescription = this._processRowDescription(msg);
+                result.handleRowDescription(rowDescription);
                 break;
             // no data    
             case "n":
@@ -431,7 +447,7 @@ export class Connection {
         return await this._preparedQuery(query);
     }
 
-    handleRowDescription(msg: Message): RowDescription {
+    private _processRowDescription(msg: Message): RowDescription {
         const columnCount = msg.reader.readInt16();
         const columns = [];
 
