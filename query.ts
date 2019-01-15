@@ -9,6 +9,7 @@ export interface QueryConfig {
 
 export class QueryResult {
     private rowDescription: RowDescription;
+    private _done = false;
     public rows: any[] = []; // actual results
 
     handleRowDescription(description: RowDescription) {
@@ -33,6 +34,10 @@ export class QueryResult {
     }
 
     handleDataRow(dataRow: any[]): void {
+        if (this._done) {
+            throw new Error("New data row, after result if done.");
+        }
+        
         const parsedRow = this._parseDataRow(dataRow);
         this.rows.push(parsedRow);
     }
@@ -46,6 +51,10 @@ export class QueryResult {
             
             return rv;
         })
+    }
+
+    done() {
+        this._done = true;
     }
 }
 

@@ -70,7 +70,7 @@ export class Connection {
     private _transactionStatus?: TransactionStatus;
     private _pid?: number;
     private _secretKey?: number;
-    private _parameters: {[key: string]: string} = {};
+    private _parameters: { [key: string]: string } = {};
 
     constructor(private conn: Conn) {
         this.bufReader = new BufReader(conn);
@@ -199,7 +199,7 @@ export class Connection {
         await this.bufWriter.write(buffer);
         await this.bufWriter.flush();
 
-        const result = new QueryResult();
+        const result = query.result;
 
         let msg: Message;
 
@@ -212,19 +212,16 @@ export class Connection {
                 break;
             // no data    
             case "n":
-                // TODO: handle this message type properly
-                console.log("no data", msg);
                 return result;
+            // error response
             case "E":
-                const error = parseError(msg);
-                throw error;
+                await this._processError(msg);
+                break;
             default:
                 throw new Error(`Unexpected frame: ${msg.type}`);
         }
 
-        // TODO: refactor
-        let isDone = false;
-        while (!isDone) {
+        while (true) {
             msg = await this.readMessage();
             switch (msg.type) {
                 // data row
@@ -235,17 +232,20 @@ export class Connection {
                     break;
                 // command complete
                 case "C":
-                    isDone = true;
+                    result.done();
                     break;
-
-                // TODO: handle other types of messages
-
+                // ready for query
+                case "Z":
+                    this._processReadyForQuery(msg);
+                    return result;
+                // error response
+                case "E":
+                    await this._processError(msg);
+                    break;
                 default:
                     throw new Error(`Unexpected frame: ${msg.type}`);
             }
         }
-
-        return result;
     }
 
     async _sendPrepareMessage(query: string) {
@@ -323,6 +323,12 @@ export class Connection {
         await this.bufWriter.write(buffer);
     }
 
+    async _processError(msg: Message) {
+        const error = parseError(msg);
+        await this._readReadyForQuery();
+        throw error;
+    }
+
     async _preparedQuery(query: Query): Promise<QueryResult> {
         await this._sendPrepareMessage(query.config.text);
         await this._sendBindMessage(query.config.args);
@@ -359,8 +365,8 @@ export class Connection {
                     return result;
                 // error
                 case "E":
-                    const error = parseError(msg);
-                    throw error;
+                    await this._processError(msg);
+                    break;
                 default:
                     throw new Error(`Unexpected frame: ${msg.type}`);
             }
@@ -378,8 +384,8 @@ export class Connection {
                 return result;
             // error
             case "E":
-                const error = parseError(msg);
-                throw error;
+                await this._processError(msg);
+                break;
             default:
                 throw new Error(`Unexpected frame: ${msg.type}`);
         }
@@ -397,11 +403,14 @@ export class Connection {
                     break;
                 // command complete
                 case "C":
+                    result.done();
+                    // TODO: this is horrible
                     isDone = true;
                     break;
-
-                // TODO: handle other types of messages
-
+                // error response
+                case "E":
+                    await this._processError(msg);
+                    break;
                 default:
                     throw new Error(`Unexpected frame: ${msg.type}`);
             }
@@ -410,11 +419,7 @@ export class Connection {
         await this._sendSyncMessage();
         await this.bufWriter.flush();
 
-        msg = await this.readMessage();
-
-        if (msg.type !== "Z") {
-            throw new Error(`Unexpected frame: ${msg.type}`);
-        }
+        await this._readReadyForQuery();
 
         return result;
     }
