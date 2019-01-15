@@ -1,7 +1,7 @@
 import { Client } from "./main.ts";
 
 async function main() {
-    const client = new Client({ user: "portal", database: "portal" });
+    const client = new Client({ user: "postgres", database: "postgres" });
     await client.connect();
     try {
         const result = await client.query('SELECT $1::text as message', 'Hello world!');

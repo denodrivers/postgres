@@ -8,4 +8,4 @@ services:
   - postgresql
 
 script:
-  - deno --version
+  - deno test.ts
