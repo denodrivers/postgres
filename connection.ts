@@ -215,7 +215,7 @@ export class Connection {
         switch (msg.type) {
             // row description
             case "T":
-                result.handleRowDescription(this.handleRowDescription(msg));
+                result.handleRowDescription(this._processRowDescription(msg));
                 break;
             // no data    
             case "n":
