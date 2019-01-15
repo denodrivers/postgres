@@ -1,4 +1,4 @@
-import { Reader, Writer } from "deno";
+import { Conn } from "deno";
 import { BufReader, BufWriter } from "https://deno.land/x/io/bufio.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { readUInt32BE, readInt32BE, readInt16BE, readUInt16BE } from "./utils.ts";
@@ -61,9 +61,9 @@ export class Connection {
     private decoder: TextDecoder = new TextDecoder();
     private encoder: TextEncoder = new TextEncoder();
 
-    constructor(private reader: Reader, private writer: Writer) {
-        this.bufReader = new BufReader(reader);
-        this.bufWriter = new BufWriter(writer);
+    constructor(private conn: Conn) {
+        this.bufReader = new BufReader(conn);
+        this.bufWriter = new BufWriter(conn);
         this.packetWriter = new PacketWriter();
     }
 
@@ -456,5 +456,6 @@ export class Connection {
         const terminationMessage = new Uint8Array([0x58, 0x00, 0x00, 0x00, 0x04]);
         await this.bufWriter.write(terminationMessage);
         await this.bufWriter.flush();
+        this.conn.close();
     }
 }
