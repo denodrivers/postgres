@@ -8,7 +8,7 @@ services:
   - postgresql
 
 before_script:
-  - psql -c "DROP DATABASE IF EXISTS deno_postgres; CREATE DATABASE deno_postgres OWNER deno_postgres;" -U postgres
+  - psql -f tests/before_script.sql -U postgres
 
 script:
   - deno test.ts
