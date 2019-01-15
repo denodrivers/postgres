@@ -91,15 +91,13 @@ export class Connection {
         return new Message(msgType, msgLength, msgBody);
     }
 
-    // TODO: add types
-    async startup(config: ConnectionParams) {
+    private async _sendStartupMessage(connParams: ConnectionParams) {
         const writer = this.packetWriter
             .addInt16(3)
             .addInt16(0);
 
-        // TODO: handle rest of config properly
         ["user", "database", "application_name"].forEach(function (key) {
-            const val = config[key];
+            const val = connParams[key];
             writer.addCString(key).addCString(val);
         })
 
@@ -113,6 +111,10 @@ export class Connection {
             .join();
 
         await this.bufWriter.write(buffer);
+    }
+
+    async startup(connParams: ConnectionParams) {
+        await this._sendStartupMessage(connParams);
         await this.bufWriter.flush();
 
         let msg: Message;
@@ -120,9 +122,7 @@ export class Connection {
         msg = await this.readMessage();
         this.handleAuth(msg);
 
-        // TODO: refactor
-        let isDone = false;
-        while (!isDone) {
+        while (true) {
             msg = await this.readMessage();
             switch (msg.type) {
                 // backend key data
@@ -136,8 +136,7 @@ export class Connection {
                 // ready for query
                 case "Z":
                     this._processReadyForQuery(msg);
-                    isDone = true;
-                    break;
+                    return;
                 default:
                     throw new Error(`Unknown response for startup: ${msg.type}`);
             }
