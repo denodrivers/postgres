@@ -286,7 +286,7 @@ export class Connection {
             .addCString("") // unnamed prepared statement
             .addInt16(0) // TODO: handle binary arguments here
             .addInt16(config.args.length);
-
+        
         config.args.forEach(arg => {
             if (arg === null || typeof arg === 'undefined') {
                 this.packetWriter.addInt32(-1)
