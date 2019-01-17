@@ -1,4 +1,4 @@
-# deno-postgres
+# deno-postgres [![Build Status](https://travis-ci.com/bartlomieju/deno-postgres.svg?branch=master)](https://travis-ci.com/bartlomieju/deno-postgres)
 **WORK IN PROGRESS** PostgreSQL driver for Deno
 
 `deno-postgres` is being developed based on excellent work of [node-postgres](https://github.com/brianc/node-postgres) 
