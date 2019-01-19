@@ -106,7 +106,7 @@ export class Connection {
         this.packetWriter = new PacketWriter();
     }
 
-    /** Read single message send by backend */
+    /** Read single message sent by backend */
     async readMessage(): Promise<Message> {
         // TODO: reuse buffer instead of allocating new ones each for each read
         const header = new Uint8Array(5);
@@ -119,10 +119,9 @@ export class Connection {
         return new Message(msgType, msgLength, msgBody);
     }
 
-    // TODO: rewrite this function not to use new PacketWriter
     private async _sendStartupMessage(connParams: ConnectionParams) {
         const writer = this.packetWriter;
-        
+        writer.clear();
         // protocol version - 3.0, written as 
         writer.addInt16(3).addInt16(0);
 
@@ -138,14 +137,16 @@ export class Connection {
         writer.addCString("");
 
         const bodyBuffer = writer.flush();
-        var length = bodyBuffer.length + 4;
+        const bodyLength = bodyBuffer.length + 4;
 
-        var buffer = new PacketWriter()
-            .addInt32(length)
+        writer.clear();
+        
+        const finalBuffer = writer
+            .addInt32(bodyLength)
             .add(bodyBuffer)
             .join();
 
-        await this.bufWriter.write(buffer);
+        await this.bufWriter.write(finalBuffer);
     }
 
     async startup(connParams: ConnectionParams) {
