@@ -16,10 +16,11 @@ Most of functionality is not yet implemented.
 - [x] simple queries (no arguments) 
 - [ ] parsing Postgres data types to native TS types
 - [x] row description
-- [ ] parametrized queries
+- [x] parametrized queries
 - [ ] connection pooling
 - [x] parsing error response
 - [ ] SSL
+- [ ] tests, tests, tests
 
 ## Example
 ```ts
@@ -28,7 +29,7 @@ import { Client } from "https://deno.land/x/postgres/mod.ts";
 async function main() {
     const client = new Client({ user: "user", database: "test" });
     await client.connect();
-    const result = await client.query('SELECT $1::text as message', 'Hello world!');
+    const result = await client.query("SELECT * FROM people;");
     console.log(result.rows);
     await client.end();
 }
@@ -61,7 +62,7 @@ await client.end();
 ### Queries
 Simple query
 ```ts
-const result = await client.query('SELECT * FROM some_table;');
+const result = await client.query('SELECT * FROM people;');
 console.log(result.rows);
 ```
 
@@ -77,3 +78,10 @@ const result = await client.query({
 });
 console.log(result.rows);
 ```
+
+## License
+There are substantial parts of this library based on other libraries. They have preserved their individual licenses and copyrights. 
+
+Eveything is licensed under the MIT License.
+
+All additional work is copyright 2018 - 2019 — Bartłomiej Iwańczuk — All rights reserved.
