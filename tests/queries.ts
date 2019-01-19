@@ -20,19 +20,19 @@ async function getTestClient(): Promise<Client> {
 
 // TODO: replace this with "setUp" once it lands in "testing" module
 test(async function beforeEach() {
-    console.log('setup');
     const client = await getTestClient();
 
     await client.query("DROP TABLE IF EXISTS ids;");
     await client.query("CREATE TABLE ids(id integer);");
     await client.query("INSERT INTO ids(id) values(1);");
     await client.query("INSERT INTO ids(id) values(2);");
-    console.log("setup done");
+
+    await client.query("DROP TABLE IF EXISTS timestamps;");
+    await client.query("CREATE TABLE timestamps(dt timestamp);");
 });
 
 
 test(async function simpleQuery() {
-    console.log('simple query');
     const client = await getTestClient();
     
     const result = await client.query('SELECT * FROM ids;');
@@ -41,12 +41,19 @@ test(async function simpleQuery() {
 
 
 test(async function parametrizedQuery() {
-    console.log('parametrized');
     const client = await getTestClient();
 
-    const result = await client.query('SELECT * FROM ids WHERE id < $1;', "2");
+    const result = await client.query('SELECT * FROM ids WHERE id < $1;', 2);
     assertEqual(result.rows.length, 1);
 });
+
+// TODO: make this test work - wrong message receiving logic
+// test(async function nativeType() {
+//     const client = await getTestClient();
+
+//     const result = await client.query('INSERT INTO timestamps(dt) values($1);', new Date());
+//     console.log(result.rows);
+// });
 
 test(async function tearDown() {
     await testClient.end();

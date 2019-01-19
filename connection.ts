@@ -200,7 +200,7 @@ export class Connection {
         this.packetWriter.clear();
 
         const buffer = this.packetWriter
-            .addCString(query.config.text)
+            .addCString(query.text)
             .flush(0x51);
 
         await this.bufWriter.write(buffer);
@@ -265,18 +265,18 @@ export class Connection {
         }
     }
 
-    async _sendPrepareMessage(config: QueryConfig) {
+    async _sendPrepareMessage(query: Query) {
         this.packetWriter.clear();
 
         const buffer = this.packetWriter
             .addCString("") // TODO: handle named queries (config.name)
-            .addCString(config.text)
+            .addCString(query.text)
             .addInt16(0)
             .flush(0x50);
         await this.bufWriter.write(buffer);
     }
 
-    async _sendBindMessage(config: QueryConfig) {
+    async _sendBindMessage(query: Query) {
         this.packetWriter.clear();
 
         // bind statement
@@ -285,9 +285,9 @@ export class Connection {
             .addCString("") // unnamed portal
             .addCString("") // unnamed prepared statement
             .addInt16(0) // TODO: handle binary arguments here
-            .addInt16(config.args.length);
+            .addInt16(query.args.length);
         
-        config.args.forEach(arg => {
+        query.args.forEach(arg => {
             if (arg === null || typeof arg === 'undefined') {
                 this.packetWriter.addInt32(-1)
             } else if (arg instanceof Uint8Array) {
@@ -384,8 +384,8 @@ export class Connection {
     // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
     //  sent after error response is received in prepared statements?
     async _preparedQuery(query: Query): Promise<QueryResult> {
-        await this._sendPrepareMessage(query.config);
-        await this._sendBindMessage(query.config);
+        await this._sendPrepareMessage(query);
+        await this._sendBindMessage(query);
         await this._sendDescribeMessage();
         await this._sendExecuteMessage();
         await this._sendSyncMessage();
@@ -451,7 +451,7 @@ export class Connection {
     }
 
     async query(query: Query): Promise<QueryResult> {
-        if (query.config.args.length === 0) {
+        if (query.args.length === 0) {
             return await this._simpleQuery(query);
         }
         return await this._preparedQuery(query);

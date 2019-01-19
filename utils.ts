@@ -29,3 +29,23 @@ export function readUInt32BE(buffer: Uint8Array, offset: number): number {
             buffer[offset + 3]
         )
 }
+
+export function toPostgresArray(array: Array<any>): string {
+    let postgresArray = "{";
+
+    array.forEach((element, index) => {
+        if (index > 0) {
+            postgresArray += ",";
+        }
+
+        if (!element) {
+            postgresArray += "NULL";
+        } else {
+            // TODO: handles only primitive types
+            postgresArray += element.toString();
+        }
+    })
+
+    postgresArray += "}";
+    return postgresArray;
+}
