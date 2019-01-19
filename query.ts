@@ -61,7 +61,7 @@ export class QueryResult {
 
 export class Query {
     public text: string;
-    public args: Array<string|Uint8Array>;
+    public args: Array<null|string|Uint8Array>;
     public result: QueryResult;
 
     constructor(public connection: Connection, config: QueryConfig) {
@@ -70,7 +70,7 @@ export class Query {
         this.result = new QueryResult();
     }
 
-    prepareArgs(args: any[]): Array<string | Uint8Array> {
+    prepareArgs(args: any[]): Array<null | string | Uint8Array> {
         // stringify all args
         return args.map(arg => {
             if (arg === null || typeof arg === "undefined") {

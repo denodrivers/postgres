@@ -279,13 +279,33 @@ export class Connection {
     async _sendBindMessage(query: Query) {
         this.packetWriter.clear();
 
+        const hasBinaryArgs = query.args.reduce((prev, curr) => {
+            return prev || curr instanceof Uint8Array;
+        }, false);
+
         // bind statement
         this.packetWriter.clear();
         this.packetWriter
-            .addCString("") // unnamed portal
-            .addCString("") // unnamed prepared statement
-            .addInt16(0) // TODO: handle binary arguments here
-            .addInt16(query.args.length);
+            .addCString("") // TODO: unnamed portal
+            .addCString(""); // TODO: unnamed prepared statement
+            
+        if (hasBinaryArgs) {
+            this.packetWriter
+                .addInt16(query.args.length);
+
+            query.args.forEach(arg => {
+                this.packetWriter
+                    .addInt16(
+                        arg instanceof Uint8Array 
+                        ? 1 
+                        : 0
+                    );
+            });
+        } else {
+            this.packetWriter.addInt16(0)
+        }
+            
+        this.packetWriter.addInt16(query.args.length);
         
         query.args.forEach(arg => {
             if (arg === null || typeof arg === 'undefined') {
