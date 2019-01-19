@@ -41,6 +41,7 @@ export class PacketWriter {
     private buffer: Uint8Array;
     private offset: number;
     private headerPosition: number;
+    private encoder = new TextEncoder();
 
     constructor(size?: number) {
         this.size = size || 1024;
@@ -82,20 +83,31 @@ export class PacketWriter {
         if (!string) {
             this._ensure(1);
         } else {
-            const len = byteLength(string);
-            this._ensure(len + 1); //+1 for null terminator
-            writeString(this.buffer, string, this.offset);
-            this.offset += len;
+            const encodedStr = this.encoder.encode(string);
+            this._ensure(encodedStr.byteLength + 1); //+1 for null terminator
+            copyBytes(
+                this.buffer, 
+                encodedStr, 
+                this.offset
+            );
+            this.offset += encodedStr.byteLength;
         }
 
         this.buffer[this.offset++] = 0; // null terminator
-        // console.log('post c string', this.offset);
         return this;
     }
 
     addChar(c: string) {
+        if (c.length != 1) {
+            throw new Error("addChar requires single character strings");
+        }
+
         this._ensure(1);
-        writeString(this.buffer, c, this.offset);
+        copyBytes(
+            this.buffer, 
+            this.encoder.encode(c), 
+            this.offset
+        );
         this.offset++;
         return this;
     }
@@ -103,22 +115,21 @@ export class PacketWriter {
 
     addString(string?: string) {
         string = string || "";
-        const len = byteLength(string);
-        this._ensure(len);
-        copyBytes(this.buffer, encoder.encode(string), this.offset)
-        this.offset += len;
+        const encodedStr = this.encoder.encode(string);
+        this._ensure(encodedStr.byteLength);
+        copyBytes(
+            this.buffer, 
+            encodedStr, 
+            this.offset
+        );
+        this.offset += encodedStr.byteLength;
         return this;
-    };
-
-    getByteLength() {
-        return this.offset - 5;
     };
 
     add(otherBuffer: Uint8Array) {
         this._ensure(otherBuffer.length);
         copyBytes(this.buffer, otherBuffer, this.offset);
         this.offset += otherBuffer.length;
-        // console.log('pre join', this.offset, this.size, this.headerPosition);
         return this;
     };
 
@@ -156,19 +167,7 @@ export class PacketWriter {
     flush(code?: number) {
         const result = this.join(code);
         this.clear();
-        // console.log('flush result', this.offset, this.headerPosition, this.size);
-        // console.log('decoded', new TextDecoder().decode(result));
         return result;
     };
-}
-
-const encoder = new TextEncoder();
-function writeString(buffer: Uint8Array, string: string, offset: number) {
-    // console.log('write string', string, offset, encoder.encode(string));
-    copyBytes(buffer, encoder.encode(string), offset);
-};
-
-function byteLength(str: string) {
-    return encoder.encode(str).byteLength;
 }
 
