@@ -48,12 +48,12 @@ test(async function parametrizedQuery() {
 });
 
 // TODO: make this test work - wrong message receiving logic
-// test(async function nativeType() {
-//     const client = await getTestClient();
+test(async function nativeType() {
+    const client = await getTestClient();
 
-//     const result = await client.query('INSERT INTO timestamps(dt) values($1);', new Date());
-//     console.log(result.rows);
-// });
+    const result = await client.query('INSERT INTO timestamps(dt) values($1);', new Date());
+    console.log(result.rows);
+});
 
 test(async function tearDown() {
     await testClient.end();

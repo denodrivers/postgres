@@ -273,7 +273,7 @@ export class Connection {
                 // data row
                 case "D":
                     // this is actually packet read 
-                    const foo = this.parseDataRow(msg, Format.TEXT);
+                    const foo = this._readDataRow(msg, Format.TEXT);
                     result.handleDataRow(foo)
                     break;
                 // command complete
@@ -473,13 +473,12 @@ export class Connection {
                 // data row
                 case "D":
                     // this is actually packet read 
-                    const foo = this.parseDataRow(msg, Format.TEXT);
-                    result.handleDataRow(foo)
+                    const rawDataRow = this._readDataRow(msg, Format.TEXT);
+                    result.handleDataRow(rawDataRow)
                     break;
                 // command complete
                 case "C":
                     result.done();
-                    // TODO: this is horrible
                     isDone = true;
                     break;
                 // error response
@@ -490,9 +489,6 @@ export class Connection {
                     throw new Error(`Unexpected frame: ${msg.type}`);
             }
         }
-
-        await this._sendSyncMessage();
-        await this.bufWriter.flush();
 
         await this._readReadyForQuery();
 
@@ -528,7 +524,7 @@ export class Connection {
         return new RowDescription(columnCount, columns);
     }
 
-    parseDataRow(msg: Message, format: Format): any[] {
+    _readDataRow(msg: Message, format: Format): any[] {
         const fieldCount = msg.reader.readInt16();
         const row = [];
 
