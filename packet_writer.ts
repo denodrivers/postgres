@@ -25,16 +25,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// Copied from deno_std
-// Returns the number of bytes copied.
-export function copyBytes(dst: Uint8Array, src: Uint8Array, off = 0): number {
-    const r = dst.byteLength - off;
-    if (src.byteLength > r) {
-        src = src.subarray(0, r);
-    }
-    dst.set(src, off);
-    return src.byteLength;
-}
+ import { copyBytes } from "https://deno.land/x/std@v0.2.6/io/util.ts";
 
 export class PacketWriter {
     private size: number;
