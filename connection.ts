@@ -38,7 +38,7 @@ import { parseError } from "./error.ts";
 export interface ConnectionParams {
     database?: string;
     host?: string;
-    port?: number;
+    port?: string;
     user?: string;
     password?: string;
     application_name?: string;

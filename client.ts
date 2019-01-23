@@ -1,6 +1,7 @@
 import { dial } from "deno";
 import { Connection, ConnectionParams } from "./connection.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
+import { parseDsn } from "./utils.ts";
 
 
 // TODO: refactor this to properly use
@@ -8,7 +9,7 @@ import { Query, QueryConfig, QueryResult } from "./query.ts";
 const DEFAULT_CONNECTION_PARAMS = {
     database: "postgres",
     host: "127.0.0.1",
-    port: 5432,
+    port: "5432",
     user: "postgres",
     password: "postgres",
     application_name: "deno_postgres"
@@ -18,7 +19,11 @@ export class Client {
     connection: Connection;
     connectionParams: ConnectionParams;
 
-    constructor(connectionParams?: ConnectionParams) {
+    constructor(connectionParams?: ConnectionParams | string) {
+        if (typeof connectionParams === "string") {
+            connectionParams = parseDsn(connectionParams);
+        }
+
         if (connectionParams) {
             this.connectionParams = {
                 ...DEFAULT_CONNECTION_PARAMS,

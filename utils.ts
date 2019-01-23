@@ -49,3 +49,35 @@ export function toPostgresArray(array: Array<any>): string {
     postgresArray += "}";
     return postgresArray;
 }
+
+export interface DsnResult {
+    driver: String;
+    user: String;
+    password: String;
+    host: String;
+    port: String;
+    database: String;
+    params: {
+        [key: string]: String,
+    },
+}
+
+export function parseDsn(dsn: string): DsnResult {
+    const url = new URL(dsn);
+
+    const params = {};
+    for (const [key, value] of url.searchParams.entries()) {
+        params[key] = value;
+    }
+
+    return {
+        driver: url.protocol.slice(0, url.protocol.length - 1),
+        user: url.username,
+        password: url.password,
+        host: url.hostname,
+        port: url.port,
+        // remove leading slash from path
+        database: url.pathname.slice(1),
+        params,
+    }
+}
