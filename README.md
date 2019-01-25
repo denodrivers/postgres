@@ -10,8 +10,8 @@ Most of functionality is not yet implemented.
 
 - [x] connecting to database
 - [ ] password handling
-- [ ] DSN style connection parameters
-- [ ] reading connection parameters from environmental variables
+- [x] DSN style connection parameters
+- [x] reading connection parameters from environmental variables
 - [x] termination of connection
 - [x] simple queries (no arguments) 
 - [ ] parsing Postgres data types to native TS types
