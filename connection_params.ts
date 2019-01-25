@@ -29,6 +29,8 @@ export class ConnectionParams {
     // TODO: support other params
 
     constructor(config?: string | IConnectionParams) {
+        // TODO: I don't really like that we require access to environment
+        //  by default, maybe it should be flag-controlled?
         const envVars = env();
 
         if (!config) {

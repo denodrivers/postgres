@@ -27,7 +27,7 @@ Most of functionality is not yet implemented.
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 
 async function main() {
-    const client = new Client({ user: "user", database: "test" });
+    const client = new Client({ user: "user", database: "test", host: "localhost", port: "5432" });
     await client.connect();
     const result = await client.query("SELECT * FROM people;");
     console.log(result.rows);
@@ -43,18 +43,24 @@ main();
 
 
 ### Connecting to DB
-Currently only explicit connection parameters are handled, but support for environmental variables will be added soon.
+If any of parameters is missing it is read from environmental variable.
 
 ```ts
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 
-const connParameters = {
+let config;
+
+config = {
+    host: "localhost",
+    port: "5432",
     user: "user", 
     database: "test",
     application_name: "my_custom_app",
 };
+// alternatively
+config = "postgres://user@localhost:5432/test?application_name=my_custom_app";
 
-const client = new Client(connParameters);
+const client = new Client(config);
 await client.connect();
 await client.end();
 ```
