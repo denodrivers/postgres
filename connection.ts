@@ -33,16 +33,8 @@ import { readUInt32BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
 import { QueryResult, Query, QueryConfig } from "./query.ts";
 import { parseError } from "./error.ts";
+import { ConnectionParams } from "./connection_params.ts";
 
-
-export interface ConnectionParams {
-    database?: string;
-    host?: string;
-    port?: string;
-    user?: string;
-    password?: string;
-    application_name?: string;
-}
 
 enum Format {
     TEXT = 0,

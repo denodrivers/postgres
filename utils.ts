@@ -51,14 +51,14 @@ export function toPostgresArray(array: Array<any>): string {
 }
 
 export interface DsnResult {
-    driver: String;
-    user: String;
-    password: String;
-    host: String;
-    port: String;
-    database: String;
+    driver: string;
+    user: string;
+    password: string;
+    host: string;
+    port: string;
+    database: string;
     params: {
-        [key: string]: String,
+        [key: string]: string,
     },
 }
 
@@ -71,6 +71,7 @@ export function parseDsn(dsn: string): DsnResult {
     }
 
     return {
+        // remove trailing colon
         driver: url.protocol.slice(0, url.protocol.length - 1),
         user: url.username,
         password: url.password,
