@@ -12,6 +12,8 @@ async function getTestClient(): Promise<Client> {
     testClient = new Client({
         user: "postgres",
         database: "deno_postgres",
+        host: "localhost",
+        port: "5432",
     });
     await testClient.connect();
 

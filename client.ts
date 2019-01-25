@@ -1,34 +1,14 @@
 import { dial } from "deno";
-import { Connection, ConnectionParams } from "./connection.ts";
+import { Connection } from "./connection.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
-
-
-// TODO: refactor this to properly use
-//  default values, read from env variables as well
-const DEFAULT_CONNECTION_PARAMS = {
-    database: "postgres",
-    host: "127.0.0.1",
-    port: 5432,
-    user: "postgres",
-    password: "postgres",
-    application_name: "deno_postgres"
-};
+import { IConnectionParams, ConnectionParams } from "./connection_params.ts";
 
 export class Client {
     connection: Connection;
     connectionParams: ConnectionParams;
 
-    constructor(connectionParams?: ConnectionParams) {
-        if (connectionParams) {
-            this.connectionParams = {
-                ...DEFAULT_CONNECTION_PARAMS,
-                ...connectionParams,
-            };
-        } else {
-            this.connectionParams = {
-                ...DEFAULT_CONNECTION_PARAMS,
-            };
-        }
+    constructor(config?: IConnectionParams | string) {
+        this.connectionParams = new ConnectionParams(config);
     }
 
     async connect() {

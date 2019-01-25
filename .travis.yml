@@ -11,4 +11,4 @@ before_script:
   - psql -f tests/before_script.sql -U postgres
 
 script:
-  - deno test.ts --allow-net
+  - deno test.ts --allow-net --allow-env
