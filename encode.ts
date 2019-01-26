@@ -9,8 +9,7 @@ function toPostgresArray(array: Array<any>): string {
         if (!element) {
             postgresArray += "NULL";
         } else {
-            // TODO: handles only primitive types
-            postgresArray += element.toString();
+            postgresArray += encode(element);
         }
     })
 
