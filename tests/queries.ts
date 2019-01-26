@@ -48,6 +48,12 @@ test(async function parametrizedQuery() {
 
     const result = await client.query('SELECT * FROM ids WHERE id < $1;', 2);
     assertEqual(result.rows.length, 1);
+
+    const objectRows = result.rowsOfObjects();
+    const row = objectRows[0];
+
+    assertEqual(row.id, 1);
+    assertEqual(typeof row.id, "number");
 });
 
 // TODO: make this test work - wrong message receiving logic

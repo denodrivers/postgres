@@ -36,7 +36,7 @@ import { parseError } from "./error.ts";
 import { ConnectionParams } from "./connection_params.ts";
 
 
-enum Format {
+export enum Format {
     TEXT = 0,
     BINARY = 1,
 }
@@ -60,7 +60,7 @@ export class Message {
 }
 
 
-class Column {
+export class Column {
     constructor(
         public name: string,
         public tableOid: number,
@@ -312,7 +312,7 @@ export class Connection {
                 // data row
                 case "D":
                     // this is actually packet read 
-                    const foo = this._readDataRow(msg, Format.TEXT);
+                    const foo = this._readDataRow(msg);
                     result.handleDataRow(foo)
                     break;
                 // command complete
@@ -512,7 +512,7 @@ export class Connection {
                 // data row
                 case "D":
                     // this is actually packet read 
-                    const rawDataRow = this._readDataRow(msg, Format.TEXT);
+                    const rawDataRow = this._readDataRow(msg);
                     result.handleDataRow(rawDataRow)
                     break;
                 // command complete
@@ -563,7 +563,7 @@ export class Connection {
         return new RowDescription(columnCount, columns);
     }
 
-    _readDataRow(msg: Message, format: Format): any[] {
+    _readDataRow(msg: Message): any[] {
         const fieldCount = msg.reader.readInt16();
         const row = [];
 
@@ -575,12 +575,8 @@ export class Connection {
                 continue;
             }
 
-            if (format === Format.TEXT) {
-                const foo = msg.reader.readString(colLength);
-                row.push(foo)
-            } else {
-                row.push(msg.reader.readBytes(colLength))
-            }
+            // reading raw bytes here, they will be properly parsed later
+            row.push(msg.reader.readBytes(colLength))
         }
 
         return row;
