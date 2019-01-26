@@ -1,11 +1,12 @@
 import { RowDescription } from "./connection.ts";
 import { Connection } from "./connection.ts";
-import { toPostgresArray } from "./utils.ts";
+import { encode, EncodedArg } from "./encode.ts";
 
 export interface QueryConfig {
     text: string;
     args?: any[];
     name?: string;
+    encoder?: (arg: any) => EncodedArg,
 }
 
 export class QueryResult {
@@ -61,32 +62,18 @@ export class QueryResult {
 
 export class Query {
     public text: string;
-    public args: Array<null|string|Uint8Array>;
+    public args: EncodedArg[];
     public result: QueryResult;
 
     constructor(public connection: Connection, config: QueryConfig) {
         this.text = config.text;
-        this.args = this.prepareArgs(config.args);
+        this.args = this._prepareArgs(config);
         this.result = new QueryResult();
     }
 
-    prepareArgs(args: any[]): Array<null | string | Uint8Array> {
-        // stringify all args
-        return args.map(arg => {
-            if (arg === null || typeof arg === "undefined") {
-                return null;
-            } else if (arg instanceof Uint8Array) {
-                return arg;
-            } else if (arg instanceof Date) {
-                return arg.toISOString();
-            } else if (arg instanceof Array) {
-                return toPostgresArray(arg);
-            } else if (arg instanceof Object) {
-                return JSON.stringify(arg);
-            } else {
-                return arg.toString();
-            }
-        });
+    private _prepareArgs(config: QueryConfig): EncodedArg[] {
+        const encodingFn = config.encoder ? config.encoder : encode;
+        return config.args.map(encodingFn);
     }
 
     async execute(): Promise<QueryResult> {
