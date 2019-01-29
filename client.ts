@@ -16,7 +16,7 @@ export class Client {
         let addr = `${host}:${port}`;
 
         const conn = await dial("tcp", addr);
-        this.connection = new Connection(conn);
+        this.connection = new Connection(conn, this.connectionParams);
 
         await this.connection.startup({ ...this.connectionParams });
     }

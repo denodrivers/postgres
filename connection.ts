@@ -92,7 +92,7 @@ export class Connection {
     private _secretKey?: number;
     private _parameters: { [key: string]: string } = {};
 
-    constructor(private conn: Conn) {
+    constructor(private conn: Conn, private connParams: ConnectionParams) {
         this.bufReader = new BufReader(conn);
         this.bufWriter = new BufWriter(conn);
         this.packetWriter = new PacketWriter();
@@ -179,7 +179,7 @@ export class Connection {
                 break;
             case 3:
                 // cleartext password
-                // TODO
+                await this._authCleartext()
                 break;
             case 5:
                 // md5 password
@@ -188,6 +188,32 @@ export class Connection {
             default:
                 throw new Error(`Unknown auth message code ${code}`);
         }
+    }
+
+    private async _authCleartext() {
+        this.packetWriter.clear();
+
+        const password = this.connParams.password || "";
+
+        const buffer = this.packetWriter
+            .addCString(password)
+            .flush(0x70);
+
+        await this.bufWriter.write(buffer);
+        await this.bufWriter.flush();
+    }
+
+    private async _authMd5() {
+        this.packetWriter.clear();
+
+        const password = "";
+
+        const buffer = this.packetWriter
+            .addCString(password)
+            .flush(0x70);
+
+        await this.bufWriter.write(buffer);
+        await this.bufWriter.flush();
     }
 
     private _processBackendKeyData(msg: Message) {
