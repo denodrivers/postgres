@@ -148,7 +148,7 @@ export class Connection {
         let msg: Message;
 
         msg = await this.readMessage();
-        this.handleAuth(msg);
+        this.handleAuth(msg, connParams);
 
         while (true) {
             msg = await this.readMessage();
@@ -171,7 +171,7 @@ export class Connection {
         }
     }
 
-    async handleAuth(msg: Message) {
+    async handleAuth(msg: Message, connParams: ConnectionParams) {
         const code = readUInt32BE(msg.body, 0);
         switch (code) {
             case 0:
@@ -179,7 +179,8 @@ export class Connection {
                 break;
             case 3:
                 // cleartext password
-                // TODO
+                const encodedPassword = new TextEncoder().encode(connParams.password);
+                await this.bufWriter.write(encodedPassword);
                 break;
             case 5:
                 // md5 password
