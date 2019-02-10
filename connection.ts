@@ -29,7 +29,7 @@
 import { Conn } from "deno";
 import { BufReader, BufWriter } from "https://deno.land/x/io/bufio.ts";
 import { PacketWriter } from "./packet_writer.ts";
-import { readUInt32BE } from "./utils.ts";
+import { readUInt32BE, readInt32BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
 import { QueryResult, Query, QueryConfig } from "./query.ts";
 import { parseError } from "./error.ts";
@@ -148,7 +148,7 @@ export class Connection {
         let msg: Message;
 
         msg = await this.readMessage();
-        this.handleAuth(msg);
+        await this.handleAuth(msg);
 
         while (true) {
             msg = await this.readMessage();
@@ -172,22 +172,40 @@ export class Connection {
     }
 
     async handleAuth(msg: Message) {
-        const code = readUInt32BE(msg.body, 0);
+        const code = msg.reader.readInt32();
         switch (code) {
             case 0:
                 // pass
                 break;
             case 3:
                 // cleartext password
-                await this._authCleartext()
+                await this._authCleartext();
+                await this._readAuthResponse();
                 break;
             case 5:
                 // md5 password
-                // TODO
+                const salt = msg.reader.readBytes(4);
+                await this._authMd5(salt);
+                await this._readAuthResponse();
                 break;
             default:
                 throw new Error(`Unknown auth message code ${code}`);
         }
+    }
+
+    private async _readAuthResponse() {
+        const msg = await this.readMessage();
+
+        if (msg.type !== "R") {
+            throw new Error(`Unexpected auth response: ${msg.type}.`);
+        }
+
+        const responseCode = msg.reader.readInt32();
+        if (responseCode !== 0) {
+            throw new Error(`Unexpected auth response code: ${responseCode}.`);
+        }
+
+        console.log('read auth ok!');
     }
 
     private async _authCleartext() {
@@ -203,9 +221,11 @@ export class Connection {
         await this.bufWriter.flush();
     }
 
-    private async _authMd5() {
+    private async _authMd5(salt: Uint8Array) {
+        // TODO: there is not md5 hasher for deno ATM
         this.packetWriter.clear();
 
+        
         const password = "";
 
         const buffer = this.packetWriter
