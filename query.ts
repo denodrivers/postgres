@@ -1,6 +1,8 @@
-import { RowDescription } from "./connection.ts";
+import { RowDescription, Column, Format } from "./connection.ts";
 import { Connection } from "./connection.ts";
 import { encode, EncodedArg } from "./encode.ts";
+
+import { decode } from "./decode.ts";
 
 export interface QueryConfig {
     text: string;
@@ -14,6 +16,8 @@ export class QueryResult {
     private _done = false;
     public rows: any[] = []; // actual results
 
+    constructor(public query: Query) {}
+
     handleRowDescription(description: RowDescription) {
         this.rowDescription = description;
     }
@@ -22,13 +26,13 @@ export class QueryResult {
         const parsedRow = [];
 
         for (let i = 0, len = dataRow.length; i < len; i++) {
+            const column = this.rowDescription.columns[i];
             const rawValue = dataRow[i];
+
             if (rawValue === null) {
                 parsedRow.push(null);
             } else {
-                // TODO: parse properly
-                const parsedValue = rawValue;
-                parsedRow.push(parsedValue)
+                parsedRow.push(decode(rawValue, column))
             }
         }
 
@@ -68,7 +72,7 @@ export class Query {
     constructor(public connection: Connection, config: QueryConfig) {
         this.text = config.text;
         this.args = this._prepareArgs(config);
-        this.result = new QueryResult();
+        this.result = new QueryResult(this);
     }
 
     private _prepareArgs(config: QueryConfig): EncodedArg[] {
