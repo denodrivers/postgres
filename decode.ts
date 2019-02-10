@@ -40,7 +40,9 @@ function decodeDate(dateStr: string): null | Date {
  * Returns offset in miliseconds.
  */
 function decodeTimezoneOffset(dateStr: string): null | number {
-    const matches = TIMEZONE_RE.exec(dateStr);
+    // get rid of date part as TIMEZONE_RE would match '-MM` part
+    const timeStr = dateStr.split(' ')[1];
+    const matches = TIMEZONE_RE.exec(timeStr);
 
     if (!matches) {
         return null;
@@ -105,7 +107,6 @@ function decodeDatetime(dateStr: string): null | number | Date {
     let date: Date;
 
     const offset = decodeTimezoneOffset(dateStr);
-
     if (offset === null) {
         date = new Date(year, month, day, hour, minute, second, ms);
     } else {
@@ -119,6 +120,7 @@ function decodeDatetime(dateStr: string): null | number | Date {
     // century `Date`'s compatibility for millenium bug
     // would set it as 19XX
     date.setUTCFullYear(year);
+    return date;
 }
 
 function decodeBinary() {

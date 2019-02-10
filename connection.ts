@@ -204,8 +204,6 @@ export class Connection {
         if (responseCode !== 0) {
             throw new Error(`Unexpected auth response code: ${responseCode}.`);
         }
-
-        console.log('read auth ok!');
     }
 
     private async _authCleartext() {

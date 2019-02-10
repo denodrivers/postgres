@@ -1,6 +1,7 @@
 import { RowDescription, Column, Format } from "./connection.ts";
 import { Connection } from "./connection.ts";
 import { encode, EncodedArg } from "./encode.ts";
+
 import { decode } from "./decode.ts";
 
 export interface QueryConfig {
@@ -70,13 +71,8 @@ export class Query {
 
     constructor(public connection: Connection, config: QueryConfig) {
         this.text = config.text;
-<<<<<<< HEAD
         this.args = this._prepareArgs(config);
-        this.result = new QueryResult();
-=======
-        this.args = this.prepareArgs(config.args);
         this.result = new QueryResult(this);
->>>>>>> first pass at decoding data rows
     }
 
     private _prepareArgs(config: QueryConfig): EncodedArg[] {
