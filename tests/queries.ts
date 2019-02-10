@@ -1,6 +1,5 @@
 import { test, assertEqual } from "https://deno.land/x/std@v0.2.6/testing/mod.ts";
 import { Client } from "../mod.ts";
-import { QueryResult } from "../query.ts";
 
 let testClient: Client;
 
@@ -11,10 +10,12 @@ async function getTestClient(): Promise<Client> {
 
     testClient = new Client({
         user: "postgres",
+        password: "postgres",
         database: "deno_postgres",
         host: "localhost",
         port: "5432",
     });
+
     await testClient.connect();
 
     return testClient;
