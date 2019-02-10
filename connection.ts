@@ -223,6 +223,8 @@ export class Connection {
 
     private async _authMd5(salt: Uint8Array) {
         // TODO: there is not md5 hasher for deno ATM
+        throw new Error("MD5 password auth not implemented.");
+        
         this.packetWriter.clear();
 
         
