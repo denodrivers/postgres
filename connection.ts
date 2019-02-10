@@ -29,9 +29,9 @@
 import { Conn } from "deno";
 import { BufReader, BufWriter } from "https://deno.land/x/io/bufio.ts";
 import { PacketWriter } from "./packet_writer.ts";
-import { readUInt32BE, readInt32BE } from "./utils.ts";
+import { readUInt32BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
-import { QueryResult, Query, QueryConfig } from "./query.ts";
+import { QueryResult, Query } from "./query.ts";
 import { parseError } from "./error.ts";
 import { ConnectionParams } from "./connection_params.ts";
 
@@ -224,7 +224,6 @@ export class Connection {
     private async _authMd5(salt: Uint8Array) {
         // TODO: there is not md5 hasher for deno ATM
         throw new Error("MD5 password auth not implemented.");
-        
         this.packetWriter.clear();
 
         
