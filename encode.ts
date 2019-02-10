@@ -1,10 +1,3 @@
-function escapeValue(value: string): string {
-    value = value.toString();
-    const escapedValue = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-
-    return `"${escapedValue}"`;
-}
-
 function pad(number: number, digits: number): string {
     let padded = "" + number
     while (padded.length < digits) { 
@@ -46,29 +39,36 @@ function encodeDate(date: Date): string {
     return encodedDate + encodedTz; 
 }
 
+function escapeArrayElement(value: string): string {
+    value = value.toString();
+    const escapedValue = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
+    return `"${escapedValue}"`;
+}
+
 function encodeArray(array: Array<any>): string {
-    let postgresArray = "{";
+    let encodedArray = "{";
 
     array.forEach((element, index) => {
         if (index > 0) {
-            postgresArray += ",";
+            encodedArray += ",";
         }
 
         if (element === null || typeof element === "undefined") {
-            postgresArray += "NULL";
+            encodedArray += "NULL";
         } else if (Array.isArray(element)) {
-            postgresArray += encodeArray(element);
+            encodedArray += encodeArray(element);
         } else if (element instanceof Uint8Array) {
             // TODO: it should be encoded as bytea?
             throw new Error("Can't encode array of buffers.");
         } else {
             const encodedElement = encode(element);
-            postgresArray += escapeValue(encodedElement as string);
+            encodedArray += escapeArrayElement(encodedElement as string);
         }
     })
 
-    postgresArray += "}";
-    return postgresArray;
+    encodedArray += "}";
+    return encodedArray;
 }
 
 export type EncodedArg = null | string | Uint8Array;
