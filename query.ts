@@ -1,57 +1,13 @@
 import { RowDescription, Column, Format } from "./connection.ts";
 import { Connection } from "./connection.ts";
 import { encode, EncodedArg } from "./encode.ts";
-import { Oid } from "./oid.ts";
+import { decode } from "./decode.ts";
 
 export interface QueryConfig {
     text: string;
     args?: any[];
     name?: string;
     encoder?: (arg: any) => EncodedArg,
-}
-
-
-function decodeBinary() {
-    throw new Error("Not implemented!")
-}
-
-const decoder = new TextDecoder();
-
-function decodeText(value: Uint8Array, column: Column) {
-    const strValue = decoder.decode(value);
-    
-    switch (column.typeOid) {
-        case Oid.char:
-        case Oid.varchar:
-        case Oid.text:
-            return strValue;
-        case Oid.bool:
-            return strValue[0] === "t";
-        case Oid.int2:
-        case Oid.int4:
-        case Oid.int8:
-            return parseInt(strValue, 10);
-        case Oid.float4:
-        case Oid.float8:
-            return parseFloat(strValue);
-        case Oid.timestamptz:
-        case Oid.timestamp:
-        case Oid.date:
-        case Oid.time:
-        case Oid.timetz:
-        default: 
-         throw new Error(`Don't know how to parse column type: ${column.typeOid}`);
-    }
-}
-
-function decode(value: Uint8Array, column: Column) {
-    if (column.format === Format.BINARY) {
-        return decodeBinary();
-    } else if (column.format === Format.TEXT) {
-        return decodeText(value, column);
-    } else {
-        throw new Error(`Unknown column format: ${column.format}`);
-    }
 }
 
 export class QueryResult {
@@ -75,9 +31,7 @@ export class QueryResult {
             if (rawValue === null) {
                 parsedRow.push(null);
             } else {
-                // TODO: parse properly
-                const parsedValue = decode(rawValue, column);
-                parsedRow.push(parsedValue)
+                parsedRow.push(decode(rawValue, column))
             }
         }
 

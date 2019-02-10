@@ -32,6 +32,7 @@ test(async function beforeEach() {
 
     await client.query("DROP TABLE IF EXISTS timestamps;");
     await client.query("CREATE TABLE timestamps(dt timestamp);");
+    await client.query(`INSERT INTO timestamps(dt) values("2019-02-10T10:20:30.005+04:30");`);
 });
 
 
@@ -56,12 +57,14 @@ test(async function parametrizedQuery() {
     assertEqual(typeof row.id, "number");
 });
 
-// TODO: make this test work - wrong message receiving logic
 test(async function nativeType() {
     const client = await getTestClient();
 
-    const result = await client.query('INSERT INTO timestamps(dt) values($1);', new Date());
-    console.log(result.rows);
+    const result = await client.query("SELECT * FROM timestamps;");
+
+    console.log(result);
+    await client.query('INSERT INTO timestamps(dt) values($1);', new Date());
+    
 });
 
 test(async function tearDown() {
