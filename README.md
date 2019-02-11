@@ -1,20 +1,20 @@
 # deno-postgres [![Build Status](https://travis-ci.com/bartlomieju/deno-postgres.svg?branch=master)](https://travis-ci.com/bartlomieju/deno-postgres) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/deno-postgres/community)
-**WORK IN PROGRESS** PostgreSQL driver for Deno
+PostgreSQL driver for Deno. 
+
+It's still work in progress, but you can take it for a test drive!
 
 `deno-postgres` is being developed based on excellent work of [node-postgres](https://github.com/brianc/node-postgres) 
 and [pq](https://github.com/lib/pq).
 
-Most of functionality is not yet implemented.
-
 ## To Do:
 
 - [x] connecting to database
-- [ ] password handling
+- [x] password handling - ~~cleartext~~, MD5
 - [x] DSN style connection parameters
 - [x] reading connection parameters from environmental variables
 - [x] termination of connection
 - [x] simple queries (no arguments) 
-- [ ] parsing Postgres data types to native TS types
+- [x] parsing Postgres data types to native TS types
 - [x] row description
 - [x] parametrized queries
 - [ ] connection pooling
