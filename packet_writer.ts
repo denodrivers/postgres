@@ -25,7 +25,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
- import { copyBytes } from "https://deno.land/x/std@v0.2.6/io/util.ts";
+import { copyBytes } from "./deps.ts";
 
 export class PacketWriter {
     private size: number;

@@ -1,4 +1,4 @@
 import { env } from "deno";
-import { test, assertEqual } from "https://deno.land/x/std@v0.2.6/testing/mod.ts";
+import { test, assertEqual } from "../deps.ts";
 import { Client } from "../mod.ts";
 
