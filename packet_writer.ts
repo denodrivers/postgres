@@ -28,137 +28,123 @@
 import { copyBytes } from "./deps.ts";
 
 export class PacketWriter {
-    private size: number;
-    private buffer: Uint8Array;
-    private offset: number;
-    private headerPosition: number;
-    private encoder = new TextEncoder();
+  private size: number;
+  private buffer: Uint8Array;
+  private offset: number;
+  private headerPosition: number;
+  private encoder = new TextEncoder();
 
-    constructor(size?: number) {
-        this.size = size || 1024;
-        this.buffer = new Uint8Array(this.size + 5);
-        this.offset = 5;
-        this.headerPosition = 0;
+  constructor(size?: number) {
+    this.size = size || 1024;
+    this.buffer = new Uint8Array(this.size + 5);
+    this.offset = 5;
+    this.headerPosition = 0;
+  }
+
+  _ensure(size: number) {
+    const remaining = this.buffer.length - this.offset;
+    if (remaining < size) {
+      const oldBuffer = this.buffer;
+      // exponential growth factor of around ~ 1.5
+      // https://stackoverflow.com/questions/2269063/buffer-growth-strategy
+      const newSize = oldBuffer.length + (oldBuffer.length >> 1) + size;
+      this.buffer = new Uint8Array(newSize);
+      copyBytes(this.buffer, oldBuffer);
+    }
+  }
+
+  addInt32(num: number) {
+    this._ensure(4);
+    this.buffer[this.offset++] = (num >>> 24) & 0xff;
+    this.buffer[this.offset++] = (num >>> 16) & 0xff;
+    this.buffer[this.offset++] = (num >>> 8) & 0xff;
+    this.buffer[this.offset++] = (num >>> 0) & 0xff;
+    return this;
+  }
+
+  addInt16(num: number) {
+    this._ensure(2);
+    this.buffer[this.offset++] = (num >>> 8) & 0xff;
+    this.buffer[this.offset++] = (num >>> 0) & 0xff;
+    return this;
+  }
+
+  addCString(string?: string) {
+    //just write a 0 for empty or null strings
+    if (!string) {
+      this._ensure(1);
+    } else {
+      const encodedStr = this.encoder.encode(string);
+      this._ensure(encodedStr.byteLength + 1); //+1 for null terminator
+      copyBytes(this.buffer, encodedStr, this.offset);
+      this.offset += encodedStr.byteLength;
     }
 
-    _ensure(size: number) {
-        const remaining = this.buffer.length - this.offset;
-        if (remaining < size) {
-            const oldBuffer = this.buffer;
-            // exponential growth factor of around ~ 1.5
-            // https://stackoverflow.com/questions/2269063/buffer-growth-strategy
-            const newSize = oldBuffer.length + (oldBuffer.length >> 1) + size;
-            this.buffer = new Uint8Array(newSize);
-            copyBytes(this.buffer, oldBuffer);
-        }
+    this.buffer[this.offset++] = 0; // null terminator
+    return this;
+  }
+
+  addChar(c: string) {
+    if (c.length != 1) {
+      throw new Error("addChar requires single character strings");
     }
 
-    addInt32(num: number) {
-        this._ensure(4);
-        this.buffer[this.offset++] = (num >>> 24 & 0xFF);
-        this.buffer[this.offset++] = (num >>> 16 & 0xFF);
-        this.buffer[this.offset++] = (num >>> 8 & 0xFF);
-        this.buffer[this.offset++] = (num >>> 0 & 0xFF);
-        return this;
+    this._ensure(1);
+    copyBytes(this.buffer, this.encoder.encode(c), this.offset);
+    this.offset++;
+    return this;
+  }
+
+  addString(string?: string) {
+    string = string || "";
+    const encodedStr = this.encoder.encode(string);
+    this._ensure(encodedStr.byteLength);
+    copyBytes(this.buffer, encodedStr, this.offset);
+    this.offset += encodedStr.byteLength;
+    return this;
+  }
+
+  add(otherBuffer: Uint8Array) {
+    this._ensure(otherBuffer.length);
+    copyBytes(this.buffer, otherBuffer, this.offset);
+    this.offset += otherBuffer.length;
+    return this;
+  }
+
+  clear() {
+    this.offset = 5;
+    this.headerPosition = 0;
+  }
+
+  //appends a header block to all the written data since the last
+  //subsequent header or to the beginning if there is only one data block
+  addHeader(code: number, last?: boolean) {
+    const origOffset = this.offset;
+    this.offset = this.headerPosition;
+    this.buffer[this.offset++] = code;
+    //length is everything in this packet minus the code
+    this.addInt32(origOffset - (this.headerPosition + 1));
+    //set next header position
+    this.headerPosition = origOffset;
+    //make space for next header
+    this.offset = origOffset;
+    if (!last) {
+      this._ensure(5);
+      this.offset += 5;
     }
+    return this;
+  }
 
-    addInt16(num: number) {
-        this._ensure(2);
-        this.buffer[this.offset++] = (num >>> 8 & 0xFF);
-        this.buffer[this.offset++] = (num >>> 0 & 0xFF);
-        return this;
+  join(code?: number) {
+    if (code) {
+      this.addHeader(code, true);
     }
+    return this.buffer.slice(code ? 0 : 5, this.offset);
+  }
 
-    addCString(string?: string) {
-        //just write a 0 for empty or null strings
-        if (!string) {
-            this._ensure(1);
-        } else {
-            const encodedStr = this.encoder.encode(string);
-            this._ensure(encodedStr.byteLength + 1); //+1 for null terminator
-            copyBytes(
-                this.buffer, 
-                encodedStr, 
-                this.offset
-            );
-            this.offset += encodedStr.byteLength;
-        }
-
-        this.buffer[this.offset++] = 0; // null terminator
-        return this;
-    }
-
-    addChar(c: string) {
-        if (c.length != 1) {
-            throw new Error("addChar requires single character strings");
-        }
-
-        this._ensure(1);
-        copyBytes(
-            this.buffer, 
-            this.encoder.encode(c), 
-            this.offset
-        );
-        this.offset++;
-        return this;
-    }
-
-
-    addString(string?: string) {
-        string = string || "";
-        const encodedStr = this.encoder.encode(string);
-        this._ensure(encodedStr.byteLength);
-        copyBytes(
-            this.buffer, 
-            encodedStr, 
-            this.offset
-        );
-        this.offset += encodedStr.byteLength;
-        return this;
-    };
-
-    add(otherBuffer: Uint8Array) {
-        this._ensure(otherBuffer.length);
-        copyBytes(this.buffer, otherBuffer, this.offset);
-        this.offset += otherBuffer.length;
-        return this;
-    };
-
-    clear() {
-        this.offset = 5;
-        this.headerPosition = 0;
-    };
-
-    //appends a header block to all the written data since the last
-    //subsequent header or to the beginning if there is only one data block
-    addHeader(code: number, last?: boolean) {
-        const origOffset = this.offset;
-        this.offset = this.headerPosition;
-        this.buffer[this.offset++] = code;
-        //length is everything in this packet minus the code
-        this.addInt32(origOffset - (this.headerPosition + 1));
-        //set next header position
-        this.headerPosition = origOffset;
-        //make space for next header
-        this.offset = origOffset;
-        if (!last) {
-            this._ensure(5);
-            this.offset += 5;
-        }
-        return this;
-    };
-
-    join(code?: number) {
-        if (code) {
-            this.addHeader(code, true);
-        }
-        return this.buffer.slice(code ? 0 : 5, this.offset);
-    };
-
-    flush(code?: number) {
-        const result = this.join(code);
-        this.clear();
-        return result;
-    };
+  flush(code?: number) {
+    const result = this.join(code);
+    this.clear();
+    return result;
+  }
 }
-
