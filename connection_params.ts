@@ -1,14 +1,16 @@
 import { env } from "deno";
 import { parseDsn } from "./utils.ts";
 
-const DEFAULT_CONNECTION_PARAMS = {
-  host: "127.0.0.1",
-  port: "5432",
-  user: "postgres",
-  database: "postgres",
-  password: "",
-  application_name: "deno_postgres"
-};
+let _env;
+// allows to access environmentals lazily removing
+// need to always add --allow-env permission to Deno
+function lazyEnv() {
+  if (!_env) {
+    _env = env();
+  }
+
+  return _env;
+}
 
 export interface IConnectionParams {
   database?: string;
@@ -29,10 +31,6 @@ export class ConnectionParams {
   // TODO: support other params
 
   constructor(config?: string | IConnectionParams) {
-    // TODO: I don't really like that we require access to environment
-    //  by default, maybe it should be flag-controlled?
-    const envVars = env();
-
     if (!config) {
       config = {};
     }
@@ -43,19 +41,20 @@ export class ConnectionParams {
         throw new Error(`Supplied DSN has invalid driver: ${dsn.driver}.`);
       }
 
-      this.database = dsn.database || envVars.PGDATABASE;
-      this.host = dsn.host || envVars.PGHOST;
-      this.port = dsn.port || envVars.PGPORT;
-      this.user = dsn.user || envVars.PGUSER;
-      this.password = dsn.password || envVars.PGPASSWORD;
-      this.application_name = dsn.params.application_name || envVars.PGAPPNAME;
+      this.database = dsn.database || lazyEnv().PGDATABASE;
+      this.host = dsn.host || lazyEnv().PGHOST;
+      this.port = dsn.port || lazyEnv().PGPORT;
+      this.user = dsn.user || lazyEnv().PGUSER;
+      this.password = dsn.password || lazyEnv().PGPASSWORD;
+      this.application_name =
+        dsn.params.application_name || lazyEnv().PGAPPNAME;
     } else {
-      this.database = config.database || envVars.PGDATABASE;
-      this.host = config.host || envVars.PGHOST;
-      this.port = config.port || envVars.PGPORT;
-      this.user = config.user || envVars.PGUSER;
-      this.password = config.password || envVars.PGPASSWORD;
-      this.application_name = config.application_name || envVars.PGAPPNAME;
+      this.database = config.database || lazyEnv().PGDATABASE;
+      this.host = config.host || lazyEnv().PGHOST;
+      this.port = config.port || lazyEnv().PGPORT;
+      this.user = config.user || lazyEnv().PGUSER;
+      this.password = config.password || lazyEnv().PGPASSWORD;
+      this.application_name = config.application_name || lazyEnv().PGAPPNAME;
     }
   }
 }
