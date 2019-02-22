@@ -1,8 +1,13 @@
 #! /usr/bin/env deno --allow-run
-import { exit, run } from "deno";
+import { exit, args, run } from "deno";
+import { parse } from "https://deno.land/x/flags/mod.ts";
 
-async function main() {
+async function main(opts) {
   const args = ["deno", "--allow-run", "--fmt"];
+
+  if (opts.check) {
+    args.push("--check");
+  }
 
   const p = run({ args });
 
@@ -11,4 +16,4 @@ async function main() {
   exit(code);
 }
 
-main();
+main(parse(args));
