@@ -276,7 +276,7 @@ export class Connection {
         break;
       // no data
       case "n":
-        return result;
+        break;
       // error response
       case "E":
         await this._processError(msg);
@@ -474,7 +474,7 @@ export class Connection {
         break;
       // no data
       case "n":
-        return result;
+        break;
       // error
       case "E":
         await this._processError(msg);
