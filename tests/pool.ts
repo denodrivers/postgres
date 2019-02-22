@@ -1,29 +1,31 @@
 import { test, assertEqual } from "../deps.ts";
 import { Client } from "../mod.ts";
+import { ConnectionPool } from "../pool.ts";
 
-let testClient: Client;
+let testPool: Client;
 
-async function getTestClient(): Promise<Client> {
-  if (testClient) {
-    return testClient;
+async function getTestPool(): Promise<Client> {
+  if (testPool) {
+    return testPool;
   }
 
-  testClient = new Client({
-    user: "postgres",
-    password: "postgres",
-    database: "deno_postgres",
-    host: "localhost",
-    port: "5432"
-  });
-
-  await testClient.startup();
-
-  return testClient;
+  testPool = new Client(
+    {
+      user: "postgres",
+      password: "postgres",
+      database: "deno_postgres",
+      host: "localhost",
+      port: "5432"
+    },
+    10
+  );
+  await testPool.startup();
+  return testPool;
 }
 
 // TODO: replace this with "setUp" once it lands in "testing" module
 test(async function beforeEach() {
-  const client = await getTestClient();
+  const client = await getTestPool();
 
   await client.query("DROP TABLE IF EXISTS ids;");
   await client.query("CREATE TABLE ids(id integer);");
@@ -38,14 +40,14 @@ test(async function beforeEach() {
 });
 
 test(async function simpleQuery() {
-  const client = await getTestClient();
+  const client = await getTestPool();
 
   const result = await client.query("SELECT * FROM ids;");
   assertEqual(result.rows.length, 2);
 });
 
 test(async function parametrizedQuery() {
-  const client = await getTestClient();
+  const client = await getTestPool();
 
   const result = await client.query("SELECT * FROM ids WHERE id < $1;", 2);
   assertEqual(result.rows.length, 1);
@@ -58,7 +60,7 @@ test(async function parametrizedQuery() {
 });
 
 test(async function nativeType() {
-  const client = await getTestClient();
+  const client = await getTestPool();
 
   const result = await client.query("SELECT * FROM timestamps;");
   const row = result.rows[0];
@@ -70,6 +72,27 @@ test(async function nativeType() {
   await client.query("INSERT INTO timestamps(dt) values($1);", new Date());
 });
 
+test(async function manyQueries() {
+  const client = await getTestPool();
+
+  assertEqual(client.availableConnection, 10);
+  const p = client.query("SELECT pg_sleep(0.2) is null, -1 AS id;");
+  assertEqual(client.availableConnection, 9);
+  await p;
+  assertEqual(client.availableConnection, 10);
+
+  const qs_thunks = [...Array(25)].map((_, i) =>
+    client.query("SELECT pg_sleep(0.2) is null, $1 as id;", i)
+  );
+  const qs_promises = Promise.all(qs_thunks);
+  assertEqual(client.availableConnection, 0);
+  const qs = await qs_promises;
+  assertEqual(client.availableConnection, 10);
+
+  const result = qs.map(r => r.rows[0][1]);
+  assertEqual(result, [...Array(25)].map((_, i) => i.toString()));
+});
+
 test(async function tearDown() {
-  await testClient.end();
+  await testPool.end();
 });

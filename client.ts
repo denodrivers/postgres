@@ -1,24 +1,32 @@
 import { dial } from "deno";
 import { Connection } from "./connection.ts";
+import { ConnectionPool } from "./pool.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
 import { IConnectionParams, ConnectionParams } from "./connection_params.ts";
 
 export class Client {
-  connection: Connection;
+  pool: ConnectionPool;
   connectionParams: ConnectionParams;
 
-  constructor(config?: IConnectionParams | string) {
+  constructor(config?: IConnectionParams | string, poolSize: number = 1) {
     this.connectionParams = new ConnectionParams(config);
+    this.pool = new ConnectionPool(() => this.connect(), poolSize);
   }
 
-  async connect() {
+  async startup() {
+    await this.pool.startup();
+  }
+
+  private async connect(): Promise<Connection> {
     const { host, port } = this.connectionParams;
     let addr = `${host}:${port}`;
 
     const conn = await dial("tcp", addr);
-    this.connection = new Connection(conn, this.connectionParams);
+    const connection = new Connection(conn, this.connectionParams);
 
-    await this.connection.startup({ ...this.connectionParams });
+    await connection.startup({ ...this.connectionParams });
+    await connection.initSQL();
+    return connection;
   }
 
   // TODO: can we use more specific type for args?
@@ -33,12 +41,15 @@ export class Client {
     } else {
       config = text;
     }
-    const query = new Query(this.connection, config);
-
-    return await query.execute();
+    const query = new Query(config);
+    return await this.pool.execute(query);
   }
 
   async end(): Promise<void> {
-    await this.connection.end();
+    await this.pool.end();
+  }
+
+  get availableConnection() {
+    return this.pool.available;
   }
 }

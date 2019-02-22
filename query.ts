@@ -69,7 +69,7 @@ export class Query {
   public args: EncodedArg[];
   public result: QueryResult;
 
-  constructor(public connection: Connection, config: QueryConfig) {
+  constructor(config: QueryConfig) {
     this.text = config.text;
     this.args = this._prepareArgs(config);
     this.result = new QueryResult(this);
@@ -80,7 +80,7 @@ export class Query {
     return config.args.map(encodingFn);
   }
 
-  async execute(): Promise<QueryResult> {
-    return await this.connection.query(this);
+  async execute(connection: Connection): Promise<QueryResult> {
+    return await connection.query(this);
   }
 }

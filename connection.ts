@@ -31,7 +31,7 @@ import { BufReader, BufWriter } from "https://deno.land/x/io/bufio.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { readUInt32BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
-import { QueryResult, Query } from "./query.ts";
+import { QueryConfig, QueryResult, Query } from "./query.ts";
 import { parseError } from "./error.ts";
 import { ConnectionParams } from "./connection_params.ts";
 
@@ -559,6 +559,12 @@ export class Connection {
     }
 
     return row;
+  }
+
+  async initSQL(): Promise<void> {
+    const config: QueryConfig = { text: "select 1;", args: [] };
+    const query = new Query(config);
+    await query.execute(this);
   }
 
   async end(): Promise<void> {
