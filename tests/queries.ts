@@ -16,7 +16,7 @@ async function getTestClient(): Promise<Client> {
     port: "5432"
   });
 
-  await testClient.startup();
+  await testClient.connect();
 
   return testClient;
 }

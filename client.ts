@@ -10,14 +10,14 @@ export class Client {
 
   constructor(config?: IConnectionParams | string, poolSize: number = 1) {
     this.connectionParams = new ConnectionParams(config);
-    this.pool = new ConnectionPool(() => this.connect(), poolSize);
+    this.pool = new ConnectionPool(() => this.connection(), poolSize);
   }
 
-  async startup() {
+  async connect() {
     await this.pool.startup();
   }
 
-  private async connect(): Promise<Connection> {
+  private async connection(): Promise<Connection> {
     const { host, port } = this.connectionParams;
     let addr = `${host}:${port}`;
 

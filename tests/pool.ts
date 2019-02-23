@@ -19,7 +19,7 @@ async function getTestPool(): Promise<Client> {
     },
     10
   );
-  await testPool.startup();
+  await testPool.connect();
   return testPool;
 }
 
@@ -76,13 +76,13 @@ test(async function manyQueries() {
   const client = await getTestPool();
 
   assertEqual(client.availableConnection, 10);
-  const p = client.query("SELECT pg_sleep(0.2) is null, -1 AS id;");
+  const p = client.query("SELECT pg_sleep(0.1) is null, -1 AS id;");
   assertEqual(client.availableConnection, 9);
   await p;
   assertEqual(client.availableConnection, 10);
 
   const qs_thunks = [...Array(25)].map((_, i) =>
-    client.query("SELECT pg_sleep(0.2) is null, $1 as id;", i)
+    client.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
   );
   const qs_promises = Promise.all(qs_thunks);
   assertEqual(client.availableConnection, 0);
@@ -90,7 +90,8 @@ test(async function manyQueries() {
   assertEqual(client.availableConnection, 10);
 
   const result = qs.map(r => r.rows[0][1]);
-  assertEqual(result, [...Array(25)].map((_, i) => i.toString()));
+  const expected = [...Array(25)].map((_, i) => i.toString())
+  assertEqual(result, expected);
 });
 
 test(async function tearDown() {
