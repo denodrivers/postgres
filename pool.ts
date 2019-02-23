@@ -1,17 +1,30 @@
+import { dial } from "deno";
 import { Connection } from "./connection.ts";
-import { ConnectionParams } from "./connection_params.ts";
+import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
 import { Query, QueryResult } from "./query.ts";
 import { defer, Deferred } from "./deps.ts";
 
 export class ConnectionPool {
+  private _connectionParams: IConnectionParams;
   private _connections: Array<Connection>;
   private _availableConnections: DeferredStack<Connection>;
-  private _connect: () => Promise<Connection>;
   private _size: number;
 
-  constructor(connect: () => Promise<Connection>, size: number) {
-    this._connect = connect;
+  constructor(connectionParams: IConnectionParams, size: number) {
+    this._connectionParams = connectionParams;
     this._size = size;
+  }
+
+  private async newConnection(): Promise<Connection> {
+    const { host, port } = this._connectionParams;
+    let addr = `${host}:${port}`;
+
+    const conn = await dial("tcp", addr);
+    const connection = new Connection(conn, this._connectionParams);
+
+    await connection.startup({ ...this._connectionParams });
+    await connection.initSQL();
+    return connection;
   }
 
   get size(): number {
@@ -23,7 +36,7 @@ export class ConnectionPool {
 
   async startup(): Promise<void> {
     const connecting = [...Array(this.size)].map(
-      async () => await this._connect()
+      async () => await this.newConnection()
     );
     this._connections = await Promise.all(connecting);
     this._availableConnections = new DeferredStack(this._connections);
@@ -34,16 +47,7 @@ export class ConnectionPool {
     await Promise.all(ending);
   }
 
-  // TODO: can we use more specific type for args?
-  // async query(text: string | QueryConfig, ...args: any[]): Promise<QueryResult> {
-  //     const connection = await this._availableConnections.pop()
-
-  //     const result = await connection.query(text, ...args);
-  //     this._availableConnections.push(connection);
-  //     return result;
-  // }
-
-  async execute(query: Query) {
+  async execute(query: Query): Promise<QueryResult> {
     const connection = await this._availableConnections.pop();
     const result = await query.execute(connection);
     this._availableConnections.push(connection);
@@ -60,18 +64,15 @@ class DeferredStack<T> {
     this._queue = [];
   }
   async pop(): Promise<T> {
-    // console.log("\nPOP", this._array.length)
     if (this._array.length > 0) {
       return this._array.pop();
     }
     const d = defer();
-    //console.log("\nDEFERRED")
     this._queue.push(d);
     await d.promise;
     return this._array.pop();
   }
   push(value: T): void {
-    //console.log("\nPUSH", this._array.length)
     this._array.push(value);
     if (this._queue.length > 0) {
       const d = this._queue.shift();

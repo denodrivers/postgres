@@ -75,19 +75,19 @@ test(async function nativeType() {
 test(async function manyQueries() {
   const client = await getTestPool();
 
-  assertEqual(client.availableConnection, 10);
+  assertEqual(client.availableConnections, 10);
   const p = client.query("SELECT pg_sleep(0.1) is null, -1 AS id;");
-  assertEqual(client.availableConnection, 9);
+  assertEqual(client.availableConnections, 9);
   await p;
-  assertEqual(client.availableConnection, 10);
+  assertEqual(client.availableConnections, 10);
 
   const qs_thunks = [...Array(25)].map((_, i) =>
     client.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
   );
   const qs_promises = Promise.all(qs_thunks);
-  assertEqual(client.availableConnection, 0);
+  assertEqual(client.availableConnections, 0);
   const qs = await qs_promises;
-  assertEqual(client.availableConnection, 10);
+  assertEqual(client.availableConnections, 10);
 
   const result = qs.map(r => r.rows[0][1]);
   const expected = [...Array(25)].map((_, i) => i.toString());
