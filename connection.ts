@@ -483,9 +483,7 @@ export class Connection {
         throw new Error(`Unexpected frame: ${msg.type}`);
     }
 
-    // TODO: refactor
-    let isDone = false;
-    while (!isDone) {
+    outerLoop: while (true) {
       msg = await this.readMessage();
       switch (msg.type) {
         // data row
@@ -497,8 +495,7 @@ export class Connection {
         // command complete
         case "C":
           result.done();
-          isDone = true;
-          break;
+          break outerLoop;
         // error response
         case "E":
           await this._processError(msg);
