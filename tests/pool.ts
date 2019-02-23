@@ -90,7 +90,7 @@ test(async function manyQueries() {
   assertEqual(client.availableConnection, 10);
 
   const result = qs.map(r => r.rows[0][1]);
-  const expected = [...Array(25)].map((_, i) => i.toString())
+  const expected = [...Array(25)].map((_, i) => i.toString());
   assertEqual(result, expected);
 });
 
