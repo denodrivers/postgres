@@ -1,17 +1,46 @@
-import { ConnectionPool } from "./pool.ts";
+import { dial } from "deno";
+import { Connection } from "./connection.ts";
+import { Pool } from "./pool.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
-import { IConnectionParams, ConnectionParams } from "./connection_params.ts";
+import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
 
 export class Client {
-  pool: ConnectionPool;
+  private _connection: Connection;
+  private _connectionParams: ConnectionParams;
+  release: () => void;
 
-  constructor(config?: IConnectionParams | string, poolSize: number = 1) {
-    const connectionParams = new ConnectionParams(config);
-    this.pool = new ConnectionPool(connectionParams, poolSize);
+  constructor(
+    config?: IConnectionParams | string | Connection,
+    release?: () => void
+  ) {
+    if (config instanceof Connection) {
+      this._connection = config;
+      this.release = function() {
+        release();
+        delete this._connection;
+        delete this.release;
+      };
+    } else {
+      this._connectionParams = new ConnectionParams(config);
+    }
   }
 
-  async connect() {
-    await this.pool.startup();
+  private async newConnection(connectionParams: ConnectionParams) {
+    const { host, port } = connectionParams;
+    let addr = `${host}:${port}`;
+
+    const conn = await dial("tcp", addr);
+    const connection = new Connection(conn, connectionParams);
+
+    await connection.startup({ ...connectionParams });
+    await connection.initSQL();
+    return connection;
+  }
+
+  async connect(): Promise<void> {
+    if (this._connection === undefined) {
+      this._connection = await this.newConnection(this._connectionParams);
+    }
   }
 
   // TODO: can we use more specific type for args?
@@ -19,22 +48,20 @@ export class Client {
     text: string | QueryConfig,
     ...args: any[]
   ): Promise<QueryResult> {
-    let config: QueryConfig;
-
-    if (typeof text === "string") {
-      config = { text, args };
-    } else {
-      config = text;
-    }
-    const query = new Query(config);
-    return await this.pool.execute(query);
+    const query = new Query(text, ...args);
+    return await this._connection.query(query);
   }
 
   async end(): Promise<void> {
-    await this.pool.end();
+    if (this.release === undefined) {
+      await this._connection.end();
+      delete this._connection;
+    } else {
+      this.release();
+    }
   }
 
-  get availableConnections() {
-    return this.pool.available;
-  }
+  // Support `using` module
+  _aenter = this.connect;
+  _aexit = this.end;
 }

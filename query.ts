@@ -69,7 +69,14 @@ export class Query {
   public args: EncodedArg[];
   public result: QueryResult;
 
-  constructor(config: QueryConfig) {
+  // TODO: can we use more specific type for args?
+  constructor(text: string | QueryConfig, ...args: any[]) {
+    let config: QueryConfig;
+    if (typeof text === "string") {
+      config = { text, args };
+    } else {
+      config = text;
+    }
     this.text = config.text;
     this.args = this._prepareArgs(config);
     this.result = new QueryResult(this);

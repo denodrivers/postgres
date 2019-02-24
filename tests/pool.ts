@@ -1,15 +1,16 @@
 import { test, assertEqual } from "../deps.ts";
 import { Client } from "../mod.ts";
-import { ConnectionPool } from "../pool.ts";
+import { Pool } from "../pool.ts";
+import { delay } from "../utils.ts";
 
-let testPool: Client;
+let testPool: Pool;
 
-async function getTestPool(): Promise<Client> {
+async function getTestPool(): Promise<Pool> {
   if (testPool) {
     return testPool;
   }
 
-  testPool = new Client(
+  testPool = new Pool(
     {
       user: "postgres",
       password: "postgres",
@@ -19,7 +20,7 @@ async function getTestPool(): Promise<Client> {
     },
     10
   );
-  await testPool.connect();
+  await testPool._ready;
   return testPool;
 }
 
@@ -75,19 +76,21 @@ test(async function nativeType() {
 test(async function manyQueries() {
   const client = await getTestPool();
 
-  assertEqual(client.availableConnections, 10);
+  assertEqual(client.available, 10);
   const p = client.query("SELECT pg_sleep(0.1) is null, -1 AS id;");
-  assertEqual(client.availableConnections, 9);
+  await delay(1);
+  assertEqual(client.available, 9);
   await p;
-  assertEqual(client.availableConnections, 10);
+  assertEqual(client.available, 10);
 
   const qs_thunks = [...Array(25)].map((_, i) =>
     client.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
   );
   const qs_promises = Promise.all(qs_thunks);
-  assertEqual(client.availableConnections, 0);
+  await delay(1);
+  assertEqual(client.available, 0);
   const qs = await qs_promises;
-  assertEqual(client.availableConnections, 10);
+  assertEqual(client.available, 10);
 
   const result = qs.map(r => r.rows[0][1]);
   const expected = [...Array(25)].map((_, i) => i.toString());

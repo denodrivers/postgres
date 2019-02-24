@@ -1,18 +1,21 @@
 import { dial } from "deno";
+import { Client } from "./client.ts";
 import { Connection } from "./connection.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
-import { Query, QueryResult } from "./query.ts";
+import { Query, QueryConfig, QueryResult } from "./query.ts";
 import { defer, Deferred } from "./deps.ts";
 
-export class ConnectionPool {
+export class Pool {
   private _connectionParams: IConnectionParams;
   private _connections: Array<Connection>;
   private _availableConnections: DeferredStack<Connection>;
   private _size: number;
+  _ready: Promise<void>;
 
   constructor(connectionParams: IConnectionParams, size: number) {
     this._connectionParams = connectionParams;
     this._size = size;
+    this._ready = this.startup();
   }
 
   private async newConnection(): Promise<Connection> {
@@ -34,7 +37,7 @@ export class ConnectionPool {
     return this._availableConnections.size;
   }
 
-  async startup(): Promise<void> {
+  private async startup(): Promise<void> {
     const connecting = [...Array(this.size)].map(
       async () => await this.newConnection()
     );
@@ -43,16 +46,37 @@ export class ConnectionPool {
   }
 
   async end(): Promise<void> {
+    await this._ready;
     const ending = this._connections.map(c => c.end());
     await Promise.all(ending);
   }
 
-  async execute(query: Query): Promise<QueryResult> {
+  // TODO: can we use more specific type for args?
+  async query(
+    text: string | QueryConfig,
+    ...args: any[]
+  ): Promise<QueryResult> {
+    const query = new Query(text, ...args);
+    return await this.execute(query);
+  }
+
+  private async execute(query: Query): Promise<QueryResult> {
+    await this._ready;
     const connection = await this._availableConnections.pop();
     const result = await query.execute(connection);
     this._availableConnections.push(connection);
     return result;
   }
+
+  async connect(): Promise<Client> {
+    await this._ready;
+    const connection = await this._availableConnections.pop();
+    const release = () => this._availableConnections.push(connection);
+    return new Client(connection, release);
+  }
+  // Support `using` module
+  _aenter = () => {};
+  _aexit = this.end;
 }
 
 // perhaps this should be exported somewhere?
