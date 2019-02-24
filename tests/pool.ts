@@ -20,7 +20,6 @@ async function getTestPool(): Promise<Pool> {
     },
     10
   );
-  await testPool._ready;
   return testPool;
 }
 

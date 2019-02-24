@@ -10,7 +10,7 @@ export class Pool {
   private _connections: Array<Connection>;
   private _availableConnections: DeferredStack<Connection>;
   private _size: number;
-  _ready: Promise<void>;
+  private _ready: Promise<void>;
 
   constructor(connectionParams: IConnectionParams, size: number) {
     this._connectionParams = connectionParams;
