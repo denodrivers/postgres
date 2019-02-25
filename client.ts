@@ -5,42 +5,23 @@ import { Query, QueryConfig, QueryResult } from "./query.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
 
 export class Client {
-  private _connection: Connection;
+  protected _connection: Connection;
   private _connectionParams: ConnectionParams;
   release: () => void;
 
-  constructor(
-    config?: IConnectionParams | string | Connection,
-    release?: () => void
-  ) {
-    if (config instanceof Connection) {
-      this._connection = config;
-      this.release = function() {
-        release();
-        delete this._connection;
-        delete this.release;
-      };
-    } else {
-      this._connectionParams = new ConnectionParams(config);
-    }
-  }
-
-  private async newConnection(connectionParams: ConnectionParams) {
-    const { host, port } = connectionParams;
-    let addr = `${host}:${port}`;
-
-    const conn = await dial("tcp", addr);
-    const connection = new Connection(conn, connectionParams);
-
-    await connection.startup({ ...connectionParams });
-    await connection.initSQL();
-    return connection;
+  constructor(config?: IConnectionParams | string) {
+    this._connectionParams = new ConnectionParams(config);
   }
 
   async connect(): Promise<void> {
-    if (this._connection === undefined) {
-      this._connection = await this.newConnection(this._connectionParams);
-    }
+    const { host, port } = this._connectionParams;
+    let addr = `${host}:${port}`;
+
+    const conn = await dial("tcp", addr);
+    this._connection = new Connection(conn, this._connectionParams);
+
+    await this._connection.startup();
+    await this._connection.initSQL();
   }
 
   // TODO: can we use more specific type for args?
@@ -53,15 +34,29 @@ export class Client {
   }
 
   async end(): Promise<void> {
-    if (this.release === undefined) {
-      await this._connection.end();
-      delete this._connection;
-    } else {
-      this.release();
-    }
+    await this._connection.end();
+    delete this._connection;
   }
 
   // Support `using` module
   _aenter = this.connect;
   _aexit = this.end;
+}
+
+export class PooledClient extends Client {
+  constructor(connection: Connection, release: () => void) {
+    super();
+    this._connection = connection;
+    this.release = function() {
+      release();
+      delete this._connection;
+      delete this.release;
+    };
+  }
+
+  async connect(): Promise<void> {}
+
+  async end(): Promise<void> {
+    this.release();
+  }
 }

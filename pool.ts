@@ -1,5 +1,5 @@
 import { dial } from "deno";
-import { Client } from "./client.ts";
+import { Client, PooledClient } from "./client.ts";
 import { Connection } from "./connection.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
@@ -72,7 +72,7 @@ export class Pool {
     await this._ready;
     const connection = await this._availableConnections.pop();
     const release = () => this._availableConnections.push(connection);
-    return new Client(connection, release);
+    return new PooledClient(connection, release);
   }
   // Support `using` module
   _aenter = () => {};

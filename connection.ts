@@ -105,12 +105,12 @@ export class Connection {
     return new Message(msgType, msgLength, msgBody);
   }
 
-  private async _sendStartupMessage(connParams: ConnectionParams) {
+  private async _sendStartupMessage() {
     const writer = this.packetWriter;
     writer.clear();
     // protocol version - 3.0, written as
     writer.addInt16(3).addInt16(0);
-
+    const connParams = this.connParams;
     // TODO: recognize other parameters
     ["user", "database", "application_name"].forEach(function(key) {
       const val = connParams[key];
@@ -135,8 +135,8 @@ export class Connection {
     await this.bufWriter.write(finalBuffer);
   }
 
-  async startup(connParams: ConnectionParams) {
-    await this._sendStartupMessage(connParams);
+  async startup() {
+    await this._sendStartupMessage();
     await this.bufWriter.flush();
 
     let msg: Message;
