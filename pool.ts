@@ -25,7 +25,7 @@ export class Pool {
     const conn = await dial("tcp", addr);
     const connection = new Connection(conn, this._connectionParams);
 
-    await connection.startup({ ...this._connectionParams });
+    await connection.startup();
     await connection.initSQL();
     return connection;
   }
