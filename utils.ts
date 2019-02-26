@@ -63,3 +63,11 @@ export function parseDsn(dsn: string): DsnResult {
     params
   };
 }
+
+export function delay<T>(ms: number, value?: T): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    setTimeout(() => {
+      resolve(value);
+    }, ms);
+  });
+}

@@ -69,7 +69,14 @@ export class Query {
   public args: EncodedArg[];
   public result: QueryResult;
 
-  constructor(public connection: Connection, config: QueryConfig) {
+  // TODO: can we use more specific type for args?
+  constructor(text: string | QueryConfig, ...args: any[]) {
+    let config: QueryConfig;
+    if (typeof text === "string") {
+      config = { text, args };
+    } else {
+      config = text;
+    }
     this.text = config.text;
     this.args = this._prepareArgs(config);
     this.result = new QueryResult(this);
@@ -80,7 +87,7 @@ export class Query {
     return config.args.map(encodingFn);
   }
 
-  async execute(): Promise<QueryResult> {
-    return await this.connection.query(this);
+  async execute(connection: Connection): Promise<QueryResult> {
+    return await connection.query(this);
   }
 }
