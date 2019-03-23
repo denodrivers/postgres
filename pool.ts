@@ -1,4 +1,3 @@
-import { dial } from "deno";
 import { Client, PooledClient } from "./client.ts";
 import { Connection } from "./connection.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
@@ -19,12 +18,7 @@ export class Pool {
   }
 
   private async newConnection(): Promise<Connection> {
-    const { host, port } = this._connectionParams;
-    let addr = `${host}:${port}`;
-
-    const conn = await dial("tcp", addr);
-    const connection = new Connection(conn, this._connectionParams);
-
+    const connection = new Connection(this._connectionParams);
     await connection.startup();
     await connection.initSQL();
     return connection;
@@ -63,7 +57,7 @@ export class Pool {
   private async execute(query: Query): Promise<QueryResult> {
     await this._ready;
     const connection = await this._availableConnections.pop();
-    const result = await query.execute(connection);
+    const result = await connection.query(query);
     this._availableConnections.push(connection);
     return result;
   }

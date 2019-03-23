@@ -26,7 +26,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { Conn } from "deno";
+import { Conn, dial } from "deno";
 import { BufReader, BufWriter } from "https://deno.land/x/io/bufio.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { readUInt32BE } from "./utils.ts";
@@ -75,6 +75,8 @@ export class RowDescription {
 }
 
 export class Connection {
+  private conn: Conn;
+
   private bufReader: BufReader;
   private bufWriter: BufWriter;
   private packetWriter: PacketWriter;
@@ -86,11 +88,7 @@ export class Connection {
   private _secretKey?: number;
   private _parameters: { [key: string]: string } = {};
 
-  constructor(private conn: Conn, private connParams: ConnectionParams) {
-    this.bufReader = new BufReader(conn);
-    this.bufWriter = new BufWriter(conn);
-    this.packetWriter = new PacketWriter();
-  }
+  constructor(private connParams: ConnectionParams) {}
 
   /** Read single message sent by backend */
   async readMessage(): Promise<Message> {
@@ -136,6 +134,14 @@ export class Connection {
   }
 
   async startup() {
+    const { host, port } = this.connParams;
+    let addr = `${host}:${port}`;
+    this.conn = await dial("tcp", addr);
+
+    this.bufReader = new BufReader(this.conn);
+    this.bufWriter = new BufWriter(this.conn);
+    this.packetWriter = new PacketWriter();
+
     await this._sendStartupMessage();
     await this.bufWriter.flush();
 
@@ -559,9 +565,10 @@ export class Connection {
   }
 
   async initSQL(): Promise<void> {
+    // validate the connection using a
     const config: QueryConfig = { text: "select 1;", args: [] };
     const query = new Query(config);
-    await query.execute(this);
+    await this.query(query);
   }
 
   async end(): Promise<void> {
@@ -569,5 +576,9 @@ export class Connection {
     await this.bufWriter.write(terminationMessage);
     await this.bufWriter.flush();
     this.conn.close();
+    delete this.conn;
+    delete this.bufReader;
+    delete this.bufWriter;
+    delete this.packetWriter;
   }
 }

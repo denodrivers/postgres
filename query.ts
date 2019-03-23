@@ -86,8 +86,4 @@ export class Query {
     const encodingFn = config.encoder ? config.encoder : encode;
     return config.args.map(encodingFn);
   }
-
-  async execute(connection: Connection): Promise<QueryResult> {
-    return await connection.query(this);
-  }
 }
