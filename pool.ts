@@ -27,7 +27,7 @@ export class Pool {
   get size(): number {
     return this._size;
   }
-  
+
   get available(): number {
     return this._availableConnections.size;
   }
@@ -38,7 +38,7 @@ export class Pool {
     );
     this._connections = await Promise.all(connecting);
     this._availableConnections = new DeferredStack(this._connections);
-  }  
+  }
 
   private async _execute(query: Query): Promise<QueryResult> {
     await this._ready;
