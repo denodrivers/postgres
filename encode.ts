@@ -40,7 +40,7 @@ function encodeDate(date: Date): string {
 }
 
 function escapeArrayElement(value: unknown): string {
-  let strValue = (value as string).toString();
+  let strValue = (value as any).toString();
   const escapedValue = strValue.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
   return `"${escapedValue}"`;
@@ -85,6 +85,6 @@ export function encode(value: unknown): EncodedArg {
   } else if (value instanceof Object) {
     return JSON.stringify(value);
   } else {
-    return (value as string).toString();
+    return (value as any).toString();
   }
 }
