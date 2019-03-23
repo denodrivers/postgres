@@ -26,7 +26,6 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { Conn, dial } from "deno";
 import { BufReader, BufWriter } from "https://deno.land/x/io/bufio.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { readUInt32BE } from "./utils.ts";
@@ -75,7 +74,7 @@ export class RowDescription {
 }
 
 export class Connection {
-  private conn: Conn;
+  private conn: Deno.Conn;
 
   private bufReader: BufReader;
   private bufWriter: BufWriter;
@@ -136,7 +135,7 @@ export class Connection {
   async startup() {
     const { host, port } = this.connParams;
     let addr = `${host}:${port}`;
-    this.conn = await dial("tcp", addr);
+    this.conn = await Deno.dial("tcp", addr);
 
     this.bufReader = new BufReader(this.conn);
     this.bufWriter = new BufWriter(this.conn);
