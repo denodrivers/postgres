@@ -1,4 +1,4 @@
-import { test, assertEqual } from "../deps.ts";
+import { test, assertEquals } from "../deps.ts";
 import { Client } from "../mod.ts";
 
 let testClient: Client;
@@ -41,20 +41,20 @@ test(async function simpleQuery() {
   const client = await getTestClient();
 
   const result = await client.query("SELECT * FROM ids;");
-  assertEqual(result.rows.length, 2);
+  assertEquals(result.rows.length, 2);
 });
 
 test(async function parametrizedQuery() {
   const client = await getTestClient();
 
   const result = await client.query("SELECT * FROM ids WHERE id < $1;", 2);
-  assertEqual(result.rows.length, 1);
+  assertEquals(result.rows.length, 1);
 
   const objectRows = result.rowsOfObjects();
   const row = objectRows[0];
 
-  assertEqual(row.id, 1);
-  assertEqual(typeof row.id, "number");
+  assertEquals(row.id, 1);
+  assertEquals(typeof row.id, "number");
 });
 
 test(async function nativeType() {
@@ -65,7 +65,7 @@ test(async function nativeType() {
 
   const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
 
-  assertEqual(row[0].toUTCString(), new Date(expectedDate).toUTCString());
+  assertEquals(row[0].toUTCString(), new Date(expectedDate).toUTCString());
 
   await client.query("INSERT INTO timestamps(dt) values($1);", new Date());
 });

@@ -1,4 +1,3 @@
-import { env } from "deno";
 import { parseDsn } from "./utils.ts";
 
 const DEFAULT_CONNECTION_PARAMS = {
@@ -31,7 +30,7 @@ export class ConnectionParams {
   constructor(config?: string | IConnectionParams) {
     // TODO: I don't really like that we require access to environment
     //  by default, maybe it should be flag-controlled?
-    const envVars = env();
+    const envVars = Deno.env();
 
     if (!config) {
       config = {};

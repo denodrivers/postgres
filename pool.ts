@@ -1,4 +1,3 @@
-import { dial } from "deno";
 import { Client, PooledClient } from "./client.ts";
 import { Connection } from "./connection.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
@@ -22,7 +21,7 @@ export class Pool {
     const { host, port } = this._connectionParams;
     let addr = `${host}:${port}`;
 
-    const conn = await dial("tcp", addr);
+    const conn = await Deno.dial("tcp", addr);
     const connection = new Connection(conn, this._connectionParams);
 
     await connection.startup();

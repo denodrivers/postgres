@@ -26,7 +26,6 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { Conn } from "deno";
 import { BufReader, BufWriter } from "https://deno.land/x/io/bufio.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { readUInt32BE } from "./utils.ts";
@@ -86,7 +85,7 @@ export class Connection {
   private _secretKey?: number;
   private _parameters: { [key: string]: string } = {};
 
-  constructor(private conn: Conn, private connParams: ConnectionParams) {
+  constructor(private conn: Deno.Conn, private connParams: ConnectionParams) {
     this.bufReader = new BufReader(conn);
     this.bufWriter = new BufWriter(conn);
     this.packetWriter = new PacketWriter();
