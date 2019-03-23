@@ -1,11 +1,14 @@
-export { copyBytes } from "https://deno.land/x/std@v0.2.8/io/util.ts";
+export { copyBytes } from "https://deno.land/x/std@v0.3.2/io/util.ts";
 
 export {
   test,
-  assertEqual,
   runTests,
   TestFunction
-} from "https://deno.land/x/std@v0.2.8/testing/mod.ts";
+} from "https://deno.land/x/std@v0.3.2/testing/mod.ts";
+
+export { 
+  assertEquals,
+} from "https://deno.land/std@v0.3.2/testing/asserts.ts";
 
 export {
   defer,

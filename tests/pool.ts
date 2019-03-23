@@ -1,4 +1,4 @@
-import { test, assertEqual, TestFunction } from "../deps.ts";
+import { test, assertEquals, TestFunction } from "../deps.ts";
 import { Client } from "../mod.ts";
 import { Pool } from "../pool.ts";
 import { delay } from "../utils.ts";
@@ -27,18 +27,18 @@ async function testPool(t: TestFunction, setupQueries?: Array<string>) {
 
 testPool(async function simpleQuery() {
   const result = await POOL.query("SELECT * FROM ids;");
-  assertEqual(result.rows.length, 2);
+  assertEquals(result.rows.length, 2);
 });
 
 testPool(async function parametrizedQuery() {
   const result = await POOL.query("SELECT * FROM ids WHERE id < $1;", 2);
-  assertEqual(result.rows.length, 1);
+  assertEquals(result.rows.length, 1);
 
   const objectRows = result.rowsOfObjects();
   const row = objectRows[0];
 
-  assertEqual(row.id, 1);
-  assertEqual(typeof row.id, "number");
+  assertEquals(row.id, 1);
+  assertEquals(typeof row.id, "number");
 });
 
 testPool(async function nativeType() {
@@ -47,38 +47,38 @@ testPool(async function nativeType() {
 
   const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
 
-  assertEqual(row[0].toUTCString(), new Date(expectedDate).toUTCString());
+  assertEquals(row[0].toUTCString(), new Date(expectedDate).toUTCString());
 
   await POOL.query("INSERT INTO timestamps(dt) values($1);", new Date());
 });
 
 testPool(async function manyQueries() {
-  assertEqual(POOL.available, 10);
+  assertEquals(POOL.available, 10);
   const p = POOL.query("SELECT pg_sleep(0.1) is null, -1 AS id;");
   await delay(1);
-  assertEqual(POOL.available, 9);
+  assertEquals(POOL.available, 9);
   await p;
-  assertEqual(POOL.available, 10);
+  assertEquals(POOL.available, 10);
 
   const qs_thunks = [...Array(25)].map((_, i) =>
     POOL.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
   );
   const qs_promises = Promise.all(qs_thunks);
   await delay(1);
-  assertEqual(POOL.available, 0);
+  assertEquals(POOL.available, 0);
   const qs = await qs_promises;
-  assertEqual(POOL.available, 10);
+  assertEquals(POOL.available, 10);
 
   const result = qs.map(r => r.rows[0][1]);
   const expected = [...Array(25)].map((_, i) => i.toString());
-  assertEqual(result, expected);
+  assertEquals(result, expected);
 });
 
 testPool(async function transaction() {
   const client = await POOL.connect();
   let errored;
   let released;
-  assertEqual(POOL.available, 9);
+  assertEquals(POOL.available, 9);
 
   try {
     await client.query("BEGIN");
@@ -93,7 +93,7 @@ testPool(async function transaction() {
     client.release();
     released = true;
   }
-  assertEqual(errored, undefined);
-  assertEqual(released, true);
-  assertEqual(POOL.available, 10);
+  assertEquals(errored, undefined);
+  assertEquals(released, true);
+  assertEquals(POOL.available, 10);
 });

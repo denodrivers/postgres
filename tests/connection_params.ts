@@ -1,5 +1,4 @@
-import { env } from "deno";
-import { test, assertEqual } from "../deps.ts";
+import { test, assertEquals } from "../deps.ts";
 import { ConnectionParams } from "../connection_params.ts";
 
 test(async function testDsnStyleParameters() {
@@ -7,10 +6,10 @@ test(async function testDsnStyleParameters() {
     "postgres://some_user@some_host:10101/deno_postgres"
   );
 
-  assertEqual(p.database, "deno_postgres");
-  assertEqual(p.user, "some_user");
-  assertEqual(p.host, "some_host");
-  assertEqual(p.port, "10101");
+  assertEquals(p.database, "deno_postgres");
+  assertEquals(p.user, "some_user");
+  assertEquals(p.host, "some_host");
+  assertEquals(p.port, "10101");
 });
 
 test(async function testObjectStyleParameters() {
@@ -21,14 +20,14 @@ test(async function testObjectStyleParameters() {
     database: "deno_postgres"
   });
 
-  assertEqual(p.database, "deno_postgres");
-  assertEqual(p.user, "some_user");
-  assertEqual(p.host, "some_host");
-  assertEqual(p.port, "10101");
+  assertEquals(p.database, "deno_postgres");
+  assertEquals(p.user, "some_user");
+  assertEquals(p.host, "some_host");
+  assertEquals(p.port, "10101");
 });
 
 test(async function testEnvParameters() {
-  const currentEnv = env();
+  const currentEnv = Deno.env();
 
   currentEnv.PGUSER = "some_user";
   currentEnv.PGHOST = "some_host";
@@ -36,8 +35,8 @@ test(async function testEnvParameters() {
   currentEnv.PGDATABASE = "deno_postgres";
 
   const p = new ConnectionParams();
-  assertEqual(p.database, "deno_postgres");
-  assertEqual(p.user, "some_user");
-  assertEqual(p.host, "some_host");
-  assertEqual(p.port, "10101");
+  assertEquals(p.database, "deno_postgres");
+  assertEquals(p.user, "some_user");
+  assertEquals(p.host, "some_host");
+  assertEquals(p.port, "10101");
 });

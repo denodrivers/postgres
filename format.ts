@@ -1,6 +1,7 @@
 #! /usr/bin/env deno --allow-run
-import { exit, args, run } from "deno";
 import { parse } from "https://deno.land/x/flags/mod.ts";
+
+const { exit, args, run } = Deno;
 
 async function main(opts) {
   const args = ["deno", "--allow-run", "--fmt", "--ignore", "lib"];
