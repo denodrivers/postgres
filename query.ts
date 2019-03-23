@@ -6,9 +6,9 @@ import { decode } from "./decode.ts";
 
 export interface QueryConfig {
   text: string;
-  args?: any[];
+  args?: Array<unknown>;
   name?: string;
-  encoder?: (arg: any) => EncodedArg;
+  encoder?: (arg: unknown) => EncodedArg;
 }
 
 export class QueryResult {
@@ -70,7 +70,7 @@ export class Query {
   public result: QueryResult;
 
   // TODO: can we use more specific type for args?
-  constructor(text: string | QueryConfig, ...args: any[]) {
+  constructor(text: string | QueryConfig, ...args: unknown[]) {
     let config: QueryConfig;
     if (typeof text === "string") {
       config = { text, args };

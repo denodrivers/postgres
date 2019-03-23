@@ -39,14 +39,14 @@ function encodeDate(date: Date): string {
   return encodedDate + encodedTz;
 }
 
-function escapeArrayElement(value: string): string {
-  value = value.toString();
-  const escapedValue = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+function escapeArrayElement(value: unknown): string {
+  let strValue = (value as any).toString();
+  const escapedValue = strValue.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
   return `"${escapedValue}"`;
 }
 
-function encodeArray(array: Array<any>): string {
+function encodeArray(array: Array<unknown>): string {
   let encodedArray = "{";
 
   array.forEach((element, index) => {
@@ -73,7 +73,7 @@ function encodeArray(array: Array<any>): string {
 
 export type EncodedArg = null | string | Uint8Array;
 
-export function encode(value: any): EncodedArg {
+export function encode(value: unknown): EncodedArg {
   if (value === null || typeof value === "undefined") {
     return null;
   } else if (value instanceof Uint8Array) {
@@ -85,6 +85,6 @@ export function encode(value: any): EncodedArg {
   } else if (value instanceof Object) {
     return JSON.stringify(value);
   } else {
-    return value.toString();
+    return (value as any).toString();
   }
 }
