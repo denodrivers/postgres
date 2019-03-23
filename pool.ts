@@ -14,10 +14,10 @@ export class Pool {
   constructor(connectionParams: IConnectionParams, size: number) {
     this._connectionParams = connectionParams;
     this._size = size;
-    this._ready = this.startup();
+    this._ready = this._startup();
   }
 
-  private async newConnection(): Promise<Connection> {
+  private async _createConnection(): Promise<Connection> {
     const connection = new Connection(this._connectionParams);
     await connection.startup();
     await connection.initSQL();
@@ -27,34 +27,20 @@ export class Pool {
   get size(): number {
     return this._size;
   }
+  
   get available(): number {
     return this._availableConnections.size;
   }
 
-  private async startup(): Promise<void> {
+  private async _startup(): Promise<void> {
     const connecting = [...Array(this.size)].map(
-      async () => await this.newConnection()
+      async () => await this._createConnection()
     );
     this._connections = await Promise.all(connecting);
     this._availableConnections = new DeferredStack(this._connections);
-  }
+  }  
 
-  async end(): Promise<void> {
-    await this._ready;
-    const ending = this._connections.map(c => c.end());
-    await Promise.all(ending);
-  }
-
-  // TODO: can we use more specific type for args?
-  async query(
-    text: string | QueryConfig,
-    ...args: any[]
-  ): Promise<QueryResult> {
-    const query = new Query(text, ...args);
-    return await this.execute(query);
-  }
-
-  private async execute(query: Query): Promise<QueryResult> {
+  private async _execute(query: Query): Promise<QueryResult> {
     await this._ready;
     const connection = await this._availableConnections.pop();
     const result = await connection.query(query);
@@ -68,6 +54,22 @@ export class Pool {
     const release = () => this._availableConnections.push(connection);
     return new PooledClient(connection, release);
   }
+
+  // TODO: can we use more specific type for args?
+  async query(
+    text: string | QueryConfig,
+    ...args: any[]
+  ): Promise<QueryResult> {
+    const query = new Query(text, ...args);
+    return await this._execute(query);
+  }
+
+  async end(): Promise<void> {
+    await this._ready;
+    const ending = this._connections.map(c => c.end());
+    await Promise.all(ending);
+  }
+
   // Support `using` module
   _aenter = () => {};
   _aexit = this.end;

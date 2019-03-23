@@ -565,7 +565,6 @@ export class Connection {
   }
 
   async initSQL(): Promise<void> {
-    // validate the connection using a
     const config: QueryConfig = { text: "select 1;", args: [] };
     const query = new Query(config);
     await this.query(query);
