@@ -12,7 +12,7 @@ export interface QueryConfig {
 }
 
 export class QueryResult {
-  private rowDescription: RowDescription;
+  public rowDescription: RowDescription;
   private _done = false;
   public rows: any[] = []; // actual results
 
