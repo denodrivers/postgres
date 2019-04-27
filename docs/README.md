@@ -1,5 +1,6 @@
-# deno-postgres 
-[![Build Status](https://travis-ci.com/bartlomieju/deno-postgres.svg?branch=master)](https://travis-ci.com/bartlomieju/deno-postgres) 
+# deno-postgres
+
+[![Build Status](https://travis-ci.com/bartlomieju/deno-postgres.svg?branch=master)](https://travis-ci.com/bartlomieju/deno-postgres)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/deno-postgres/community)
 
 PostgreSQL driver for Deno.
@@ -82,4 +83,3 @@ const result = await client.query({
 });
 console.log(result.rows);
 ```
-

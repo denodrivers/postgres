@@ -1,4 +1,5 @@
-# deno-postgres 
+# deno-postgres
+
 [![Build Status](https://travis-ci.com/bartlomieju/deno-postgres.svg?branch=master)](https://travis-ci.com/bartlomieju/deno-postgres)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/deno-postgres/community)
 
@@ -9,11 +10,10 @@ It's still work in progress, but you can take it for a test drive!
 `deno-postgres` is being developed based on excellent work of [node-postgres](https://github.com/brianc/node-postgres)
 and [pq](https://github.com/lib/pq).
 
-
 ## To Do:
 
 - [x] connecting to database
-- [ ] password handling: 
+- [ ] password handling:
   - [x] cleartext
   - [ ] MD5
 - [x] DSN style connection parameters
@@ -27,7 +27,6 @@ and [pq](https://github.com/lib/pq).
 - [x] parsing error response
 - [ ] SSL (waiting for Deno to support TLS)
 - [ ] tests, tests, tests
-
 
 ## Example
 
