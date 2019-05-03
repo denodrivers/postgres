@@ -150,6 +150,9 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeDatetime(strValue);
     case Oid.date:
       return decodeDate(strValue);
+    case Oid.json:
+    case Oid.jsonb:
+      return JSON.parse(strValue);
     default:
       throw new Error(`Don't know how to parse column type: ${typeOid}`);
   }
