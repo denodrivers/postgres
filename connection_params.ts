@@ -1,5 +1,24 @@
 import { parseDsn } from "./utils.ts";
 
+
+// this is dummy env object, if program
+// was run with --allow-env permission then 
+// it's filled with actual values
+let pgEnv: IConnectionParams = {};
+
+if (Deno.permissions().env) {
+  const env = Deno.env();
+  
+  pgEnv = {
+    database: env.PGDATABASE,
+    host: env.PGHOST,
+    port: env.PGPORT,
+    user: env.PGUSER,
+    password: env.PGPASSWORD,
+    application_name: env.PGAPPNAME,
+  }
+}
+
 const DEFAULT_CONNECTION_PARAMS = {
   host: "127.0.0.1",
   port: "5432",
@@ -25,10 +44,6 @@ export class ConnectionParams {
   // TODO: support other params
 
   constructor(config?: string | IConnectionParams) {
-    // TODO: I don't really like that we require access to environment
-    //  by default, maybe it should be flag-controlled?
-    const envVars = Deno.env();
-
     if (!config) {
       config = {};
     }
@@ -39,19 +54,19 @@ export class ConnectionParams {
         throw new Error(`Supplied DSN has invalid driver: ${dsn.driver}.`);
       }
 
-      this.database = dsn.database || envVars.PGDATABASE;
-      this.host = dsn.host || envVars.PGHOST || DEFAULT_CONNECTION_PARAMS.host;
-      this.port = dsn.port || envVars.PGPORT || DEFAULT_CONNECTION_PARAMS.port;
-      this.user = dsn.user || envVars.PGUSER;
-      this.password = dsn.password || envVars.PGPASSWORD;
-      this.application_name = dsn.params.application_name || envVars.PGAPPNAME || DEFAULT_CONNECTION_PARAMS.application_name;
+      this.database = dsn.database || pgEnv.database;
+      this.host = dsn.host || pgEnv.host || DEFAULT_CONNECTION_PARAMS.host;
+      this.port = dsn.port || pgEnv.port || DEFAULT_CONNECTION_PARAMS.port;
+      this.user = dsn.user || pgEnv.user;
+      this.password = dsn.password || pgEnv.password;
+      this.application_name = dsn.params.application_name || pgEnv.application_name || DEFAULT_CONNECTION_PARAMS.application_name;
     } else {
-      this.database = config.database || envVars.PGDATABASE;
-      this.host = config.host || envVars.PGHOST || DEFAULT_CONNECTION_PARAMS.host;
-      this.port = config.port || envVars.PGPORT || DEFAULT_CONNECTION_PARAMS.port;
-      this.user = config.user || envVars.PGUSER;
-      this.password = config.password || envVars.PGPASSWORD;
-      this.application_name = config.application_name || envVars.PGAPPNAME || DEFAULT_CONNECTION_PARAMS.application_name;
+      this.database = config.database || pgEnv.database;
+      this.host = config.host || pgEnv.host || DEFAULT_CONNECTION_PARAMS.host;
+      this.port = config.port || pgEnv.port || DEFAULT_CONNECTION_PARAMS.port;
+      this.user = config.user || pgEnv.user;
+      this.password = config.password || pgEnv.password;
+      this.application_name = config.application_name || pgEnv.application_name || DEFAULT_CONNECTION_PARAMS.application_name;
     }
 
     const missingParams: string[] = [];
