@@ -12,8 +12,8 @@ export const DEFAULT_SETUP = [
 ];
 
 export const DEFAULT_PARAMS = {
-  user: "postgres",
-  password: "postgres",
+  user: "test",
+  password: "test",
   database: "deno_postgres",
   host: "localhost",
   port: "5432"
