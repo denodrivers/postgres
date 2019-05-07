@@ -1,4 +1,4 @@
-#! /usr/bin/env deno --allow-run
+#! /usr/bin/env deno run --allow-run
 import { parse } from "https://deno.land/x/flags/mod.ts";
 
 const { exit, args, run } = Deno;
