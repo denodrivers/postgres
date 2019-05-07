@@ -1,22 +1,21 @@
 import { parseDsn } from "./utils.ts";
 
-
 // this is dummy env object, if program
-// was run with --allow-env permission then 
+// was run with --allow-env permission then
 // it's filled with actual values
 let pgEnv: IConnectionParams = {};
 
 if (Deno.permissions().env) {
   const env = Deno.env();
-  
+
   pgEnv = {
     database: env.PGDATABASE,
     host: env.PGHOST,
     port: env.PGPORT,
     user: env.PGUSER,
     password: env.PGPASSWORD,
-    application_name: env.PGAPPNAME,
-  }
+    application_name: env.PGAPPNAME
+  };
 }
 
 const DEFAULT_CONNECTION_PARAMS = {
@@ -59,14 +58,20 @@ export class ConnectionParams {
       this.port = dsn.port || pgEnv.port || DEFAULT_CONNECTION_PARAMS.port;
       this.user = dsn.user || pgEnv.user;
       this.password = dsn.password || pgEnv.password;
-      this.application_name = dsn.params.application_name || pgEnv.application_name || DEFAULT_CONNECTION_PARAMS.application_name;
+      this.application_name =
+        dsn.params.application_name ||
+        pgEnv.application_name ||
+        DEFAULT_CONNECTION_PARAMS.application_name;
     } else {
       this.database = config.database || pgEnv.database;
       this.host = config.host || pgEnv.host || DEFAULT_CONNECTION_PARAMS.host;
       this.port = config.port || pgEnv.port || DEFAULT_CONNECTION_PARAMS.port;
       this.user = config.user || pgEnv.user;
       this.password = config.password || pgEnv.password;
-      this.application_name = config.application_name || pgEnv.application_name || DEFAULT_CONNECTION_PARAMS.application_name;
+      this.application_name =
+        config.application_name ||
+        pgEnv.application_name ||
+        DEFAULT_CONNECTION_PARAMS.application_name;
     }
 
     const missingParams: string[] = [];
@@ -79,7 +84,9 @@ export class ConnectionParams {
 
     if (missingParams.length) {
       // TODO: better error and information message. Add notice about env variables
-      throw new Error(`Missing connection parameters: ${missingParams.join(", ")}`);
+      throw new Error(
+        `Missing connection parameters: ${missingParams.join(", ")}`
+      );
     }
   }
 }
