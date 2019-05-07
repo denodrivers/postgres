@@ -19,7 +19,7 @@ export const DEFAULT_PARAMS = {
   port: "5432"
 };
 
-const CLIENT = new Client();
+const CLIENT = new Client(DEFAULT_PARAMS);
 
 async function testClient(t: TestFunction, setupQueries?: Array<string>) {
   const fn = async () => {
