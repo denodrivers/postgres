@@ -2,7 +2,7 @@ import { Client, PooledClient } from "./client.ts";
 import { Connection } from "./connection.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
-import { defer, Deferred } from "./deferred.ts";
+import { DeferredStack } from "./deferred.ts";
 
 export class Pool {
   private _connectionParams: ConnectionParams;
@@ -18,7 +18,6 @@ export class Pool {
   }
 
   private async _createConnection(): Promise<Connection> {
-    console.log("create connection", this._connectionParams.database, this._connectionParams.user);
     const connection = new Connection(this._connectionParams);
     await connection.startup();
     await connection.initSQL();
@@ -74,33 +73,4 @@ export class Pool {
   // Support `using` module
   _aenter = () => {};
   _aexit = this.end;
-}
-
-// perhaps this should be exported somewhere?
-class DeferredStack<T> {
-  private _array: Array<T>;
-  private _queue: Array<Deferred>;
-  constructor(ls?: Iterable<T>) {
-    this._array = ls ? [...ls] : [];
-    this._queue = [];
-  }
-  async pop(): Promise<T> {
-    if (this._array.length > 0) {
-      return this._array.pop();
-    }
-    const d = defer();
-    this._queue.push(d);
-    await d.promise;
-    return this._array.pop();
-  }
-  push(value: T): void {
-    this._array.push(value);
-    if (this._queue.length > 0) {
-      const d = this._queue.shift();
-      d.resolve();
-    }
-  }
-  get size(): number {
-    return this._array.length;
-  }
 }
