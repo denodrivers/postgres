@@ -47,6 +47,13 @@ export interface IConnectionParams {
   application_name?: string;
 }
 
+class ConnectionParamsError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConnectionParamsError";
+  }
+}
+
 export class ConnectionParams {
   database: string;
   host: string;
@@ -88,8 +95,9 @@ export class ConnectionParams {
 
     if (missingParams.length) {
       // TODO: better error and information message. Add notice about env variables
-      throw new Error(
-        `Missing connection parameters: ${missingParams.join(", ")}`
+      throw new ConnectionParamsError(
+        `Missing connection parameters: ${missingParams.join(", ")}. Connection parameters can be read 
+        from environment only if Deno is run with env permission (deno run --allow-env)`
       );
     }
   }

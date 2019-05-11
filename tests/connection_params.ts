@@ -54,6 +54,7 @@ test(async function testRequiredParameters() {
     new ConnectionParams();
   } catch (e) {
     thrown = true;
+    assertEquals(e.name, "ConnectionParamsError");
     assertStrContains(e.message, "Missing connection parameters: database, user");
   }
   assertEquals(thrown, true);
