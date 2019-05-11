@@ -1,25 +1,8 @@
 import { test, assertEquals, TestFunction } from "../deps.ts";
 import { Client } from "../mod.ts";
+import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
 
-export const DEFAULT_SETUP = [
-  "DROP TABLE IF EXISTS ids;",
-  "CREATE TABLE ids(id integer);",
-  "INSERT INTO ids(id) VALUES(1);",
-  "INSERT INTO ids(id) VALUES(2);",
-  "DROP TABLE IF EXISTS timestamps;",
-  "CREATE TABLE timestamps(dt timestamptz);",
-  `INSERT INTO timestamps(dt) VALUES('2019-02-10T10:30:40.005+04:30');`
-];
-
-export const DEFAULT_PARAMS = {
-  user: "test",
-  password: "test",
-  database: "deno_postgres",
-  host: "localhost",
-  port: "5432"
-};
-
-const CLIENT = new Client(DEFAULT_PARAMS);
+const CLIENT = new Client(TEST_CONNECTION_PARAMS);
 
 async function testClient(t: TestFunction, setupQueries?: Array<string>) {
   const fn = async () => {
