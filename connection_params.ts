@@ -1,11 +1,40 @@
 import { parseDsn } from "./utils.ts";
 
+function getPgEnv(): IConnectionParams {
+  // this is dummy env object, if program
+  // was run with --allow-env permission then
+  // it's filled with actual values
+  let pgEnv: IConnectionParams = {};
+
+  if (Deno.permissions().env) {
+    const env = Deno.env();
+
+    pgEnv = {
+      database: env.PGDATABASE,
+      host: env.PGHOST,
+      port: env.PGPORT,
+      user: env.PGUSER,
+      password: env.PGPASSWORD,
+      application_name: env.PGAPPNAME
+    };
+  }
+
+  return pgEnv;
+}
+
+function selectFrom(sources: Object[], key: string): string | undefined {
+  for (const source of sources) {
+    if (source[key]) {
+      return source[key];
+    }
+  }
+
+  return undefined;
+}
+
 const DEFAULT_CONNECTION_PARAMS = {
   host: "127.0.0.1",
   port: "5432",
-  user: "postgres",
-  database: "postgres",
-  password: "",
   application_name: "deno_postgres"
 };
 
@@ -18,43 +47,62 @@ export interface IConnectionParams {
   application_name?: string;
 }
 
+class ConnectionParamsError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConnectionParamsError";
+  }
+}
+
 export class ConnectionParams {
-  database?: string;
-  host?: string;
-  port?: string;
-  user?: string;
+  database: string;
+  host: string;
+  port: string;
+  user: string;
   password?: string;
-  application_name?: string;
+  application_name: string;
   // TODO: support other params
 
   constructor(config?: string | IConnectionParams) {
-    // TODO: I don't really like that we require access to environment
-    //  by default, maybe it should be flag-controlled?
-    const envVars = Deno.env();
-
     if (!config) {
       config = {};
     }
+
+    const pgEnv = getPgEnv();
 
     if (typeof config === "string") {
       const dsn = parseDsn(config);
       if (dsn.driver !== "postgres") {
         throw new Error(`Supplied DSN has invalid driver: ${dsn.driver}.`);
       }
+      config = dsn;
+    }
 
-      this.database = dsn.database || envVars.PGDATABASE;
-      this.host = dsn.host || envVars.PGHOST;
-      this.port = dsn.port || envVars.PGPORT;
-      this.user = dsn.user || envVars.PGUSER;
-      this.password = dsn.password || envVars.PGPASSWORD;
-      this.application_name = dsn.params.application_name || envVars.PGAPPNAME;
-    } else {
-      this.database = config.database || envVars.PGDATABASE;
-      this.host = config.host || envVars.PGHOST;
-      this.port = config.port || envVars.PGPORT;
-      this.user = config.user || envVars.PGUSER;
-      this.password = config.password || envVars.PGPASSWORD;
-      this.application_name = config.application_name || envVars.PGAPPNAME;
+    this.database = selectFrom([config, pgEnv], "database");
+    this.host = selectFrom([config, pgEnv, DEFAULT_CONNECTION_PARAMS], "host");
+    this.port = selectFrom([config, pgEnv, DEFAULT_CONNECTION_PARAMS], "port");
+    this.user = selectFrom([config, pgEnv], "user");
+    this.password = selectFrom([config, pgEnv], "password");
+    this.application_name = selectFrom(
+      [config, pgEnv, DEFAULT_CONNECTION_PARAMS],
+      "application_name"
+    );
+
+    const missingParams: string[] = [];
+
+    ["database", "user"].forEach(param => {
+      if (!this[param]) {
+        missingParams.push(param);
+      }
+    });
+
+    if (missingParams.length) {
+      throw new ConnectionParamsError(
+        `Missing connection parameters: ${missingParams.join(
+          ", "
+        )}. Connection parameters can be read 
+        from environment only if Deno is run with env permission (deno run --allow-env)`
+      );
     }
   }
 }
