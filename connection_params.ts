@@ -60,7 +60,7 @@ export class ConnectionParams {
   port: string;
   user: string;
   password?: string;
-  application_name?: string;
+  application_name: string;
   // TODO: support other params
 
   constructor(config?: string | IConnectionParams) {
@@ -97,7 +97,6 @@ export class ConnectionParams {
     });
 
     if (missingParams.length) {
-      // TODO: better error and information message. Add notice about env variables
       throw new ConnectionParamsError(
         `Missing connection parameters: ${missingParams.join(
           ", "

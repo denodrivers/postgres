@@ -1,7 +1,7 @@
 import { test, assertEquals, assertStrContains } from "../deps.ts";
 import { ConnectionParams } from "../connection_params.ts";
 
-test(async function testDsnStyleParameters() {
+test(async function dsnStyleParameters() {
   const p = new ConnectionParams(
     "postgres://some_user@some_host:10101/deno_postgres"
   );
@@ -12,7 +12,7 @@ test(async function testDsnStyleParameters() {
   assertEquals(p.port, "10101");
 });
 
-test(async function testObjectStyleParameters() {
+test(async function objectStyleParameters() {
   const p = new ConnectionParams({
     user: "some_user",
     host: "some_host",
@@ -26,7 +26,8 @@ test(async function testObjectStyleParameters() {
   assertEquals(p.port, "10101");
 });
 
-test(async function testEnvParameters() {
+// TODO: add test when env is not allowed
+test(async function envParameters() {
   const currentEnv = Deno.env();
 
   currentEnv.PGUSER = "some_user";
@@ -47,7 +48,19 @@ test(async function testEnvParameters() {
   currentEnv.PGDATABASE = "";
 });
 
-test(async function testRequiredParameters() {
+test(async function defaultParameters() {
+  const p = new ConnectionParams({
+    database: "deno_postgres",
+    user: "deno_postgres"
+  });
+  assertEquals(p.database, "deno_postgres");
+  assertEquals(p.user, "deno_postgres");
+  assertEquals(p.host, "127.0.0.1");
+  assertEquals(p.port, "5432");
+  assertEquals(p.password, undefined);
+});
+
+test(async function requiredParameters() {
   let thrown = false;
 
   try {
