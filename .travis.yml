@@ -8,7 +8,10 @@ services:
   - postgresql
 
 before_script:
-  - psql -f tests/before_script.sql -U postgres
+  - psql -c "CREATE USER test WITH PASSWORD 'test';" -U postgres
+  - psql -c "CREATE USER test_no_password;" -U postgres
+  - psql -c "DROP DATABASE IF EXISTS deno_postgres;" -U postgres
+  - psql -c "CREATE DATABASE deno_postgres OWNER test;" -U postgres
 
 script:
   - deno run --allow-net --allow-env test.ts
