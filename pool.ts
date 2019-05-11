@@ -12,7 +12,7 @@ export class Pool {
   private _ready: Promise<void>;
 
   constructor(connectionParams: IConnectionParams, size: number) {
-    this._connectionParams =  new ConnectionParams(connectionParams);
+    this._connectionParams = new ConnectionParams(connectionParams);
     this._size = size;
     this._ready = this._startup();
   }

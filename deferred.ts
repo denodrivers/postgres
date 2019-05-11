@@ -7,7 +7,9 @@ export type Deferred<T = any, R = Error> = {
 
 /** Create deferred promise that can be resolved and rejected by outside */
 export function defer<T>(): Deferred<T> {
-  let handled = false, resolve, reject;
+  let handled = false,
+    resolve,
+    reject;
 
   const promise = new Promise<T>((res, rej) => {
     resolve = r => {
@@ -30,7 +32,6 @@ export function defer<T>(): Deferred<T> {
     }
   };
 }
-
 
 export class DeferredStack<T> {
   private _array: Array<T>;

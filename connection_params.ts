@@ -83,7 +83,10 @@ export class ConnectionParams {
     this.port = selectFrom([config, pgEnv, DEFAULT_CONNECTION_PARAMS], "port");
     this.user = selectFrom([config, pgEnv], "user");
     this.password = selectFrom([config, pgEnv], "password");
-    this.application_name = selectFrom([config, pgEnv, DEFAULT_CONNECTION_PARAMS], "application_name");
+    this.application_name = selectFrom(
+      [config, pgEnv, DEFAULT_CONNECTION_PARAMS],
+      "application_name"
+    );
 
     const missingParams: string[] = [];
 
@@ -96,7 +99,9 @@ export class ConnectionParams {
     if (missingParams.length) {
       // TODO: better error and information message. Add notice about env variables
       throw new ConnectionParamsError(
-        `Missing connection parameters: ${missingParams.join(", ")}. Connection parameters can be read 
+        `Missing connection parameters: ${missingParams.join(
+          ", "
+        )}. Connection parameters can be read 
         from environment only if Deno is run with env permission (deno run --allow-env)`
       );
     }
