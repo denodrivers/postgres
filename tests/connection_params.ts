@@ -1,4 +1,4 @@
-import { test, assertEquals } from "../deps.ts";
+import { test, assertEquals, assertStrContains } from "../deps.ts";
 import { ConnectionParams } from "../connection_params.ts";
 
 test(async function testDsnStyleParameters() {
@@ -39,4 +39,23 @@ test(async function testEnvParameters() {
   assertEquals(p.user, "some_user");
   assertEquals(p.host, "some_host");
   assertEquals(p.port, "10101");
+
+  // clear out env
+  currentEnv.PGUSER = "";
+  currentEnv.PGHOST = "";
+  currentEnv.PGPORT = "";
+  currentEnv.PGDATABASE = "";
 });
+
+test(async function testRequiredParameters() {
+  let thrown = false;
+
+  try {
+    new ConnectionParams();
+  } catch (e) {
+    thrown = true;
+    assertStrContains(e.message, "Missing connection parameters: database, user");
+  }
+  assertEquals(thrown, true);
+});
+

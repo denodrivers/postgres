@@ -37,6 +37,7 @@ export class Client {
   _aexit = this.end;
 }
 
+// TODO(bartlomieju) to be refactored
 export class PooledClient extends Client {
   constructor(connection: Connection, release: () => void) {
     super();

@@ -5,19 +5,20 @@ import { Query, QueryConfig, QueryResult } from "./query.ts";
 import { defer, Deferred } from "./deferred.ts";
 
 export class Pool {
-  private _connectionParams: IConnectionParams;
+  private _connectionParams: ConnectionParams;
   private _connections: Array<Connection>;
   private _availableConnections: DeferredStack<Connection>;
   private _size: number;
   private _ready: Promise<void>;
 
   constructor(connectionParams: IConnectionParams, size: number) {
-    this._connectionParams = connectionParams;
+    this._connectionParams =  new ConnectionParams(connectionParams);
     this._size = size;
     this._ready = this._startup();
   }
 
   private async _createConnection(): Promise<Connection> {
+    console.log("create connection", this._connectionParams.database, this._connectionParams.user);
     const connection = new Connection(this._connectionParams);
     await connection.startup();
     await connection.initSQL();
