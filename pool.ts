@@ -2,7 +2,7 @@ import { Client, PooledClient } from "./client.ts";
 import { Connection } from "./connection.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
-import { defer, Deferred } from "./deps.ts";
+import { defer, Deferred } from "./deferred.ts";
 
 export class Pool {
   private _connectionParams: IConnectionParams;
