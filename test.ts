@@ -6,5 +6,6 @@ import "./tests/connection_params.ts";
 import "./tests/client.ts";
 import "./tests/pool.ts";
 import "./tests/utils.ts";
+import "./tests/decode.ts";
 
 runTests();

@@ -135,6 +135,9 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.text:
     case Oid.time:
     case Oid.timetz:
+    case Oid.inet:
+    case Oid.cidr:
+    case Oid.macaddr:
       return strValue;
     case Oid.bool:
       return strValue[0] === "t";
