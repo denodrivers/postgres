@@ -1,5 +1,4 @@
 import { Connection } from "./connection.ts";
-import { Pool } from "./pool.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
 
@@ -33,7 +32,6 @@ export class Client {
   _aenter = this.connect;
   _aexit = this.end;
 }
-
 
 export class PoolClient {
   protected _connection: Connection;
