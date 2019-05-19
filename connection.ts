@@ -196,7 +196,7 @@ export class Connection {
     const msg = await this.readMessage();
 
     if (msg.type === "E") {
-      throw parseError(msg)
+      throw parseError(msg);
     } else if (msg.type !== "R") {
       throw new Error(`Unexpected auth response: ${msg.type}.`);
     }
