@@ -6,9 +6,6 @@ import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
 let POOL: Pool;
 
 async function testPool(t: TestFunction, setupQueries?: Array<string>) {
-  // TODO(bartlomieju) reenable these tests
-  return;
-
   // constructing Pool instantiates the connections,
   // so this has to be constructed for each test.
   const fn = async () => {

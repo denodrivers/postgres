@@ -5,15 +5,13 @@ import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
 
 export class Client {
   protected _connection: Connection;
-  private _connectionParams: ConnectionParams;
-  release: () => void;
 
   constructor(config?: IConnectionParams | string) {
-    this._connectionParams = new ConnectionParams(config);
+    const connectionParams = new ConnectionParams(config);
+    this._connection = new Connection(connectionParams);
   }
 
   async connect(): Promise<void> {
-    this._connection = new Connection(this._connectionParams);
     await this._connection.startup();
     await this._connection.initSQL();
   }
@@ -29,7 +27,6 @@ export class Client {
 
   async end(): Promise<void> {
     await this._connection.end();
-    delete this._connection;
   }
 
   // Support `using` module
@@ -37,21 +34,25 @@ export class Client {
   _aexit = this.end;
 }
 
-// TODO(bartlomieju) to be refactored
-export class PooledClient extends Client {
-  constructor(connection: Connection, release: () => void) {
-    super();
+
+export class PoolClient {
+  protected _connection: Connection;
+  private _releaseCallback: () => void;
+
+  constructor(connection: Connection, releaseCallback: () => void) {
     this._connection = connection;
-    this.release = function() {
-      release();
-      delete this._connection;
-      delete this.release;
-    };
+    this._releaseCallback = releaseCallback;
   }
 
-  async connect(): Promise<void> {}
+  async query(
+    text: string | QueryConfig,
+    ...args: any[]
+  ): Promise<QueryResult> {
+    const query = new Query(text, ...args);
+    return await this._connection.query(query);
+  }
 
-  async end(): Promise<void> {
-    this.release();
+  async release(): Promise<void> {
+    await this._releaseCallback();
   }
 }

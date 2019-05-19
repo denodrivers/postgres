@@ -1,4 +1,4 @@
-import { Client, PooledClient } from "./client.ts";
+import { PoolClient } from "./client.ts";
 import { Connection } from "./connection.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
@@ -48,11 +48,11 @@ export class Pool {
     return result;
   }
 
-  async connect(): Promise<Client> {
+  async connect(): Promise<PoolClient> {
     await this._ready;
     const connection = await this._availableConnections.pop();
     const release = () => this._availableConnections.push(connection);
-    return new PooledClient(connection, release);
+    return new PoolClient(connection, release);
   }
 
   // TODO: can we use more specific type for args?
