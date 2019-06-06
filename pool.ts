@@ -24,20 +24,28 @@ export class Pool {
     return connection;
   }
 
+  /** pool max size */
   get size(): number {
     return this._size;
   }
 
+  /** number of connections created */
+  get length(): number {
+    return this._availableConnections.length;
+  }
+
+  /** number of available connections */
   get available(): number {
-    return this._availableConnections.size;
+    return this._availableConnections.available;
   }
 
   private async _startup(): Promise<void> {
-    const connecting = [...Array(this.size)].map(
-      async () => await this._createConnection()
+    this._connections = [await this._createConnection()];
+    this._availableConnections = new DeferredStack(
+      this._size,
+      this._connections,
+      this._createConnection.bind(this)
     );
-    this._connections = await Promise.all(connecting);
-    this._availableConnections = new DeferredStack(this._connections);
   }
 
   private async _execute(query: Query): Promise<QueryResult> {

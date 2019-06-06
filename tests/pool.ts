@@ -52,12 +52,13 @@ testPool(async function nativeType() {
 });
 
 testPool(async function manyQueries() {
-  assertEquals(POOL.available, 10);
+  assertEquals(POOL.available, 1);
   const p = POOL.query("SELECT pg_sleep(0.1) is null, -1 AS id;");
   await delay(1);
-  assertEquals(POOL.available, 9);
+  assertEquals(POOL.available, 0);
+  assertEquals(POOL.length, 1);
   await p;
-  assertEquals(POOL.available, 10);
+  assertEquals(POOL.available, 1);
 
   const qs_thunks = [...Array(25)].map((_, i) =>
     POOL.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
@@ -67,6 +68,7 @@ testPool(async function manyQueries() {
   assertEquals(POOL.available, 0);
   const qs = await qs_promises;
   assertEquals(POOL.available, 10);
+  assertEquals(POOL.length, 10);
 
   const result = qs.map(r => r.rows[0][1]);
   const expected = [...Array(25)].map((_, i) => i.toString());
@@ -77,7 +79,7 @@ testPool(async function transaction() {
   const client = await POOL.connect();
   let errored;
   let released;
-  assertEquals(POOL.available, 9);
+  assertEquals(POOL.available, 0);
 
   try {
     await client.query("BEGIN");
@@ -94,5 +96,5 @@ testPool(async function transaction() {
   }
   assertEquals(errored, undefined);
   assertEquals(released, true);
-  assertEquals(POOL.available, 10);
+  assertEquals(POOL.available, 1);
 });

@@ -5,6 +5,8 @@ export type Deferred<T = any, R = Error> = {
   readonly handled: boolean;
 };
 
+export type DeferredItemCreator<T> = () => Promise<T>;
+
 /** Create deferred promise that can be resolved and rejected by outside */
 export function defer<T>(): Deferred<T> {
   let handled = false,
@@ -36,15 +38,26 @@ export function defer<T>(): Deferred<T> {
 export class DeferredStack<T> {
   private _array: Array<T>;
   private _queue: Array<Deferred>;
+  private _maxSize: number;
+  private _length: number;
 
-  constructor(ls?: Iterable<T>) {
+  constructor(
+    max?: number,
+    ls?: Iterable<T>,
+    private _creator?: DeferredItemCreator<T>
+  ) {
+    this._maxSize = max || 10;
     this._array = ls ? [...ls] : [];
+    this._length = this._array.length;
     this._queue = [];
   }
 
   async pop(): Promise<T> {
     if (this._array.length > 0) {
       return this._array.pop();
+    } else if (this._length < this._maxSize && this._creator) {
+      this._length++;
+      return await this._creator();
     }
     const d = defer();
     this._queue.push(d);
@@ -60,7 +73,11 @@ export class DeferredStack<T> {
     }
   }
 
-  get size(): number {
+  get length(): number {
+    return this._length;
+  }
+
+  get available(): number {
     return this._array.length;
   }
 }
