@@ -6,7 +6,7 @@ test(async function badAuthData() {
   // TODO(bartlomieju): this fails on Travis because it trusts all connections to postgres
   // figure out how to make it work
   return;
-  
+
   const badConnectionData = { ...TEST_CONNECTION_PARAMS };
   badConnectionData.password += "foobar";
   const client = new Client(badConnectionData);
