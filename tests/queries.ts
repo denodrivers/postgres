@@ -1,24 +1,11 @@
 import { test, assertEquals, TestFunction } from "../deps.ts";
 import { Client } from "../mod.ts";
 import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
+import { getTestClient } from "./helpers.ts";
 
 const CLIENT = new Client(TEST_CONNECTION_PARAMS);
 
-async function testClient(t: TestFunction, setupQueries?: Array<string>) {
-  const fn = async () => {
-    try {
-      await CLIENT.connect();
-      for (const q of setupQueries || DEFAULT_SETUP) {
-        await CLIENT.query(q);
-      }
-      await t();
-    } finally {
-      await CLIENT.end();
-    }
-  };
-  const name = t.name;
-  test({ fn, name });
-}
+const testClient = getTestClient(CLIENT, DEFAULT_SETUP);
 
 testClient(async function simpleQuery() {
   const result = await CLIENT.query("SELECT * FROM ids;");
