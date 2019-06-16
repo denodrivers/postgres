@@ -13,9 +13,9 @@ and [pq](https://github.com/lib/pq).
 ## To Do:
 
 - [x] connecting to database
-- [ ] password handling:
+- [x] password handling:
   - [x] cleartext
-  - [ ] MD5
+  - [x] MD5
 - [x] DSN style connection parameters
 - [x] reading connection parameters from environmental variables
 - [x] termination of connection
