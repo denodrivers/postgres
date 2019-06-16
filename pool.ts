@@ -8,12 +8,18 @@ export class Pool {
   private _connectionParams: ConnectionParams;
   private _connections: Array<Connection>;
   private _availableConnections: DeferredStack<Connection>;
-  private _size: number;
+  private _maxSize: number;
   private _ready: Promise<void>;
+  private _lazy: boolean;
 
-  constructor(connectionParams: IConnectionParams, size: number) {
+  constructor(
+    connectionParams: IConnectionParams,
+    maxSize: number,
+    lazy?: boolean
+  ) {
     this._connectionParams = new ConnectionParams(connectionParams);
-    this._size = size;
+    this._maxSize = maxSize;
+    this._lazy = lazy;
     this._ready = this._startup();
   }
 
@@ -25,13 +31,13 @@ export class Pool {
   }
 
   /** pool max size */
-  get size(): number {
-    return this._size;
+  get maxSize(): number {
+    return this._maxSize;
   }
 
   /** number of connections created */
-  get length(): number {
-    return this._availableConnections.length;
+  get size(): number {
+    return this._availableConnections.size;
   }
 
   /** number of available connections */
@@ -40,9 +46,14 @@ export class Pool {
   }
 
   private async _startup(): Promise<void> {
-    this._connections = [await this._createConnection()];
+    const initSize = this._lazy ? 1 : this._maxSize;
+    const connecting = [...Array(initSize)].map(
+      async () => await this._createConnection()
+    );
+    this._connections = await Promise.all(connecting);
+    console.log(this._lazy, this._connections.length);
     this._availableConnections = new DeferredStack(
-      this._size,
+      this._maxSize,
       this._connections,
       this._createConnection.bind(this)
     );

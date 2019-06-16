@@ -39,7 +39,7 @@ export class DeferredStack<T> {
   private _array: Array<T>;
   private _queue: Array<Deferred>;
   private _maxSize: number;
-  private _length: number;
+  private _size: number;
 
   constructor(
     max?: number,
@@ -48,15 +48,15 @@ export class DeferredStack<T> {
   ) {
     this._maxSize = max || 10;
     this._array = ls ? [...ls] : [];
-    this._length = this._array.length;
+    this._size = this._array.length;
     this._queue = [];
   }
 
   async pop(): Promise<T> {
     if (this._array.length > 0) {
       return this._array.pop();
-    } else if (this._length < this._maxSize && this._creator) {
-      this._length++;
+    } else if (this._size < this._maxSize && this._creator) {
+      this._size++;
       return await this._creator();
     }
     const d = defer();
@@ -73,8 +73,8 @@ export class DeferredStack<T> {
     }
   }
 
-  get length(): number {
-    return this._length;
+  get size(): number {
+    return this._size;
   }
 
   get available(): number {

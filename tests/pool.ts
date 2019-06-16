@@ -5,11 +5,15 @@ import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
 
 let POOL: Pool;
 
-async function testPool(t: TestFunction, setupQueries?: Array<string>) {
+async function testPool(
+  t: TestFunction,
+  setupQueries?: Array<string>,
+  lazy?: boolean
+) {
   // constructing Pool instantiates the connections,
   // so this has to be constructed for each test.
   const fn = async () => {
-    POOL = new Pool(TEST_CONNECTION_PARAMS, 10);
+    POOL = new Pool(TEST_CONNECTION_PARAMS, 10, lazy);
     try {
       for (const q of setupQueries || DEFAULT_SETUP) {
         await POOL.query(q);
@@ -51,14 +55,43 @@ testPool(async function nativeType() {
   await POOL.query("INSERT INTO timestamps(dt) values($1);", new Date());
 });
 
+testPool(
+  async function lazyPool() {
+    await POOL.query("SELECT 1;");
+    assertEquals(POOL.available, 1);
+    const p = POOL.query("SELECT pg_sleep(0.1) is null, -1 AS id;");
+    await delay(1);
+    assertEquals(POOL.available, 0);
+    assertEquals(POOL.size, 1);
+    await p;
+    assertEquals(POOL.available, 1);
+
+    const qs_thunks = [...Array(25)].map((_, i) =>
+      POOL.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
+    );
+    const qs_promises = Promise.all(qs_thunks);
+    await delay(1);
+    assertEquals(POOL.available, 0);
+    const qs = await qs_promises;
+    assertEquals(POOL.available, 10);
+    assertEquals(POOL.size, 10);
+
+    const result = qs.map(r => r.rows[0][1]);
+    const expected = [...Array(25)].map((_, i) => i.toString());
+    assertEquals(result, expected);
+  },
+  null,
+  true
+);
+
 testPool(async function manyQueries() {
-  assertEquals(POOL.available, 1);
+  assertEquals(POOL.available, 10);
   const p = POOL.query("SELECT pg_sleep(0.1) is null, -1 AS id;");
   await delay(1);
-  assertEquals(POOL.available, 0);
-  assertEquals(POOL.length, 1);
+  assertEquals(POOL.available, 9);
+  assertEquals(POOL.size, 10);
   await p;
-  assertEquals(POOL.available, 1);
+  assertEquals(POOL.available, 10);
 
   const qs_thunks = [...Array(25)].map((_, i) =>
     POOL.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
@@ -68,7 +101,7 @@ testPool(async function manyQueries() {
   assertEquals(POOL.available, 0);
   const qs = await qs_promises;
   assertEquals(POOL.available, 10);
-  assertEquals(POOL.length, 10);
+  assertEquals(POOL.size, 10);
 
   const result = qs.map(r => r.rows[0][1]);
   const expected = [...Array(25)].map((_, i) => i.toString());
@@ -79,7 +112,7 @@ testPool(async function transaction() {
   const client = await POOL.connect();
   let errored;
   let released;
-  assertEquals(POOL.available, 0);
+  assertEquals(POOL.available, 9);
 
   try {
     await client.query("BEGIN");
@@ -96,5 +129,5 @@ testPool(async function transaction() {
   }
   assertEquals(errored, undefined);
   assertEquals(released, true);
-  assertEquals(POOL.available, 1);
+  assertEquals(POOL.available, 10);
 });
