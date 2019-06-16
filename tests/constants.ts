@@ -12,6 +12,6 @@ export const TEST_CONNECTION_PARAMS = {
   user: "test",
   password: "test",
   database: "deno_postgres",
-  host: "localhost",
+  host: "127.0.0.1",
   port: "5432"
 };

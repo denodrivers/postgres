@@ -26,9 +26,9 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { BufReader, BufWriter } from "https://deno.land/x/io/bufio.ts";
+import { BufReader, BufWriter, Hash } from "./deps.ts";
 import { PacketWriter } from "./packet_writer.ts";
-import { readUInt32BE } from "./utils.ts";
+import { hashMd5Password, readUInt32BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
 import { QueryConfig, QueryResult, Query } from "./query.ts";
 import { parseError } from "./error.ts";
@@ -209,9 +209,7 @@ export class Connection {
 
   private async _authCleartext() {
     this.packetWriter.clear();
-
     const password = this.connParams.password || "";
-
     const buffer = this.packetWriter.addCString(password).flush(0x70);
 
     await this.bufWriter.write(buffer);
@@ -219,12 +217,12 @@ export class Connection {
   }
 
   private async _authMd5(salt: Uint8Array) {
-    // TODO: there is not md5 hasher for deno ATM
-    throw new Error("MD5 password auth not implemented.");
     this.packetWriter.clear();
-
-    const password = "";
-
+    const password = hashMd5Password(
+      this.connParams.password,
+      this.connParams.user,
+      salt
+    );
     const buffer = this.packetWriter.addCString(password).flush(0x70);
 
     await this.bufWriter.write(buffer);
