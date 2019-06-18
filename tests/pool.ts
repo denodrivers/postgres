@@ -1,4 +1,9 @@
-import { test, assertEquals, TestFunction } from "../deps.ts";
+import {
+  test,
+  assertEquals,
+  TestFunction,
+  assertThrowsAsync
+} from "../deps.ts";
 import { Pool } from "../pool.ts";
 import { delay } from "../utils.ts";
 import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
@@ -83,6 +88,17 @@ testPool(
   null,
   true
 );
+
+/**
+ * @see https://github.com/bartlomieju/deno-postgres/issues/59
+ */
+testPool(async function returnedConnectionOnErrorOccurs() {
+  assertEquals(POOL.available, 10);
+  await assertThrowsAsync(async () => {
+    await POOL.query("SELECT * FROM notexists");
+  });
+  assertEquals(POOL.available, 10);
+});
 
 testPool(async function manyQueries() {
   assertEquals(POOL.available, 10);
