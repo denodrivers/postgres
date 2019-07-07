@@ -51,7 +51,6 @@ export class Pool {
       async () => await this._createConnection()
     );
     this._connections = await Promise.all(connecting);
-    console.log(this._lazy, this._connections.length);
     this._availableConnections = new DeferredStack(
       this._maxSize,
       this._connections,
@@ -62,9 +61,14 @@ export class Pool {
   private async _execute(query: Query): Promise<QueryResult> {
     await this._ready;
     const connection = await this._availableConnections.pop();
-    const result = await connection.query(query);
-    this._availableConnections.push(connection);
-    return result;
+    try {
+      const result = await connection.query(query);
+      return result;
+    } catch (error) {
+      throw error;
+    } finally {
+      this._availableConnections.push(connection);
+    }
   }
 
   async connect(): Promise<PoolClient> {
