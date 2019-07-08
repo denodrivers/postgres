@@ -1,4 +1,7 @@
-export { BufReader, BufWriter } from "https://deno.land/std@v0.11.0/io/bufio.ts";
+export {
+  BufReader,
+  BufWriter
+} from "https://deno.land/std@v0.11.0/io/bufio.ts";
 
 export { copyBytes } from "https://deno.land/std@v0.11.0/io/util.ts";
 
