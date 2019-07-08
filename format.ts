@@ -1,5 +1,5 @@
 #! /usr/bin/env deno run --allow-run
-import { parse } from "https://deno.land/x/flags/mod.ts";
+import { parse } from "https://deno.land/std@v0.11.0/flags/mod.ts";
 
 const { exit, args, run } = Deno;
 
