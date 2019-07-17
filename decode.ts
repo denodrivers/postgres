@@ -128,7 +128,7 @@ const HEX = 16;
 const BACKSLASH_BYTE_VALUE = 92;
 const HEX_PREFIX_REGEX = /^\\x/;
 
-function decodeBytea(byteaStr: string): Deno.Buffer {
+function decodeBytea(byteaStr: string): Uint8Array {
   if (HEX_PREFIX_REGEX.test(byteaStr)) {
     return decodeByteaHex(byteaStr);
   } else {
@@ -136,16 +136,16 @@ function decodeBytea(byteaStr: string): Deno.Buffer {
   }
 }
 
-function decodeByteaHex(byteaStr: string): Deno.Buffer {
+function decodeByteaHex(byteaStr: string): Uint8Array {
   let bytesStr = byteaStr.slice(2);
   let bytes = new Uint8Array(bytesStr.length / 2);
   for (let i = 0, j = 0; i < bytesStr.length; i += 2, j++) {
     bytes[j] = parseInt(bytesStr[i] + bytesStr[i + 1], HEX);
   }
-  return new Deno.Buffer(bytes);
+  return bytes;
 }
 
-function decodeByteaEscape(byteaStr: string): Deno.Buffer {
+function decodeByteaEscape(byteaStr: string): Uint8Array {
   let bytes = [];
   let i = 0;
   while (i < byteaStr.length) {
@@ -171,7 +171,7 @@ function decodeByteaEscape(byteaStr: string): Deno.Buffer {
       }
     }
   }
-  return new Deno.Buffer(new Uint8Array(bytes));
+  return new Uint8Array(bytes);
 }
 
 const decoder = new TextDecoder();
