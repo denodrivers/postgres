@@ -124,6 +124,53 @@ function decodeBinary() {
   throw new Error("Not implemented!");
 }
 
+const HEX = 16;
+const BACKSLASH_BYTE_VALUE = 92;
+const HEX_PREFIX_REGEX = /^\\x/;
+
+function decodeBytea(byteaStr: string) : Deno.Buffer {
+  if(HEX_PREFIX_REGEX.test(byteaStr)){
+    return decodeByteaCurrent(byteaStr);
+  }else{
+    return decodeByteaLegacy(byteaStr);
+  }
+}
+
+function decodeByteaCurrent(byteaStr: string) : Deno.Buffer {
+  let bytesStr = byteaStr.slice(2);
+  let bytes = new Uint8Array(bytesStr.length / 2);
+  for (let i = 0, j = 0; i < bytesStr.length; i += 2, j ++) {
+    bytes[j] = parseInt(bytesStr[i] + bytesStr[i+1], HEX);
+  }
+  return new Deno.Buffer(bytes);
+}
+
+function decodeByteaLegacy(byteaStr: string) : Deno.Buffer {
+  let bytes = [];
+  let i = 0
+  while (i < byteaStr.length) {
+    if (byteaStr[i] !== '\\') {
+      bytes.push(byteaStr.charCodeAt(i));
+      ++i
+    } else {
+      if (/[0-7]{3}/.test(byteaStr.substr(i + 1, 3))) {
+        bytes.push(parseInt(byteaStr.substr(i + 1, 3), 8));
+        i += 4;
+      } else {
+        let backslashes = 1
+        while (i + backslashes < byteaStr.length && byteaStr[i + backslashes] === '\\') {
+          backslashes++
+        }
+        for (var k = 0; k < Math.floor(backslashes / 2); ++k) {
+          bytes.push(BACKSLASH_BYTE_VALUE);
+        }
+        i += Math.floor(backslashes / 2) * 2;
+      }
+    }
+  }
+  return new Deno.Buffer(new Uint8Array(bytes));
+}
+
 const decoder = new TextDecoder();
 
 function decodeText(value: Uint8Array, typeOid: number): any {
@@ -156,6 +203,8 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.json:
     case Oid.jsonb:
       return JSON.parse(strValue);
+    case Oid.bytea:
+      return decodeBytea(strValue);
     default:
       throw new Error(`Don't know how to parse column type: ${typeOid}`);
   }

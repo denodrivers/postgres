@@ -33,3 +33,15 @@ testClient(async function nativeType() {
 
   await CLIENT.query("INSERT INTO timestamps(dt) values($1);", new Date());
 });
+
+testClient(async function binaryType() {
+   const testStringEscaped = 'foo\\\\000\\\\200\\\\\\\\\\\\377';
+   const testBuffer = new Deno.Buffer(new Uint8Array([102, 111, 111, 0, 128, 92, 255]));
+   const result = await CLIENT.query(`SELECT E'${testStringEscaped}'::bytea;`);
+   const row = result.rows[0];
+   assertEquals(row[0], testBuffer);
+   const testEmptyBuffer = new Deno.Buffer(new Uint8Array(0));
+   const result2 = await CLIENT.query("SELECT ''::bytea;");
+   const row2 = result2.rows[0];
+   assertEquals(row2[0], testEmptyBuffer);
+});
