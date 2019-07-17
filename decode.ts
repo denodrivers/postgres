@@ -130,13 +130,13 @@ const HEX_PREFIX_REGEX = /^\\x/;
 
 function decodeBytea(byteaStr: string): Deno.Buffer {
   if (HEX_PREFIX_REGEX.test(byteaStr)) {
-    return decodeByteaCurrent(byteaStr);
+    return decodeByteaHex(byteaStr);
   } else {
-    return decodeByteaLegacy(byteaStr);
+    return decodeByteaEscape(byteaStr);
   }
 }
 
-function decodeByteaCurrent(byteaStr: string): Deno.Buffer {
+function decodeByteaHex(byteaStr: string): Deno.Buffer {
   let bytesStr = byteaStr.slice(2);
   let bytes = new Uint8Array(bytesStr.length / 2);
   for (let i = 0, j = 0; i < bytesStr.length; i += 2, j++) {
@@ -145,7 +145,7 @@ function decodeByteaCurrent(byteaStr: string): Deno.Buffer {
   return new Deno.Buffer(bytes);
 }
 
-function decodeByteaLegacy(byteaStr: string): Deno.Buffer {
+function decodeByteaEscape(byteaStr: string): Deno.Buffer {
   let bytes = [];
   let i = 0;
   while (i < byteaStr.length) {
