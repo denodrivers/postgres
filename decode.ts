@@ -128,38 +128,41 @@ const HEX = 16;
 const BACKSLASH_BYTE_VALUE = 92;
 const HEX_PREFIX_REGEX = /^\\x/;
 
-function decodeBytea(byteaStr: string) : Deno.Buffer {
-  if(HEX_PREFIX_REGEX.test(byteaStr)){
+function decodeBytea(byteaStr: string): Deno.Buffer {
+  if (HEX_PREFIX_REGEX.test(byteaStr)) {
     return decodeByteaCurrent(byteaStr);
-  }else{
+  } else {
     return decodeByteaLegacy(byteaStr);
   }
 }
 
-function decodeByteaCurrent(byteaStr: string) : Deno.Buffer {
+function decodeByteaCurrent(byteaStr: string): Deno.Buffer {
   let bytesStr = byteaStr.slice(2);
   let bytes = new Uint8Array(bytesStr.length / 2);
-  for (let i = 0, j = 0; i < bytesStr.length; i += 2, j ++) {
-    bytes[j] = parseInt(bytesStr[i] + bytesStr[i+1], HEX);
+  for (let i = 0, j = 0; i < bytesStr.length; i += 2, j++) {
+    bytes[j] = parseInt(bytesStr[i] + bytesStr[i + 1], HEX);
   }
   return new Deno.Buffer(bytes);
 }
 
-function decodeByteaLegacy(byteaStr: string) : Deno.Buffer {
+function decodeByteaLegacy(byteaStr: string): Deno.Buffer {
   let bytes = [];
-  let i = 0
+  let i = 0;
   while (i < byteaStr.length) {
-    if (byteaStr[i] !== '\\') {
+    if (byteaStr[i] !== "\\") {
       bytes.push(byteaStr.charCodeAt(i));
-      ++i
+      ++i;
     } else {
       if (/[0-7]{3}/.test(byteaStr.substr(i + 1, 3))) {
         bytes.push(parseInt(byteaStr.substr(i + 1, 3), 8));
         i += 4;
       } else {
-        let backslashes = 1
-        while (i + backslashes < byteaStr.length && byteaStr[i + backslashes] === '\\') {
-          backslashes++
+        let backslashes = 1;
+        while (
+          i + backslashes < byteaStr.length &&
+          byteaStr[i + backslashes] === "\\"
+        ) {
+          backslashes++;
         }
         for (var k = 0; k < Math.floor(backslashes / 2); ++k) {
           bytes.push(BACKSLASH_BYTE_VALUE);
