@@ -71,13 +71,20 @@ function encodeArray(array: Array<unknown>): string {
   return encodedArray;
 }
 
+function encodeBytes(value: Uint8Array): string {
+  let hex = Array.from(value)
+    .map(val => (val < 10 ? `0${val.toString(16)}` : val.toString(16)))
+    .join("");
+  return `\\x${hex}`;
+}
+
 export type EncodedArg = null | string | Uint8Array;
 
 export function encode(value: unknown): EncodedArg {
   if (value === null || typeof value === "undefined") {
     return null;
   } else if (value instanceof Uint8Array) {
-    return value;
+    return encodeBytes(value);
   } else if (value instanceof Date) {
     return encodeDate(value);
   } else if (value instanceof Array) {

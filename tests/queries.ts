@@ -33,3 +33,14 @@ testClient(async function nativeType() {
 
   await CLIENT.query("INSERT INTO timestamps(dt) values($1);", new Date());
 });
+
+testClient(async function binaryType() {
+  const result = await CLIENT.query("SELECT * from bytes;");
+  const row = result.rows[0];
+
+  const expectedBytes = new Uint8Array([102, 111, 111, 0, 128, 92, 255]);
+
+  assertEquals(row[0], expectedBytes);
+
+  await CLIENT.query("INSERT INTO bytes VALUES($1);", expectedBytes);
+});
