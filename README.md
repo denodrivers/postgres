@@ -1,6 +1,6 @@
 # deno-postgres
 
-[![Build Status](https://travis-ci.com/bartlomieju/deno-postgres.svg?branch=master)](https://travis-ci.com/bartlomieju/deno-postgres)
+[![Build Status](https://travis-ci.com/buildondata/deno-postgres.svg?branch=master)](https://travis-ci.com/buildondata/deno-postgres)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/deno-postgres/community)
 
 PostgreSQL driver for Deno.
@@ -48,6 +48,10 @@ async function main() {
 
 main();
 ```
+
+## Docs
+
+Docs are available at [https://deno-postgres.com/](https://deno-postgres.com/)
 
 ## License
 
