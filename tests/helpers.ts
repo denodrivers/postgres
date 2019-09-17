@@ -1,6 +1,7 @@
 import { test, TestFunction } from "../deps.ts";
+import { Client } from "../client.ts";
 
-export function getTestClient(client, defSetupQueries) {
+export function getTestClient(client: Client, defSetupQueries?: Array<string>) {
   return async function testClient(
     t: TestFunction,
     setupQueries?: Array<string>
@@ -8,7 +9,7 @@ export function getTestClient(client, defSetupQueries) {
     const fn = async () => {
       try {
         await client.connect();
-        for (const q of setupQueries || defSetupQueries) {
+        for (const q of setupQueries || defSetupQueries || []) {
           await client.query(q);
         }
         await t();

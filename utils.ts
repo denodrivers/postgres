@@ -73,7 +73,7 @@ export interface DsnResult {
 export function parseDsn(dsn: string): DsnResult {
   const url = new URL(dsn);
 
-  const params = {};
+  const params: {[key: string]: string} = {};
   for (const [key, value] of url.searchParams.entries()) {
     params[key] = value;
   }

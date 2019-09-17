@@ -12,7 +12,7 @@ export interface QueryConfig {
 }
 
 export class QueryResult {
-  public rowDescription: RowDescription;
+  public rowDescription!: RowDescription;
   private _done = false;
   public rows: any[] = []; // actual results
 
@@ -84,6 +84,6 @@ export class Query {
 
   private _prepareArgs(config: QueryConfig): EncodedArg[] {
     const encodingFn = config.encoder ? config.encoder : encode;
-    return config.args.map(encodingFn);
+    return config.args!.map(encodingFn);
   }
 }

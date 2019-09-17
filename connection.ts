@@ -74,11 +74,11 @@ export class RowDescription {
 }
 
 export class Connection {
-  private conn: Deno.Conn;
+  private conn!: Deno.Conn;
 
-  private bufReader: BufReader;
-  private bufWriter: BufWriter;
-  private packetWriter: PacketWriter;
+  private bufReader!: BufReader;
+  private bufWriter!: BufWriter;
+  private packetWriter!: PacketWriter;
   private decoder: TextDecoder = new TextDecoder();
   private encoder: TextEncoder = new TextEncoder();
 
@@ -109,7 +109,7 @@ export class Connection {
     writer.addInt16(3).addInt16(0);
     const connParams = this.connParams;
     // TODO: recognize other parameters
-    ["user", "database", "application_name"].forEach(function(key) {
+    (["user", "database", "application_name"] as Array<keyof ConnectionParams>).forEach(function(key) {
       const val = connParams[key];
       writer.addCString(key).addCString(val);
     });
@@ -219,7 +219,7 @@ export class Connection {
   private async _authMd5(salt: Uint8Array) {
     this.packetWriter.clear();
     const password = hashMd5Password(
-      this.connParams.password,
+      this.connParams.password!,
       this.connParams.user,
       salt
     );
