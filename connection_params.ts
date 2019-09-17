@@ -35,6 +35,13 @@ function selectFrom(
   return undefined;
 }
 
+function selectFromWithDefault(
+  sources: Array<IConnectionParams>,
+  key: keyof typeof DEFAULT_CONNECTION_PARAMS
+): string {
+  return selectFrom(sources, key) || DEFAULT_CONNECTION_PARAMS[key];
+}
+
 const DEFAULT_CONNECTION_PARAMS = {
   host: "127.0.0.1",
   port: "5432",
@@ -86,13 +93,12 @@ export class ConnectionParams {
       user: selectFrom([config, pgEnv], "user")
     };
 
-    this.host =
-      selectFrom([config, pgEnv], "host") || DEFAULT_CONNECTION_PARAMS["host"];
-    this.port =
-      selectFrom([config, pgEnv], "port") || DEFAULT_CONNECTION_PARAMS["port"];
-    this.application_name =
-      selectFrom([config, pgEnv], "application_name") ||
-      DEFAULT_CONNECTION_PARAMS["application_name"];
+    this.host = selectFromWithDefault([config, pgEnv], "host");
+    this.port = selectFromWithDefault([config, pgEnv], "port");
+    this.application_name = selectFromWithDefault(
+      [config, pgEnv],
+      "application_name"
+    );
     this.password = selectFrom([config, pgEnv], "password");
 
     const missingParams: string[] = [];
