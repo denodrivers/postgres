@@ -22,7 +22,10 @@ function getPgEnv(): IConnectionParams {
   return pgEnv;
 }
 
-function selectFrom(sources: Array<IConnectionParams>, key: keyof IConnectionParams): string | undefined {
+function selectFrom(
+  sources: Array<IConnectionParams>,
+  key: keyof IConnectionParams
+): string | undefined {
   for (const source of sources) {
     if (source[key]) {
       return source[key];
@@ -78,21 +81,25 @@ export class ConnectionParams {
       config = dsn;
     }
 
-    let potentiallyNull: {[K in keyof IConnectionParams]?: string } = {
+    let potentiallyNull: { [K in keyof IConnectionParams]?: string } = {
       database: selectFrom([config, pgEnv], "database"),
       user: selectFrom([config, pgEnv], "user")
-    }
+    };
 
-    this.host = selectFrom([config, pgEnv], "host") || DEFAULT_CONNECTION_PARAMS["host"];
-    this.port = selectFrom([config, pgEnv], "port") || DEFAULT_CONNECTION_PARAMS["port"];
-    this.application_name = selectFrom([config, pgEnv], "application_name") || DEFAULT_CONNECTION_PARAMS["application_name"];
+    this.host =
+      selectFrom([config, pgEnv], "host") || DEFAULT_CONNECTION_PARAMS["host"];
+    this.port =
+      selectFrom([config, pgEnv], "port") || DEFAULT_CONNECTION_PARAMS["port"];
+    this.application_name =
+      selectFrom([config, pgEnv], "application_name") ||
+      DEFAULT_CONNECTION_PARAMS["application_name"];
     this.password = selectFrom([config, pgEnv], "password");
 
     const missingParams: string[] = [];
 
     (["database", "user"] as Array<keyof IConnectionParams>).forEach(param => {
       if (potentiallyNull[param]) {
-        this[param] = potentiallyNull[param]!
+        this[param] = potentiallyNull[param]!;
       } else {
         missingParams.push(param);
       }

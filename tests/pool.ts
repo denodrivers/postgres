@@ -8,7 +8,6 @@ import { Pool } from "../pool.ts";
 import { delay } from "../utils.ts";
 import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
 
-
 async function testPool(
   t: (pool: Pool) => void | Promise<void>,
   setupQueries?: Array<string> | null,
