@@ -18,4 +18,4 @@ export {
   TestFunction
 } from "https://deno.land/std@v0.17.0/testing/mod.ts";
 
-export { Hash } from "https://deno.land/x/checksum@b7b880c82/mod.ts";
+export { Hash } from "https://deno.land/x/checksum@1.0.1/mod.ts";
