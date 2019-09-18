@@ -220,8 +220,13 @@ export class Connection {
 
   private async _authMd5(salt: Uint8Array) {
     this.packetWriter.clear();
+
+    if (!this.connParams.password) {
+      throw new Error("Auth Error: attempting MD5 auth with password unset");
+    }
+
     const password = hashMd5Password(
-      this.connParams.password!,
+      this.connParams.password,
       this.connParams.user,
       salt
     );
