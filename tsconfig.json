@@ -18,6 +18,7 @@
     ],
     "pretty": true,
     "resolveJsonModule": true,
+    "strict": true,
     "target": "esnext"
   },
   "include": ["./**/*.ts"]

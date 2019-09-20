@@ -6,8 +6,8 @@ import { DeferredStack } from "./deferred.ts";
 
 export class Pool {
   private _connectionParams: ConnectionParams;
-  private _connections: Array<Connection>;
-  private _availableConnections: DeferredStack<Connection>;
+  private _connections!: Array<Connection>;
+  private _availableConnections!: DeferredStack<Connection>;
   private _maxSize: number;
   private _ready: Promise<void>;
   private _lazy: boolean;
@@ -19,7 +19,7 @@ export class Pool {
   ) {
     this._connectionParams = new ConnectionParams(connectionParams);
     this._maxSize = maxSize;
-    this._lazy = lazy;
+    this._lazy = !!lazy;
     this._ready = this._startup();
   }
 

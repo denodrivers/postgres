@@ -73,11 +73,6 @@ export interface DsnResult {
 export function parseDsn(dsn: string): DsnResult {
   const url = new URL(dsn);
 
-  const params = {};
-  for (const [key, value] of url.searchParams.entries()) {
-    params[key] = value;
-  }
-
   return {
     // remove trailing colon
     driver: url.protocol.slice(0, url.protocol.length - 1),
@@ -87,7 +82,7 @@ export function parseDsn(dsn: string): DsnResult {
     port: url.port,
     // remove leading slash from path
     database: url.pathname.slice(1),
-    params
+    params: Object.fromEntries(url.searchParams.entries())
   };
 }
 

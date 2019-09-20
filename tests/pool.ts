@@ -8,37 +8,34 @@ import { Pool } from "../pool.ts";
 import { delay } from "../utils.ts";
 import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
 
-let POOL: Pool;
-
 async function testPool(
-  t: TestFunction,
-  setupQueries?: Array<string>,
+  t: (pool: Pool) => void | Promise<void>,
+  setupQueries?: Array<string> | null,
   lazy?: boolean
 ) {
   // constructing Pool instantiates the connections,
   // so this has to be constructed for each test.
   const fn = async () => {
-    POOL = new Pool(TEST_CONNECTION_PARAMS, 10, lazy);
+    const POOL = new Pool(TEST_CONNECTION_PARAMS, 10, lazy);
     try {
       for (const q of setupQueries || DEFAULT_SETUP) {
         await POOL.query(q);
       }
-      await t();
+      await t(POOL);
     } finally {
       await POOL.end();
     }
-    POOL = undefined;
   };
   const name = t.name;
   test({ fn, name });
 }
 
-testPool(async function simpleQuery() {
+testPool(async function simpleQuery(POOL) {
   const result = await POOL.query("SELECT * FROM ids;");
   assertEquals(result.rows.length, 2);
 });
 
-testPool(async function parametrizedQuery() {
+testPool(async function parametrizedQuery(POOL) {
   const result = await POOL.query("SELECT * FROM ids WHERE id < $1;", 2);
   assertEquals(result.rows.length, 1);
 
@@ -49,7 +46,7 @@ testPool(async function parametrizedQuery() {
   assertEquals(typeof row.id, "number");
 });
 
-testPool(async function nativeType() {
+testPool(async function nativeType(POOL) {
   const result = await POOL.query("SELECT * FROM timestamps;");
   const row = result.rows[0];
 
@@ -61,7 +58,7 @@ testPool(async function nativeType() {
 });
 
 testPool(
-  async function lazyPool() {
+  async function lazyPool(POOL) {
     await POOL.query("SELECT 1;");
     assertEquals(POOL.available, 1);
     const p = POOL.query("SELECT pg_sleep(0.1) is null, -1 AS id;");
@@ -92,7 +89,7 @@ testPool(
 /**
  * @see https://github.com/bartlomieju/deno-postgres/issues/59
  */
-testPool(async function returnedConnectionOnErrorOccurs() {
+testPool(async function returnedConnectionOnErrorOccurs(POOL) {
   assertEquals(POOL.available, 10);
   await assertThrowsAsync(async () => {
     await POOL.query("SELECT * FROM notexists");
@@ -100,7 +97,7 @@ testPool(async function returnedConnectionOnErrorOccurs() {
   assertEquals(POOL.available, 10);
 });
 
-testPool(async function manyQueries() {
+testPool(async function manyQueries(POOL) {
   assertEquals(POOL.available, 10);
   const p = POOL.query("SELECT pg_sleep(0.1) is null, -1 AS id;");
   await delay(1);
@@ -124,7 +121,7 @@ testPool(async function manyQueries() {
   assertEquals(result, expected);
 });
 
-testPool(async function transaction() {
+testPool(async function transaction(POOL) {
   const client = await POOL.connect();
   let errored;
   let released;
