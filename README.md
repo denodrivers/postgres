@@ -53,6 +53,24 @@ main();
 
 Docs are available at [https://deno-postgres.com/](https://deno-postgres.com/)
 
+## Contributing guidelines
+
+When contributing to repository make sure to:
+
+a) open an issue for what you're working on
+
+b) use strict mode in TypeScript code (use `tsconfig.test.json` configuration)
+
+```shell
+$ deno run -c tsconfig.test.json -A test.ts
+```
+
+c) properly format code using `deno fmt`
+
+```shell
+$ deno fmt -- --check
+```
+
 ## License
 
 There are substantial parts of this library based on other libraries. They have preserved their individual licenses and copyrights.
