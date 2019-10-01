@@ -1,0 +1,14 @@
+name: Deno Postgres CI
+# This workflow is triggered on pushes to the repository.
+on: [push]
+
+jobs:
+  build:
+    name: CI build
+    steps:
+      - uses: actions/checkout@master
+      - uses: denolib/setup-deno@v1
+        with:
+          deno-version: 'v0.19.0'
+      - run: deno fmt --check
+      - run: deno -c tsconfig.json -r --allow-net --allow-env test.ts
