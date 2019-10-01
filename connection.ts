@@ -136,8 +136,8 @@ export class Connection {
 
   async startup() {
     const { host, port } = this.connParams;
-    let addr = `${host}:${port}`;
-    this.conn = await Deno.dial("tcp", addr);
+    const address = `${host}:${port}`;
+    this.conn = await Deno.dial({ port: parseInt(port, 10), hostname: host });
 
     this.bufReader = new BufReader(this.conn);
     this.bufWriter = new BufWriter(this.conn);
