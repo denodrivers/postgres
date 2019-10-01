@@ -4,7 +4,8 @@ on: [push]
 
 jobs:
   build:
-    name: CI build
+    name: CI format & test
+    runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@master
       - uses: denolib/setup-deno@v1
