@@ -8,8 +8,23 @@ jobs:
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@master
+      
       - uses: denolib/setup-deno@v1
         with:
           deno-version: 'v0.19.0'
+
+      - uses: harmon758/postgresql-action@v1
+        with:
+          postgresql version: '11'
+          postgresql db: 'postgres'
+          postgresql user: 'postgres'
+          postgresql password: 'postgres'
+        
+      - run: psql -c "CREATE USER test WITH PASSWORD 'test';" -U postgres &&
+              psql -c "CREATE USER test_no_password;" -U postgres &&
+              psql -c "DROP DATABASE IF EXISTS deno_postgres;" -U postgres &&
+              psql -c "CREATE DATABASE deno_postgres OWNER test;" -U postgres
+
       - run: deno fmt -- --check || echo $?
+      
       - run: deno -c tsconfig.json -r --allow-net --allow-env test.ts
