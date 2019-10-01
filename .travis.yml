@@ -14,5 +14,5 @@ before_script:
   - psql -c "CREATE DATABASE deno_postgres OWNER test;" -U postgres
 
 script:
-  - deno run -c tsconfig.json -r --allow-net --allow-env test.ts
-  - deno run --allow-run format.ts --check
+  - deno run -c tsconfig.test.json -r --allow-net --allow-env test.ts
+  - deno fmt -- --check
