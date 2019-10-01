@@ -15,4 +15,4 @@ before_script:
 
 script:
   - deno run -c tsconfig.json -r --allow-net --allow-env test.ts
-  - deno run --allow-run format.ts --check
+  - deno fmt -- --check
