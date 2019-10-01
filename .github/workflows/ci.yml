@@ -11,5 +11,5 @@ jobs:
       - uses: denolib/setup-deno@v1
         with:
           deno-version: 'v0.19.0'
-      - run: deno fmt --check
+      - run: deno fmt -- --check
       - run: deno -c tsconfig.json -r --allow-net --allow-env test.ts
