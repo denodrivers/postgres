@@ -1,25 +1,16 @@
 import { parseDsn } from "./utils.ts";
 
 function getPgEnv(): IConnectionParams {
-  // this is dummy env object, if program
-  // was run with --allow-env permission then
-  // it's filled with actual values
-  let pgEnv: IConnectionParams = {};
+  const env = Deno.env();
 
-  if (Deno.permissions().env) {
-    const env = Deno.env();
-
-    pgEnv = {
-      database: env.PGDATABASE,
-      host: env.PGHOST,
-      port: env.PGPORT,
-      user: env.PGUSER,
-      password: env.PGPASSWORD,
-      application_name: env.PGAPPNAME
-    };
-  }
-
-  return pgEnv;
+  return {
+    database: env.PGDATABASE,
+    host: env.PGHOST,
+    port: env.PGPORT,
+    user: env.PGUSER,
+    password: env.PGPASSWORD,
+    application_name: env.PGAPPNAME
+  };
 }
 
 function selectFrom(
