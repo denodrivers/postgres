@@ -10,10 +10,10 @@ function getPgEnv(): IConnectionParams {
       user: env.PGUSER,
       password: env.PGPASSWORD,
       application_name: env.PGAPPNAME
-    }
+    };
   } catch (e) {
     // PermissionDenied (--allow-env not passed)
-    return {}
+    return {};
   }
 }
 
