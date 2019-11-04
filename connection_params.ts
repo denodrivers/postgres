@@ -1,15 +1,9 @@
 import { parseDsn } from "./utils.ts";
 
 function getPgEnv(): IConnectionParams {
-  // this is dummy env object, if program
-  // was run with --allow-env permission then
-  // it's filled with actual values
-  let pgEnv: IConnectionParams = {};
-
-  if (Deno.permissions().env) {
+  try {
     const env = Deno.env();
-
-    pgEnv = {
+    return {
       database: env.PGDATABASE,
       host: env.PGHOST,
       port: env.PGPORT,
@@ -17,9 +11,10 @@ function getPgEnv(): IConnectionParams {
       password: env.PGPASSWORD,
       application_name: env.PGAPPNAME
     };
+  } catch (e) {
+    // PermissionDenied (--allow-env not passed)
+    return {};
   }
-
-  return pgEnv;
 }
 
 function selectFrom(

@@ -1,50 +1,15 @@
-export type Deferred<T = any, R = Error> = {
-  promise: Promise<T>;
-  resolve: (t?: T) => void;
-  reject: (r?: R) => void;
-  readonly handled: boolean;
-};
-
-export type DeferredItemCreator<T> = () => Promise<T>;
-
-/** Create deferred promise that can be resolved and rejected by outside */
-export function defer<T, R>(): Deferred<T> {
-  let handled = false,
-    resolve: (t?: T) => void | undefined,
-    reject: (r?: any) => void | undefined;
-
-  const promise = new Promise<T>((res, rej) => {
-    resolve = r => {
-      handled = true;
-      res(r);
-    };
-    reject = r => {
-      handled = true;
-      rej(r);
-    };
-  });
-
-  return {
-    promise,
-    resolve: resolve!,
-    reject: reject!,
-
-    get handled() {
-      return handled;
-    }
-  };
-}
+import { Deferred, deferred } from "./deps.ts";
 
 export class DeferredStack<T> {
   private _array: Array<T>;
-  private _queue: Array<Deferred>;
+  private _queue: Array<Deferred<T>>;
   private _maxSize: number;
   private _size: number;
 
   constructor(
     max?: number,
     ls?: Iterable<T>,
-    private _creator?: DeferredItemCreator<T>
+    private _creator?: () => Promise<T>
   ) {
     this._maxSize = max || 10;
     this._array = ls ? [...ls] : [];
@@ -59,9 +24,9 @@ export class DeferredStack<T> {
       this._size++;
       return await this._creator();
     }
-    const d = defer();
+    const d = deferred<T>();
     this._queue.push(d);
-    await d.promise;
+    await d;
     return this._array.pop()!;
   }
 
