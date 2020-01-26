@@ -136,7 +136,10 @@ export class Connection {
 
   async startup() {
     const { host, port } = this.connParams;
-    this.conn = await Deno.connect({ port: parseInt(port, 10), hostname: host });
+    this.conn = await Deno.connect({
+      port: parseInt(port, 10),
+      hostname: host
+    });
 
     this.bufReader = new BufReader(this.conn);
     this.bufWriter = new BufWriter(this.conn);
