@@ -45,8 +45,8 @@ function md5(bytes: Uint8Array): string {
 //  concat('md5', md5(concat(md5(concat(password, username)), random-salt))).
 // (Keep in mind the md5() function returns its result as a hex string.)
 export function hashMd5Password(
-  username: string,
   password: string,
+  username: string,
   salt: Uint8Array
 ): string {
   const innerHash = md5(encoder.encode(password + username));
