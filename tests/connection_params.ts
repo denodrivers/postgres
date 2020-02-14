@@ -1,4 +1,4 @@
-import { test, assertEquals, assertStrContains } from "../deps.ts";
+import { test, assertEquals, assertStrContains } from "../test_deps.ts";
 import { ConnectionParams } from "../connection_params.ts";
 
 test(async function dsnStyleParameters() {
