@@ -1,4 +1,4 @@
-import { test, TestFunction } from "../deps.ts";
+import { test, TestFunction } from "../test_deps.ts";
 import { Client } from "../client.ts";
 
 export function getTestClient(client: Client, defSetupQueries?: Array<string>) {

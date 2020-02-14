@@ -1,4 +1,4 @@
-import { test, assertEquals } from "../deps.ts";
+import { test, assertEquals } from "../test_deps.ts";
 import { encode } from "../encode.ts";
 
 // internally `encode` uses `getTimezoneOffset` to encode Date

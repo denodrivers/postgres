@@ -1,4 +1,4 @@
-import { test, assertEquals, TestFunction } from "../deps.ts";
+import { test, assertEquals, TestFunction } from "../test_deps.ts";
 import { Client } from "../mod.ts";
 import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
 import { getTestClient } from "./helpers.ts";

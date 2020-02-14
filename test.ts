@@ -1,5 +1,5 @@
 #! /usr/bin/env deno run --allow-net --allow-env test.ts
-import { runTests } from "./deps.ts";
+import { runTests } from "./test_deps.ts";
 
 import "./tests/data_types.ts";
 import "./tests/queries.ts";
