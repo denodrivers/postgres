@@ -1,4 +1,4 @@
-import { assertEquals } from "../deps.ts";
+import { assertEquals } from "../test_deps.ts";
 import { Client } from "../mod.ts";
 import { TEST_CONNECTION_PARAMS } from "./constants.ts";
 import { getTestClient } from "./helpers.ts";
