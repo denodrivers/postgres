@@ -50,6 +50,7 @@ export interface IConnectionParams {
   user?: string;
   password?: string;
   application_name?: string;
+  cert_file?: string;
 }
 
 class ConnectionParamsError extends Error {
@@ -66,6 +67,7 @@ export class ConnectionParams {
   user!: string;
   password?: string;
   application_name: string;
+  cert_file!: string;
   // TODO: support other params
 
   constructor(config?: string | IConnectionParams) {

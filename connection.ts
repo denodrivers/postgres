@@ -134,12 +134,22 @@ export class Connection {
     await this.bufWriter.write(finalBuffer);
   }
 
-  async startup() {
-    const { host, port } = this.connParams;
-    this.conn = await Deno.connect({
-      port: parseInt(port, 10),
-      hostname: host,
-    });
+  public async startup() {
+    const { host, port, cert_file } = this.connParams;
+    const parsedPort = parseInt(port, 10);
+
+    if (typeof cert_file !== "undefined") {
+      this.conn = await Deno.connectTLS({
+        port: parsedPort,
+        hostname: host,
+        certFile: cert_file,
+      });
+    } else {
+      this.conn = await Deno.connect({
+        port: parsedPort,
+        hostname: host
+      });
+    }
 
     this.bufReader = new BufReader(this.conn);
     this.bufWriter = new BufWriter(this.conn);
