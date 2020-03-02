@@ -497,7 +497,8 @@ export class Connection {
         throw new Error(`Unexpected frame: ${msg.type}`);
     }
 
-    outerLoop: while (true) {
+    outerLoop:
+    while (true) {
       msg = await this.readMessage();
       switch (msg.type) {
         // data row

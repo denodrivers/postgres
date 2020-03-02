@@ -1,7 +1,5 @@
 import {
-  test,
   assertEquals,
-  TestFunction,
   assertThrowsAsync
 } from "../test_deps.ts";
 import { Pool } from "../pool.ts";
@@ -27,7 +25,7 @@ async function testPool(
     }
   };
   const name = t.name;
-  test({ fn, name });
+  Deno.test({ fn, name });
 }
 
 testPool(async function simpleQuery(POOL) {

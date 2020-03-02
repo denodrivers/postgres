@@ -1,9 +1,11 @@
-import { test, TestFunction } from "../test_deps.ts";
 import { Client } from "../client.ts";
 
-export function getTestClient(client: Client, defSetupQueries?: Array<string>) {
+export function getTestClient(
+  client: Client,
+  defSetupQueries?: Array<string>
+) {
   return async function testClient(
-    t: TestFunction,
+    t: Deno.TestFunction,
     setupQueries?: Array<string>
   ) {
     const fn = async () => {
@@ -18,6 +20,6 @@ export function getTestClient(client: Client, defSetupQueries?: Array<string>) {
       }
     };
     const name = t.name;
-    test({ fn, name });
+    Deno.test({ fn, name });
   };
 }

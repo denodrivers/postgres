@@ -83,7 +83,7 @@ export class ConnectionParams {
       config = dsn;
     }
 
-    let potentiallyNull: { [K in keyof IConnectionParams]?: string } = {
+    let potentiallyNull: { [K in keyof IConnectionParams]?: string; } = {
       database: selectFrom([config, pgEnv], "database"),
       user: selectFrom([config, pgEnv], "user")
     };

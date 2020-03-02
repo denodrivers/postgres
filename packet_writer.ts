@@ -70,12 +70,12 @@ export class PacketWriter {
   }
 
   addCString(string?: string) {
-    //just write a 0 for empty or null strings
+    // just write a 0 for empty or null strings
     if (!string) {
       this._ensure(1);
     } else {
       const encodedStr = this.encoder.encode(string);
-      this._ensure(encodedStr.byteLength + 1); //+1 for null terminator
+      this._ensure(encodedStr.byteLength + 1); // +1 for null terminator
       copyBytes(this.buffer, encodedStr, this.offset);
       this.offset += encodedStr.byteLength;
     }
@@ -116,17 +116,17 @@ export class PacketWriter {
     this.headerPosition = 0;
   }
 
-  //appends a header block to all the written data since the last
-  //subsequent header or to the beginning if there is only one data block
+  // appends a header block to all the written data since the last
+  // subsequent header or to the beginning if there is only one data block
   addHeader(code: number, last?: boolean) {
     const origOffset = this.offset;
     this.offset = this.headerPosition;
     this.buffer[this.offset++] = code;
-    //length is everything in this packet minus the code
+    // length is everything in this packet minus the code
     this.addInt32(origOffset - (this.headerPosition + 1));
-    //set next header position
+    // set next header position
     this.headerPosition = origOffset;
-    //make space for next header
+    // make space for next header
     this.offset = origOffset;
     if (!last) {
       this._ensure(5);
