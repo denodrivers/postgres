@@ -1,4 +1,5 @@
-import { test, assert, assertStrContains } from "../test_deps.ts";
+const { test } = Deno;
+import { assert, assertStrContains } from "../test_deps.ts";
 import { Client, PostgresError } from "../mod.ts";
 import { TEST_CONNECTION_PARAMS } from "./constants.ts";
 
