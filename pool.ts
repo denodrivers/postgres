@@ -47,8 +47,8 @@ export class Pool {
 
   private async _startup(): Promise<void> {
     const initSize = this._lazy ? 1 : this._maxSize;
-    const connecting = [...Array(initSize)].map(
-      async () => await this._createConnection()
+    const connecting = [...Array(initSize)].map(async () =>
+      await this._createConnection()
     );
     this._connections = await Promise.all(connecting);
     this._availableConnections = new DeferredStack(

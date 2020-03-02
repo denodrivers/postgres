@@ -3,7 +3,8 @@ import { Column, Format } from "./connection.ts";
 
 // Datetime parsing based on:
 // https://github.com/bendrucker/postgres-date/blob/master/index.js
-const DATETIME_RE = /^(\d{1,})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})(\.\d{1,})?/;
+const DATETIME_RE =
+  /^(\d{1,})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})(\.\d{1,})?/;
 const DATE_RE = /^(\d{1,})-(\d{2})-(\d{2})$/;
 const TIMEZONE_RE = /([Z+-])(\d{2})?:?(\d{2})?:?(\d{2})?/;
 const BC_RE = /BC$/;
