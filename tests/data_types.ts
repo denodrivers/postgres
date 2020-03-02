@@ -54,3 +54,58 @@ testClient(async function cidr() {
   );
   assertEquals(selectRes.rows, [[cidr]]);
 });
+
+testClient(async function oid() {
+  const result = await CLIENT.query(`SELECT 1::oid`);
+  assertEquals(result.rows, [['1']]);
+});
+
+testClient(async function regproc() {
+  const result = await CLIENT.query(`SELECT 'starts_with'::regproc`);
+  assertEquals(result.rows, [['starts_with']]);
+});
+
+testClient(async function regprocedure() {
+  const result = await CLIENT.query(`SELECT 'sum(integer)'::regprocedure`);
+  assertEquals(result.rows, [['sum(integer)']]);
+});
+
+testClient(async function regoper() {
+  const result = await CLIENT.query(`SELECT '!'::regoper`);
+  assertEquals(result.rows, [['!']]);
+});
+
+testClient(async function regoperator() {
+  const result = await CLIENT.query(`SELECT '!(bigint,NONE)'::regoperator`);
+  assertEquals(result.rows, [['!(bigint,NONE)']]);
+});
+
+testClient(async function regclass() {
+  const result = await CLIENT.query(`SELECT 'data_types'::regclass`);
+  assertEquals(result.rows, [['data_types']]);
+});
+
+testClient(async function regtype() {
+  const result = await CLIENT.query(`SELECT 'integer'::regtype`);
+  assertEquals(result.rows, [['integer']]);
+});
+
+testClient(async function regrole() {
+  const result = await CLIENT.query(`SELECT ($1)::regrole`, TEST_CONNECTION_PARAMS.user);
+  assertEquals(result.rows, [[TEST_CONNECTION_PARAMS.user]]);
+});
+
+testClient(async function regnamespace() {
+  const result = await CLIENT.query(`SELECT 'public'::regnamespace;`);
+  assertEquals(result.rows, [['public']]);
+});
+
+testClient(async function regconfig() {
+  const result = await CLIENT.query(`SElECT 'english'::regconfig`);
+  assertEquals(result.rows, [['english']]);
+});
+
+testClient(async function regdictionary() {
+  const result = await CLIENT.query(`SElECT 'simple'::regdictionary`);
+  assertEquals(result.rows, [['simple']]);
+});
