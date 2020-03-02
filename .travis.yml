@@ -15,4 +15,4 @@ before_script:
 
 script:
   - deno run -r --allow-net --allow-env test.ts
-  - deno fmt -- --check
+  - deno fmt --check
