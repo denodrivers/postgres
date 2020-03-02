@@ -191,6 +191,17 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.macaddr:
     case Oid.name:
     case Oid.uuid:
+    case Oid.oid:
+    case Oid.regproc:
+    case Oid.regprocedure:
+    case Oid.regoper:
+    case Oid.regoperator:
+    case Oid.regclass:
+    case Oid.regtype:
+    case Oid.regrole:
+    case Oid.regnamespace:
+    case Oid.regconfig:
+    case Oid.regdictionary:
       return strValue;
     case Oid.bool:
       return strValue[0] === "t";
