@@ -61,8 +61,8 @@ testClient(async function oid() {
 });
 
 testClient(async function regproc() {
-  const result = await CLIENT.query(`SELECT 'starts_with'::regproc`);
-  assertEquals(result.rows, [["starts_with"]]);
+  const result = await CLIENT.query(`SELECT 'now'::regproc`);
+  assertEquals(result.rows, [["now"]]);
 });
 
 testClient(async function regprocedure() {
