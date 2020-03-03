@@ -76,3 +76,16 @@ test(async function requiredParameters() {
   }
   assertEquals(thrown, true);
 });
+
+test(async function certParameters() {
+  const decoder = new TextDecoder("utf-8");
+  const certFile = await Deno.readFile("./tests/cert/RootCA.crt");
+  const p = new ConnectionParams({
+    port: "1010",
+    host: "some_host",
+    database: "deno_postgres",
+    user: "deno_postgres",
+    cert_file: decoder.decode(certFile),
+  });
+  assertEquals(p.cert_file, certFile);
+});
