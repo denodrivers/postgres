@@ -112,3 +112,8 @@ testClient(async function regdictionary() {
   const result = await CLIENT.query(`SElECT 'simple'::regdictionary`);
   assertEquals(result.rows, [["simple"]]);
 });
+
+testClient(async function bigint() {
+  const result = await CLIENT.query("SELECT 9223372036854775807");
+  assertEquals(result.rows, [["9223372036854775807"]]);
+});
