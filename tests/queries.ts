@@ -74,14 +74,14 @@ testClient(async function resultMetadata() {
   assertEquals(result.rowCount, 1);
 
   // simple insert
-  result = await CLIENT.query("INSERT INTO ids VALUES ($1)", 3);
-  assertEquals(result.command, "INSERT");
-  assertEquals(result.rowCount, 1);
-
-  // parameterized insert
   result = await CLIENT.query("INSERT INTO ids VALUES (4), (5)");
   assertEquals(result.command, "INSERT");
   assertEquals(result.rowCount, 2);
+
+  // parameterized insert
+  result = await CLIENT.query("INSERT INTO ids VALUES ($1)", 3);
+  assertEquals(result.command, "INSERT");
+  assertEquals(result.rowCount, 1);
 
   // simple update
   result = await CLIENT.query(
