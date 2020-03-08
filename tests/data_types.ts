@@ -117,3 +117,9 @@ testClient(async function bigint() {
   const result = await CLIENT.query("SELECT 9223372036854775807");
   assertEquals(result.rows, [["9223372036854775807"]]);
 });
+
+testClient(async function numeric() {
+  const numeric = '1234567890.1234567890';
+  const result = await CLIENT.query(`SELECT $1::numeric`, numeric);
+  assertEquals(result.rows, [[numeric]]);
+});
