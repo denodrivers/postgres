@@ -303,6 +303,8 @@ export class Connection {
       // command complete
       // TODO: this is duplicated in next loop
       case "C":
+        const commandTag = this._readCommandTag(msg);
+        result.handleCommandComplete(commandTag);
         result.done();
         break;
       default:
@@ -320,6 +322,8 @@ export class Connection {
           break;
         // command complete
         case "C":
+          const commandTag = this._readCommandTag(msg);
+          result.handleCommandComplete(commandTag);
           result.done();
           break;
         // ready for query
@@ -509,6 +513,8 @@ export class Connection {
           break;
         // command complete
         case "C":
+          const commandTag = this._readCommandTag(msg);
+          result.handleCommandComplete(commandTag);
           result.done();
           break outerLoop;
         // error response
@@ -571,6 +577,10 @@ export class Connection {
     }
 
     return row;
+  }
+
+  _readCommandTag(msg: Message) {
+    return msg.reader.readString(msg.byteCount);
   }
 
   async initSQL(): Promise<void> {

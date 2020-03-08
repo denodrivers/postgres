@@ -2,6 +2,7 @@ import { assertEquals } from "../test_deps.ts";
 import { Client } from "../mod.ts";
 import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
 import { getTestClient } from "./helpers.ts";
+import { QueryResult } from "../query.ts";
 
 const CLIENT = new Client(TEST_CONNECTION_PARAMS);
 
@@ -44,3 +45,57 @@ testClient(async function binaryType() {
 
   await CLIENT.query("INSERT INTO bytes VALUES($1);", expectedBytes);
 });
+
+testClient(async function resultMetadata() {
+  let result: QueryResult;
+
+  // simple select
+  result = await CLIENT.query("SELECT * FROM ids WHERE id = 100");
+  assertEquals(result.command, "SELECT");
+  assertEquals(result.rowCount, 1);
+
+  // parameterized select
+  result = await CLIENT.query(
+    "SELECT * FROM ids WHERE id IN ($1, $2)",
+    200,
+    300
+  );
+  assertEquals(result.command, "SELECT");
+  assertEquals(result.rowCount, 2);
+
+  // simple delete
+  result = await CLIENT.query("DELETE FROM ids WHERE id IN (100, 200)");
+  assertEquals(result.command, "DELETE");
+  assertEquals(result.rowCount, 2);
+
+  // parameterized delete
+  result = await CLIENT.query("DELETE FROM ids WHERE id = $1", 300);
+  assertEquals(result.command, "DELETE");
+  assertEquals(result.rowCount, 1);
+
+  // simple insert
+  result = await CLIENT.query("INSERT INTO ids VALUES ($1)", 3);
+  assertEquals(result.command, "INSERT");
+  assertEquals(result.rowCount, 1);
+
+  // parameterized insert
+  result = await CLIENT.query("INSERT INTO ids VALUES (4), (5)");
+  assertEquals(result.command, "INSERT");
+  assertEquals(result.rowCount, 2);
+
+  // simple update
+  result = await CLIENT.query(
+    "UPDATE ids SET id = 500 WHERE id IN (500, 600)"
+  );
+  assertEquals(result.command, "UPDATE");
+  assertEquals(result.rowCount, 2);
+
+  // parameterized update
+  result = await CLIENT.query("UPDATE ids SET id = 400 WHERE id = $1", 400);
+  assertEquals(result.command, "UPDATE");
+  assertEquals(result.rowCount, 1);
+}, [
+  "DROP TABLE IF EXISTS ids",
+  "CREATE UNLOGGED TABLE ids (id integer)",
+  "INSERT INTO ids VALUES (100), (200), (300), (400), (500), (600)"
+]);
