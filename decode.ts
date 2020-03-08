@@ -203,6 +203,7 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.regconfig:
     case Oid.regdictionary:
     case Oid.int8: // @see https://github.com/buildondata/deno-postgres/issues/91.
+    case Oid.numeric:
       return strValue;
     case Oid.bool:
       return strValue[0] === "t";
