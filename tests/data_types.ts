@@ -119,7 +119,7 @@ testClient(async function bigint() {
 });
 
 testClient(async function numeric() {
-  const numeric = '1234567890.1234567890';
+  const numeric = "1234567890.1234567890";
   const result = await CLIENT.query(`SELECT $1::numeric`, numeric);
   assertEquals(result.rows, [[numeric]]);
 });
