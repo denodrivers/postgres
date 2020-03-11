@@ -67,7 +67,7 @@ export class ConnectionParams {
   user!: string;
   password?: string;
   application_name: string;
-  cert_file!: string;
+  cert_file?: string;
   // TODO: support other params
 
   constructor(config?: string | IConnectionParams) {
@@ -97,6 +97,7 @@ export class ConnectionParams {
       "application_name",
     );
     this.password = selectFrom([config, pgEnv], "password");
+    this.cert_file = selectFrom([config, pgEnv], "cert_file");
 
     const missingParams: string[] = [];
 
@@ -113,9 +114,9 @@ export class ConnectionParams {
     if (missingParams.length) {
       throw new ConnectionParamsError(
         `Missing connection parameters: ${missingParams.join(
-          ", ",
-        )}. Connection parameters can be read 
-        from environment only if Deno is run with env permission (deno run --allow-env)`,
+          ", "
+        )}. Connection parameters can be read
+        from environment only if Deno is run with env permission (deno run --allow-env)`
       );
     }
   }

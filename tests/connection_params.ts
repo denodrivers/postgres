@@ -87,5 +87,5 @@ test(async function certParameters() {
     user: "deno_postgres",
     cert_file: decoder.decode(certFile),
   });
-  assertEquals(p.cert_file, certFile);
+  assertEquals(p.cert_file, decoder.decode(certFile));
 });
