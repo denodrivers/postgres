@@ -123,3 +123,8 @@ testClient(async function numeric() {
   const result = await CLIENT.query(`SELECT $1::numeric`, numeric);
   assertEquals(result.rows, [[numeric]]);
 });
+
+testClient(async function voidType() {
+  const result = await CLIENT.query("select pg_sleep(0.01)"); // `pg_sleep()` returns void.
+  assertEquals(result.rows, [[""]]);
+});
