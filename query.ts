@@ -49,10 +49,10 @@ export class QueryResult {
   }
 
   rowsOfObjects() {
-    return this.rows.map((row, index) => {
+    return this.rows.map(row => {
       const rv: { [key: string]: any } = {};
       this.rowDescription.columns.forEach(column => {
-        rv[column.name] = row[index];
+        rv[column.name] = row[column.index];
       });
 
       return rv;
