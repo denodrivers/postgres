@@ -15,7 +15,7 @@ export class Pool {
   constructor(
     connectionParams: IConnectionParams,
     maxSize: number,
-    lazy?: boolean
+    lazy?: boolean,
   ) {
     this._connectionParams = new ConnectionParams(connectionParams);
     this._maxSize = maxSize;
@@ -54,7 +54,7 @@ export class Pool {
     this._availableConnections = new DeferredStack(
       this._maxSize,
       this._connections,
-      this._createConnection.bind(this)
+      this._createConnection.bind(this),
     );
   }
 
@@ -89,8 +89,10 @@ export class Pool {
 
   async end(): Promise<void> {
     await this._ready;
-    const ending = this._connections.map(c => c.end());
-    await Promise.all(ending);
+    while (this.available > 0) {
+      const conn = await this._availableConnections.pop();
+      await conn.end();
+    }
   }
 
   // Support `using` module
