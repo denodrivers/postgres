@@ -36,13 +36,13 @@ import { ConnectionParams } from "./connection_params.ts";
 
 export enum Format {
   TEXT = 0,
-  BINARY = 1
+  BINARY = 1,
 }
 
 enum TransactionStatus {
   Idle = "I",
   IdleInTransaction = "T",
-  InFailedTransaction = "E"
+  InFailedTransaction = "E",
 }
 
 export class Message {
@@ -51,7 +51,7 @@ export class Message {
   constructor(
     public type: string,
     public byteCount: number,
-    public body: Uint8Array
+    public body: Uint8Array,
   ) {
     this.reader = new PacketReader(body);
   }
@@ -65,7 +65,7 @@ export class Column {
     public typeOid: number,
     public columnLength: number,
     public typeModifier: number,
-    public format: Format
+    public format: Format,
   ) {}
 }
 
@@ -111,7 +111,7 @@ export class Connection {
     // TODO: recognize other parameters
     (["user", "database", "application_name"] as Array<
       keyof ConnectionParams
-    >).forEach(function(key) {
+    >).forEach(function (key) {
       const val = connParams[key];
       writer.addCString(key).addCString(val);
     });
@@ -138,7 +138,7 @@ export class Connection {
     const { host, port } = this.connParams;
     this.conn = await Deno.connect({
       port: parseInt(port, 10),
-      hostname: host
+      hostname: host,
     });
 
     this.bufReader = new BufReader(this.conn);
@@ -230,7 +230,7 @@ export class Connection {
     const password = hashMd5Password(
       this.connParams.password,
       this.connParams.user,
-      salt
+      salt,
     );
     const buffer = this.packetWriter.addCString(password).flush(0x70);
 
@@ -253,7 +253,7 @@ export class Connection {
   private _processReadyForQuery(msg: Message) {
     const txStatus = msg.reader.readByte();
     this._transactionStatus = String.fromCharCode(
-      txStatus
+      txStatus,
     ) as TransactionStatus;
   }
 
@@ -262,7 +262,7 @@ export class Connection {
 
     if (msg.type !== "Z") {
       throw new Error(
-        `Unexpected message type: ${msg.type}, expected "Z" (ReadyForQuery)`
+        `Unexpected message type: ${msg.type}, expected "Z" (ReadyForQuery)`,
       );
     }
 
@@ -363,7 +363,7 @@ export class Connection {
     if (hasBinaryArgs) {
       this.packetWriter.addInt16(query.args.length);
 
-      query.args.forEach(arg => {
+      query.args.forEach((arg) => {
         this.packetWriter.addInt16(arg instanceof Uint8Array ? 1 : 0);
       });
     } else {
@@ -372,7 +372,7 @@ export class Connection {
 
     this.packetWriter.addInt16(query.args.length);
 
-    query.args.forEach(arg => {
+    query.args.forEach((arg) => {
       if (arg === null || typeof arg === "undefined") {
         this.packetWriter.addInt32(-1);
       } else if (arg instanceof Uint8Array) {
@@ -546,7 +546,7 @@ export class Connection {
         msg.reader.readInt32(), // dataTypeOid
         msg.reader.readInt16(), // column
         msg.reader.readInt32(), // typeModifier
-        msg.reader.readInt16() // format
+        msg.reader.readInt16(), // format
       );
       columns.push(column);
     }

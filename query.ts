@@ -49,7 +49,7 @@ export class QueryResult {
   }
 
   rowsOfObjects() {
-    return this.rows.map(row => {
+    return this.rows.map((row) => {
       const rv: { [key: string]: any } = {};
       this.rowDescription.columns.forEach((column, index) => {
         rv[column.name] = row[index];
