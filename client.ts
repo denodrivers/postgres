@@ -1,6 +1,5 @@
 import { Connection } from "./connection.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
-import { EncodedArg } from "./encode.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
 
 export class Client {
@@ -18,23 +17,23 @@ export class Client {
 
   // TODO: can we use more specific type for args?
   async query(
-    text: string | QueryConfig,
-    ...args: any[]
+    text: string,
+    args?: unknown[],
   ): Promise<QueryResult> {
-    const query = new Query(text, ...args);
+    const query = new Query({ text, args });
     return await this._connection.query(query);
   }
 
-  async transaction(
+  async multiQuery(
     text: string | string[],
     args?: unknown[],
-    name?: string,
-    encoder?: (arg: unknown) => EncodedArg,
   ): Promise<QueryResult[]> {
     if (!Array.isArray(text)) text = text.split(";").map((el) => el.trim());
+
     const result: QueryResult[] = [];
-    for (const queryString of text) {
-      result.push(await this.query(queryString));
+
+    for await (const queryString of text) {
+      result.push(await this.query(queryString, args));
     }
 
     return result;
