@@ -1,6 +1,7 @@
 import { Connection } from "./connection.ts";
-import { Query, QueryConfig, QueryResult } from "./query.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
+import { EncodedArg } from "./encode.ts";
+import { Query, QueryConfig, QueryResult } from "./query.ts";
 
 export class Client {
   protected _connection: Connection;
@@ -22,6 +23,21 @@ export class Client {
   ): Promise<QueryResult> {
     const query = new Query(text, ...args);
     return await this._connection.query(query);
+  }
+
+  async transaction(
+    text: string | string[],
+    args?: unknown[],
+    name?: string,
+    encoder?: (arg: unknown) => EncodedArg,
+  ): Promise<QueryResult[]> {
+    if (!Array.isArray(text)) text = text.split(";").map((el) => el.trim());
+    const result: QueryResult[] = [];
+    for (const queryString of text) {
+      result.push(await this.query(queryString));
+    }
+
+    return result;
   }
 
   async end(): Promise<void> {
