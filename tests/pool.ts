@@ -1,10 +1,7 @@
-import {
-  assertEquals,
-  assertThrowsAsync
-} from "../test_deps.ts";
 import { Pool } from "../pool.ts";
+import { assertEquals, assertThrowsAsync } from "../test_deps.ts";
 import { delay } from "../utils.ts";
-import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
+import { DEFAULT_SETUP, TEST_CONNECTION_PARAMS } from "./constants.ts";
 
 async function testPool(
   t: (pool: Pool) => void | Promise<void>,
@@ -34,7 +31,10 @@ testPool(async function simpleQuery(POOL) {
 });
 
 testPool(async function parametrizedQuery(POOL) {
-  const result = await POOL.query("SELECT * FROM ids WHERE id < $1;", 2);
+  const result = await POOL.query(
+    "SELECT * FROM ids WHERE id < $1;",
+    { args: [2] },
+  );
   assertEquals(result.rows.length, 1);
 
   const objectRows = result.rowsOfObjects();
@@ -52,7 +52,10 @@ testPool(async function nativeType(POOL) {
 
   assertEquals(row[0].toUTCString(), new Date(expectedDate).toUTCString());
 
-  await POOL.query("INSERT INTO timestamps(dt) values($1);", new Date());
+  await POOL.query(
+    "INSERT INTO timestamps(dt) values($1);",
+    { args: [new Date()] },
+  );
 });
 
 testPool(
@@ -67,7 +70,7 @@ testPool(
     assertEquals(POOL.available, 1);
 
     const qs_thunks = [...Array(25)].map((_, i) =>
-      POOL.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
+      POOL.query("SELECT pg_sleep(0.1) is null, $1::text as id;", { args: [i] })
     );
     const qs_promises = Promise.all(qs_thunks);
     await delay(1);
@@ -105,7 +108,7 @@ testPool(async function manyQueries(POOL) {
   assertEquals(POOL.available, 10);
 
   const qs_thunks = [...Array(25)].map((_, i) =>
-    POOL.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
+    POOL.query("SELECT pg_sleep(0.1) is null, $1::text as id;", { args: [i] })
   );
   const qs_promises = Promise.all(qs_thunks);
   await delay(1);

@@ -1,8 +1,8 @@
 import { PoolClient } from "./client.ts";
 import { Connection } from "./connection.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
-import { Query, QueryConfig, QueryResult } from "./query.ts";
 import { DeferredStack } from "./deferred.ts";
+import { Query, QueryConfig, QueryResult } from "./query.ts";
 
 export class Pool {
   private _connectionParams: ConnectionParams;
@@ -80,10 +80,10 @@ export class Pool {
 
   // TODO: can we use more specific type for args?
   async query(
-    text: string | QueryConfig,
-    ...args: any[]
+    text: string,
+    config?: QueryConfig,
   ): Promise<QueryResult> {
-    const query = new Query(text, ...args);
+    const query = new Query(text, config);
     return await this._execute(query);
   }
 
