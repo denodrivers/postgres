@@ -1,6 +1,6 @@
 import {
   assertEquals,
-  assertThrowsAsync
+  assertThrowsAsync,
 } from "../test_deps.ts";
 import { Pool } from "../pool.ts";
 import { delay } from "../utils.ts";
