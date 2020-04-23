@@ -1,0 +1,30 @@
+name: ci
+
+on: [push, pull_request, release]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: deno_postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - name: clone repo
+        uses: actions/checkout@master
+      - name: install deno
+        uses: denolib/setup-deno@master
+      - name: check formatting
+        run: deno fmt --check
+      - name: run tests
+        run: deno run -r --allow-net --allow-env test.ts
