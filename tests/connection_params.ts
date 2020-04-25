@@ -4,7 +4,7 @@ import { ConnectionParams } from "../connection_params.ts";
 
 test(async function dsnStyleParameters() {
   const p = new ConnectionParams(
-    "postgres://some_user@some_host:10101/deno_postgres"
+    "postgres://some_user@some_host:10101/deno_postgres",
   );
 
   assertEquals(p.database, "deno_postgres");
@@ -18,7 +18,7 @@ test(async function objectStyleParameters() {
     user: "some_user",
     host: "some_host",
     port: "10101",
-    database: "deno_postgres"
+    database: "deno_postgres",
   });
 
   assertEquals(p.database, "deno_postgres");
@@ -52,7 +52,7 @@ test(async function envParameters() {
 test(async function defaultParameters() {
   const p = new ConnectionParams({
     database: "deno_postgres",
-    user: "deno_postgres"
+    user: "deno_postgres",
   });
   assertEquals(p.database, "deno_postgres");
   assertEquals(p.user, "deno_postgres");
@@ -71,7 +71,7 @@ test(async function requiredParameters() {
     assertEquals(e.name, "ConnectionParamsError");
     assertStrContains(
       e.message,
-      "Missing connection parameters: database, user"
+      "Missing connection parameters: database, user",
     );
   }
   assertEquals(thrown, true);
@@ -84,7 +84,7 @@ test(async function certParameters() {
     host: "some_host",
     database: "deno_postgres",
     user: "deno_postgres",
-    cert_file: certFile
+    cert_file: certFile,
   });
   assertEquals(p.cert_file, certFile);
 });
