@@ -9,7 +9,7 @@ export class DeferredStack<T> {
   constructor(
     max?: number,
     ls?: Iterable<T>,
-    private _creator?: () => Promise<T>,
+    private _creator?: () => Promise<T>
   ) {
     this._maxSize = max || 10;
     this._array = ls ? [...ls] : [];

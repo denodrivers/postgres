@@ -165,5 +165,5 @@ export const Oid = {
   regnamespace: 4089,
   _regnamespace: 4090,
   regrole: 4096,
-  _regrole: 4097,
+  _regrole: 4097
 };

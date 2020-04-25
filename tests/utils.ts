@@ -6,7 +6,7 @@ test(function testParseDsn() {
   let c: DsnResult;
 
   c = parseDsn(
-    "postgres://fizz:buzz@deno.land:8000/test_database?application_name=myapp",
+    "postgres://fizz:buzz@deno.land:8000/test_database?application_name=myapp"
   );
 
   assertEquals(c.driver, "postgres");

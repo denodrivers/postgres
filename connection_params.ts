@@ -9,7 +9,7 @@ function getPgEnv(): IConnectionParams {
       port: env.PGPORT,
       user: env.PGUSER,
       password: env.PGPASSWORD,
-      application_name: env.PGAPPNAME,
+      application_name: env.PGAPPNAME
     };
   } catch (e) {
     // PermissionDenied (--allow-env not passed)
@@ -19,7 +19,7 @@ function getPgEnv(): IConnectionParams {
 
 function selectFrom(
   sources: Array<IConnectionParams>,
-  key: keyof IConnectionParams,
+  key: keyof IConnectionParams
 ): string | undefined {
   for (const source of sources) {
     if (source[key]) {
@@ -32,7 +32,7 @@ function selectFrom(
 
 function selectFromWithDefault(
   sources: Array<IConnectionParams>,
-  key: keyof typeof DEFAULT_CONNECTION_PARAMS,
+  key: keyof typeof DEFAULT_CONNECTION_PARAMS
 ): string {
   return selectFrom(sources, key) || DEFAULT_CONNECTION_PARAMS[key];
 }
@@ -40,7 +40,7 @@ function selectFromWithDefault(
 const DEFAULT_CONNECTION_PARAMS = {
   host: "127.0.0.1",
   port: "5432",
-  application_name: "deno_postgres",
+  application_name: "deno_postgres"
 };
 
 export interface IConnectionParams {
@@ -85,16 +85,16 @@ export class ConnectionParams {
       config = dsn;
     }
 
-    let potentiallyNull: { [K in keyof IConnectionParams]?: string } = {
+    let potentiallyNull: { [K in keyof IConnectionParams]?: string; } = {
       database: selectFrom([config, pgEnv], "database"),
-      user: selectFrom([config, pgEnv], "user"),
+      user: selectFrom([config, pgEnv], "user")
     };
 
     this.host = selectFromWithDefault([config, pgEnv], "host");
     this.port = selectFromWithDefault([config, pgEnv], "port");
     this.application_name = selectFromWithDefault(
       [config, pgEnv],
-      "application_name",
+      "application_name"
     );
     this.password = selectFrom([config, pgEnv], "password");
     this.cert_file = selectFrom([config, pgEnv], "cert_file");
@@ -108,7 +108,7 @@ export class ConnectionParams {
         } else {
           missingParams.push(param);
         }
-      },
+      }
     );
 
     if (missingParams.length) {

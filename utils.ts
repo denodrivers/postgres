@@ -47,7 +47,7 @@ function md5(bytes: Uint8Array): string {
 export function hashMd5Password(
   password: string,
   username: string,
-  salt: Uint8Array,
+  salt: Uint8Array
 ): string {
   const innerHash = md5(encoder.encode(password + username));
   const innerBytes = encoder.encode(innerHash);
@@ -82,7 +82,7 @@ export function parseDsn(dsn: string): DsnResult {
     port: url.port,
     // remove leading slash from path
     database: url.pathname.slice(1),
-    params: Object.fromEntries(url.searchParams.entries()),
+    params: Object.fromEntries(url.searchParams.entries())
   };
 }
 

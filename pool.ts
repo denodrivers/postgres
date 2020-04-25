@@ -15,7 +15,7 @@ export class Pool {
   constructor(
     connectionParams: IConnectionParams,
     maxSize: number,
-    lazy?: boolean,
+    lazy?: boolean
   ) {
     this._connectionParams = new ConnectionParams(connectionParams);
     this._maxSize = maxSize;
@@ -54,7 +54,7 @@ export class Pool {
     this._availableConnections = new DeferredStack(
       this._maxSize,
       this._connections,
-      this._createConnection.bind(this),
+      this._createConnection.bind(this)
     );
   }
 

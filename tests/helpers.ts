@@ -2,11 +2,11 @@ import { Client } from "../client.ts";
 
 export function getTestClient(
   client: Client,
-  defSetupQueries?: Array<string>,
+  defSetupQueries?: Array<string>
 ) {
   return async function testClient(
     t: Deno.TestDefinition["fn"],
-    setupQueries?: Array<string>,
+    setupQueries?: Array<string>
   ) {
     const fn = async () => {
       try {

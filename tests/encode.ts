@@ -11,7 +11,7 @@ function resetTimezoneOffset() {
 }
 
 function overrideTimezoneOffset(offset: number) {
-  Date.prototype.getTimezoneOffset = function () {
+  Date.prototype.getTimezoneOffset = function() {
     return offset;
   };
 }

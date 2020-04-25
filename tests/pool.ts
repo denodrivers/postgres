@@ -1,6 +1,6 @@
 import {
   assertEquals,
-  assertThrowsAsync,
+  assertThrowsAsync
 } from "../test_deps.ts";
 import { Pool } from "../pool.ts";
 import { delay } from "../utils.ts";
@@ -9,7 +9,7 @@ import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
 async function testPool(
   t: (pool: Pool) => void | Promise<void>,
   setupQueries?: Array<string> | null,
-  lazy?: boolean,
+  lazy?: boolean
 ) {
   // constructing Pool instantiates the connections,
   // so this has to be constructed for each test.
@@ -81,7 +81,7 @@ testPool(
     assertEquals(result, expected);
   },
   null,
-  true,
+  true
 );
 
 /**
