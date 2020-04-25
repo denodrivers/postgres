@@ -1,6 +1,6 @@
 # deno-postgres
 
-[![Build Status](https://travis-ci.com/buildondata/deno-postgres.svg?branch=master)](https://travis-ci.com/buildondata/deno-postgres)
+![ci](https://github.com/buildondata/deno-postgres/workflows/ci/badge.svg)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/deno-postgres/community)
 
 PostgreSQL driver for Deno.
