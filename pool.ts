@@ -80,10 +80,10 @@ export class Pool {
 
   // TODO: can we use more specific type for args?
   async query(
-    text: string,
-    config?: QueryConfig,
+    text: string | QueryConfig,
+    ...args: any[]
   ): Promise<QueryResult> {
-    const query = new Query(text, config);
+    const query = new Query(text, ...args);
     return await this._execute(query);
   }
 

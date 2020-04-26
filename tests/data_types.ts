@@ -1,5 +1,5 @@
-import { Client } from "../mod.ts";
 import { assertEquals } from "../test_deps.ts";
+import { Client } from "../mod.ts";
 import { TEST_CONNECTION_PARAMS } from "./constants.ts";
 import { getTestClient } from "./helpers.ts";
 
@@ -20,11 +20,11 @@ testClient(async function inet() {
   const inet = "127.0.0.1";
   const insertRes = await CLIENT.query(
     "INSERT INTO data_types (inet_t) VALUES($1)",
-    { args: [inet] },
+    inet,
   );
   const selectRes = await CLIENT.query(
     "SELECT inet_t FROM data_types WHERE inet_t=$1",
-    { args: [inet] },
+    inet,
   );
   assertEquals(selectRes.rows, [[inet]]);
 });
@@ -33,11 +33,11 @@ testClient(async function macaddr() {
   const macaddr = "08:00:2b:01:02:03";
   const insertRes = await CLIENT.query(
     "INSERT INTO data_types (macaddr_t) VALUES($1)",
-    { args: [macaddr] },
+    macaddr,
   );
   const selectRes = await CLIENT.query(
     "SELECT macaddr_t FROM data_types WHERE macaddr_t=$1",
-    { args: [macaddr] },
+    macaddr,
   );
   assertEquals(selectRes.rows, [[macaddr]]);
 });
@@ -46,11 +46,11 @@ testClient(async function cidr() {
   const cidr = "192.168.100.128/25";
   const insertRes = await CLIENT.query(
     "INSERT INTO data_types (cidr_t) VALUES($1)",
-    { args: [cidr] },
+    cidr,
   );
   const selectRes = await CLIENT.query(
     "SELECT cidr_t FROM data_types WHERE cidr_t=$1",
-    { args: [cidr] },
+    cidr,
   );
   assertEquals(selectRes.rows, [[cidr]]);
 });
@@ -93,7 +93,7 @@ testClient(async function regtype() {
 testClient(async function regrole() {
   const result = await CLIENT.query(
     `SELECT ($1)::regrole`,
-    { args: [TEST_CONNECTION_PARAMS.user] },
+    TEST_CONNECTION_PARAMS.user,
   );
   assertEquals(result.rows, [[TEST_CONNECTION_PARAMS.user]]);
 });
@@ -120,7 +120,7 @@ testClient(async function bigint() {
 
 testClient(async function numeric() {
   const numeric = "1234567890.1234567890";
-  const result = await CLIENT.query(`SELECT $1::numeric`, { args: [numeric] });
+  const result = await CLIENT.query(`SELECT $1::numeric`, numeric);
   assertEquals(result.rows, [[numeric]]);
 });
 

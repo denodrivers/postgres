@@ -1,13 +1,11 @@
-import { RowDescription } from "./connection.ts";
-import { decode } from "./decode.ts";
+import { RowDescription, Column, Format } from "./connection.ts";
+import { Connection } from "./connection.ts";
 import { encode, EncodedArg } from "./encode.ts";
 
-export type QueryType = {
-  text: string;
-  config?: QueryConfig;
-};
+import { decode } from "./decode.ts";
 
 export interface QueryConfig {
+  text: string;
   args?: Array<unknown>;
   name?: string;
   encoder?: (arg: unknown) => EncodedArg;
@@ -72,14 +70,20 @@ export class Query {
   public result: QueryResult;
 
   // TODO: can we use more specific type for args?
-  constructor(text: string, config: QueryConfig = {}) {
-    this.text = text;
+  constructor(text: string | QueryConfig, ...args: unknown[]) {
+    let config: QueryConfig;
+    if (typeof text === "string") {
+      config = { text, args };
+    } else {
+      config = text;
+    }
+    this.text = config.text;
     this.args = this._prepareArgs(config);
     this.result = new QueryResult(this);
   }
 
   private _prepareArgs(config: QueryConfig): EncodedArg[] {
-    const encodingFn = config?.encoder ? config.encoder : encode;
-    return (config.args ?? []).map(encodingFn);
+    const encodingFn = config.encoder ? config.encoder : encode;
+    return (config.args || []).map(encodingFn);
   }
 }

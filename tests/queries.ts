@@ -13,10 +13,7 @@ testClient(async function simpleQuery() {
 });
 
 testClient(async function parametrizedQuery() {
-  const result = await CLIENT.query(
-    "SELECT * FROM ids WHERE id < $1;",
-    { args: [2] },
-  );
+  const result = await CLIENT.query("SELECT * FROM ids WHERE id < $1;", 2);
   assertEquals(result.rows.length, 1);
 
   const objectRows = result.rowsOfObjects();
@@ -34,10 +31,7 @@ testClient(async function nativeType() {
 
   assertEquals(row[0].toUTCString(), new Date(expectedDate).toUTCString());
 
-  await CLIENT.query(
-    "INSERT INTO timestamps(dt) values($1);",
-    { args: [new Date()] },
-  );
+  await CLIENT.query("INSERT INTO timestamps(dt) values($1);", new Date());
 });
 
 testClient(async function binaryType() {
@@ -50,14 +44,14 @@ testClient(async function binaryType() {
 
   await CLIENT.query(
     "INSERT INTO bytes VALUES($1);",
-    { args: [expectedBytes] },
+    { args: expectedBytes },
   );
 });
 
 // MultiQueries
 
 testClient(async function multiQueryWithOne() {
-  const result = await CLIENT.multiQuery("SELECT * from bytes;");
+  const result = await CLIENT.multiQuery([{ text: "SELECT * from bytes;" }]);
   const row = result[0].rows[0];
 
   const expectedBytes = new Uint8Array([102, 111, 111, 0, 128, 92, 255]);
@@ -66,14 +60,16 @@ testClient(async function multiQueryWithOne() {
 
   await CLIENT.multiQuery([{
     text: "INSERT INTO bytes VALUES($1);",
-    config: { args: [expectedBytes] },
+    args: [expectedBytes],
   }]);
 });
 
 testClient(async function multiQueryWithManyString() {
-  const result = await CLIENT.multiQuery(
-    "SELECT * from bytes;SELECT * FROM timestamps; SELECT * FROM ids;",
-  );
+  const result = await CLIENT.multiQuery([
+    { text: "SELECT * from bytes;" },
+    { text: "SELECT * FROM timestamps;" },
+    { text: "SELECT * FROM ids;" },
+  ]);
   assertEquals(result.length, 3);
 
   const expectedBytes = new Uint8Array([102, 111, 111, 0, 128, 92, 255]);
@@ -91,15 +87,15 @@ testClient(async function multiQueryWithManyString() {
 
   await CLIENT.multiQuery([{
     text: "INSERT INTO bytes VALUES($1);",
-    config: { args: [expectedBytes] },
+    args: [expectedBytes],
   }]);
 });
 
 testClient(async function multiQueryWithManyStringArray() {
   const result = await CLIENT.multiQuery([
-    "SELECT * from bytes;",
-    "SELECT * FROM timestamps;",
-    "SELECT * FROM ids;",
+    { text: "SELECT * from bytes;" },
+    { text: "SELECT * FROM timestamps;" },
+    { text: "SELECT * FROM ids;" },
   ]);
 
   assertEquals(result.length, 3);

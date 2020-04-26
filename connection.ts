@@ -26,13 +26,13 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { ConnectionParams } from "./connection_params.ts";
-import { BufReader, BufWriter } from "./deps.ts";
-import { parseError } from "./error.ts";
-import { PacketReader } from "./packet_reader.ts";
+import { BufReader, BufWriter, Hash } from "./deps.ts";
 import { PacketWriter } from "./packet_writer.ts";
-import { Query, QueryConfig, QueryResult } from "./query.ts";
 import { hashMd5Password, readUInt32BE } from "./utils.ts";
+import { PacketReader } from "./packet_reader.ts";
+import { QueryConfig, QueryResult, Query } from "./query.ts";
+import { parseError } from "./error.ts";
+import { ConnectionParams } from "./connection_params.ts";
 
 export enum Format {
   TEXT = 0,
@@ -574,8 +574,8 @@ export class Connection {
   }
 
   async initSQL(): Promise<void> {
-    const config: QueryConfig = { args: [] };
-    const query = new Query("select 1;", config);
+    const config: QueryConfig = { text: "select 1;", args: [] };
+    const query = new Query(config);
     await this.query(query);
   }
 

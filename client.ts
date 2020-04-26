@@ -1,6 +1,6 @@
 import { Connection } from "./connection.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
-import { Query, QueryConfig, QueryResult, QueryType } from "./query.ts";
+import { Query, QueryConfig, QueryResult } from "./query.ts";
 
 export class Client {
   protected _connection: Connection;
@@ -15,34 +15,20 @@ export class Client {
     await this._connection.initSQL();
   }
 
+  // TODO: can we use more specific type for args?
   async query(
-    text: string,
-    config?: QueryConfig,
+    text: string | QueryConfig,
+    ...args: any[]
   ): Promise<QueryResult> {
-    const query = new Query(text, config);
+    const query = new Query(text, ...args);
     return await this._connection.query(query);
   }
 
-  async multiQuery(
-    queries: string | string[] | QueryType[],
-  ): Promise<QueryResult[]> {
-    if (!Array.isArray(queries)) {
-      queries = queries.split(";")
-        .filter((el) => el.trim().length > 0)
-        .map((el) => el.trim() + ";");
-    }
-
-    const parsedQueries: QueryType[] = (queries as string[])
-      .map((el: string): QueryType =>
-        typeof el === "string"
-          ? ({ text: el })
-          : el
-      );
-
+  async multiQuery(queries: QueryConfig[]): Promise<QueryResult[]> {
     const result: QueryResult[] = [];
 
-    for await (const query of parsedQueries) {
-      result.push(await this.query(query.text, query.config));
+    for (const query of queries) {
+      result.push(await this.query(query));
     }
 
     return result;
@@ -67,10 +53,10 @@ export class PoolClient {
   }
 
   async query(
-    text: string,
+    text: string | QueryConfig,
     ...args: any[]
   ): Promise<QueryResult> {
-    const query = new Query(text, { args });
+    const query = new Query(text, ...args);
     return await this._connection.query(query);
   }
 
