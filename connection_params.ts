@@ -50,7 +50,7 @@ export interface IConnectionParams {
   user?: string;
   password?: string;
   application_name?: string;
-  cert_file?: string;
+  certFile?: string;
 }
 
 class ConnectionParamsError extends Error {
@@ -67,7 +67,7 @@ export class ConnectionParams {
   user!: string;
   password?: string;
   application_name: string;
-  cert_file?: string;
+  certFile?: string;
   // TODO: support other params
 
   constructor(config?: string | IConnectionParams) {
@@ -97,7 +97,7 @@ export class ConnectionParams {
       "application_name",
     );
     this.password = selectFrom([config, pgEnv], "password");
-    this.cert_file = selectFrom([config, pgEnv], "cert_file");
+    this.certFile = selectFrom([config, pgEnv], "certFile");
 
     const missingParams: string[] = [];
 

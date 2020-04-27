@@ -135,14 +135,14 @@ export class Connection {
   }
 
   public async startup() {
-    const { host, port, cert_file } = this.connParams;
+    const { host, port, certFile } = this.connParams;
     const parsedPort = parseInt(port, 10);
 
-    if (typeof cert_file !== "undefined") {
+    if (typeof certFile !== "undefined") {
       this.conn = await Deno.connectTLS({
         port: parsedPort,
         hostname: host,
-        certFile: cert_file,
+        certFile,
       });
     } else {
       this.conn = await Deno.connect({

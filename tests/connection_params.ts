@@ -1,6 +1,10 @@
 const { test } = Deno;
-import { assertEquals, assertStrContains } from "../test_deps.ts";
 import { ConnectionParams } from "../connection_params.ts";
+import {
+  assertEquals,
+  assertStrContains,
+  assertThrowsAsync,
+} from "../test_deps.ts";
 
 test(async function dsnStyleParameters() {
   const p = new ConnectionParams(
@@ -77,6 +81,20 @@ test(async function requiredParameters() {
   assertEquals(thrown, true);
 });
 
+test(async function invalidCertParameters() {
+  await assertThrowsAsync(
+    async (): Promise<void> => {
+      const p = new ConnectionParams({
+        port: "1010",
+        host: "some_host",
+        database: "deno_postgres",
+        user: "deno_postgres",
+        certFile: "",
+      });
+    },
+  );
+});
+
 test(async function certParameters() {
   const certFile = (await Deno.readFile("./tests/cert/RootCA.crt")).toString();
   const p = new ConnectionParams({
@@ -84,7 +102,7 @@ test(async function certParameters() {
     host: "some_host",
     database: "deno_postgres",
     user: "deno_postgres",
-    cert_file: certFile,
+    certFile: certFile,
   });
-  assertEquals(p.cert_file, certFile);
+  assertEquals(p.certFile, certFile);
 });
