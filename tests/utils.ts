@@ -6,7 +6,7 @@ test(function testParseDsn() {
   let c: DsnResult;
 
   c = parseDsn(
-    "postgres://fizz:buzz@deno.land:8000/test_database?application_name=myapp",
+    "postgres://fizz:buzz@deno.land:8000/test_database?applicationName=myapp",
   );
 
   assertEquals(c.driver, "postgres");
@@ -15,7 +15,7 @@ test(function testParseDsn() {
   assertEquals(c.host, "deno.land");
   assertEquals(c.port, "8000");
   assertEquals(c.database, "test_database");
-  assertEquals(c.params.application_name, "myapp");
+  assertEquals(c.params.applicationName, "myapp");
 
   c = parseDsn("postgres://deno.land/test_database");
 

@@ -9,7 +9,7 @@ function getPgEnv(): IConnectionParams {
       port: env.PGPORT,
       user: env.PGUSER,
       password: env.PGPASSWORD,
-      application_name: env.PGAPPNAME,
+      applicationName: env.PGAPPNAME,
     };
   } catch (e) {
     // PermissionDenied (--allow-env not passed)
@@ -40,7 +40,7 @@ function selectFromWithDefault(
 const DEFAULT_CONNECTION_PARAMS = {
   host: "127.0.0.1",
   port: "5432",
-  application_name: "deno_postgres",
+  applicationName: "deno_postgres",
 };
 
 export interface IConnectionParams {
@@ -49,7 +49,7 @@ export interface IConnectionParams {
   port?: string;
   user?: string;
   password?: string;
-  application_name?: string;
+  applicationName?: string;
   certFile?: string;
 }
 
@@ -66,7 +66,7 @@ export class ConnectionParams {
   port: string;
   user!: string;
   password?: string;
-  application_name: string;
+  applicationName: string;
   certFile?: string;
   // TODO: support other params
 
@@ -92,9 +92,9 @@ export class ConnectionParams {
 
     this.host = selectFromWithDefault([config, pgEnv], "host");
     this.port = selectFromWithDefault([config, pgEnv], "port");
-    this.application_name = selectFromWithDefault(
+    this.applicationName = selectFromWithDefault(
       [config, pgEnv],
-      "application_name",
+      "applicationName",
     );
     this.password = selectFrom([config, pgEnv], "password");
     this.certFile = selectFrom([config, pgEnv], "certFile");

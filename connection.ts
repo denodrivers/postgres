@@ -109,7 +109,7 @@ export class Connection {
     writer.addInt16(3).addInt16(0);
     const connParams = this.connParams;
     // TODO: recognize other parameters
-    (["user", "database", "application_name"] as Array<
+    (["user", "database", "applicationName"] as Array<
       keyof ConnectionParams
     >).forEach(function (key) {
       const val = connParams[key];
