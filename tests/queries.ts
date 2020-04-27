@@ -1,6 +1,6 @@
-import { assertEquals } from "../test_deps.ts";
 import { Client } from "../mod.ts";
-import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
+import { assertEquals } from "../test_deps.ts";
+import { DEFAULT_SETUP, TEST_CONNECTION_PARAMS } from "./constants.ts";
 import { getTestClient } from "./helpers.ts";
 
 const CLIENT = new Client(TEST_CONNECTION_PARAMS);
@@ -42,5 +42,97 @@ testClient(async function binaryType() {
 
   assertEquals(row[0], expectedBytes);
 
-  await CLIENT.query("INSERT INTO bytes VALUES($1);", expectedBytes);
+  await CLIENT.query(
+    "INSERT INTO bytes VALUES($1);",
+    { args: expectedBytes },
+  );
+});
+
+// MultiQueries
+
+testClient(async function multiQueryWithOne() {
+  const result = await CLIENT.multiQuery([{ text: "SELECT * from bytes;" }]);
+  const row = result[0].rows[0];
+
+  const expectedBytes = new Uint8Array([102, 111, 111, 0, 128, 92, 255]);
+
+  assertEquals(row[0], expectedBytes);
+
+  await CLIENT.multiQuery([{
+    text: "INSERT INTO bytes VALUES($1);",
+    args: [expectedBytes],
+  }]);
+});
+
+testClient(async function multiQueryWithManyString() {
+  const result = await CLIENT.multiQuery([
+    { text: "SELECT * from bytes;" },
+    { text: "SELECT * FROM timestamps;" },
+    { text: "SELECT * FROM ids;" },
+  ]);
+  assertEquals(result.length, 3);
+
+  const expectedBytes = new Uint8Array([102, 111, 111, 0, 128, 92, 255]);
+
+  assertEquals(result[0].rows[0][0], expectedBytes);
+
+  const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
+
+  assertEquals(
+    result[1].rows[0][0].toUTCString(),
+    new Date(expectedDate).toUTCString(),
+  );
+
+  assertEquals(result[2].rows.length, 2);
+
+  await CLIENT.multiQuery([{
+    text: "INSERT INTO bytes VALUES($1);",
+    args: [expectedBytes],
+  }]);
+});
+
+testClient(async function multiQueryWithManyStringArray() {
+  const result = await CLIENT.multiQuery([
+    { text: "SELECT * from bytes;" },
+    { text: "SELECT * FROM timestamps;" },
+    { text: "SELECT * FROM ids;" },
+  ]);
+
+  assertEquals(result.length, 3);
+
+  const expectedBytes = new Uint8Array([102, 111, 111, 0, 128, 92, 255]);
+
+  assertEquals(result[0].rows[0][0], expectedBytes);
+
+  const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
+
+  assertEquals(
+    result[1].rows[0][0].toUTCString(),
+    new Date(expectedDate).toUTCString(),
+  );
+
+  assertEquals(result[2].rows.length, 2);
+});
+
+testClient(async function multiQueryWithManyQueryTypeArray() {
+  const result = await CLIENT.multiQuery([
+    { text: "SELECT * from bytes;" },
+    { text: "SELECT * FROM timestamps;" },
+    { text: "SELECT * FROM ids;" },
+  ]);
+
+  assertEquals(result.length, 3);
+
+  const expectedBytes = new Uint8Array([102, 111, 111, 0, 128, 92, 255]);
+
+  assertEquals(result[0].rows[0][0], expectedBytes);
+
+  const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
+
+  assertEquals(
+    result[1].rows[0][0].toUTCString(),
+    new Date(expectedDate).toUTCString(),
+  );
+
+  assertEquals(result[2].rows.length, 2);
 });

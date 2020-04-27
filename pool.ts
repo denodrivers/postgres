@@ -1,8 +1,8 @@
 import { PoolClient } from "./client.ts";
 import { Connection } from "./connection.ts";
 import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
-import { Query, QueryConfig, QueryResult } from "./query.ts";
 import { DeferredStack } from "./deferred.ts";
+import { Query, QueryConfig, QueryResult } from "./query.ts";
 
 export class Pool {
   private _connectionParams: ConnectionParams;

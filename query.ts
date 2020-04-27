@@ -84,6 +84,6 @@ export class Query {
 
   private _prepareArgs(config: QueryConfig): EncodedArg[] {
     const encodingFn = config.encoder ? config.encoder : encode;
-    return config.args!.map(encodingFn);
+    return (config.args || []).map(encodingFn);
   }
 }
