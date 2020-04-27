@@ -81,20 +81,6 @@ test(async function requiredParameters() {
   assertEquals(thrown, true);
 });
 
-test(async function invalidCertParameters() {
-  await assertThrowsAsync(
-    async (): Promise<void> => {
-      const p = new ConnectionParams({
-        port: "1010",
-        host: "some_host",
-        database: "deno_postgres",
-        user: "deno_postgres",
-        certFile: "",
-      });
-    },
-  );
-});
-
 test(async function certParameters() {
   const certFile = (await Deno.readFile("./tests/cert/RootCA.crt")).toString();
   const p = new ConnectionParams({
