@@ -19,12 +19,18 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+
     steps:
-      - name: clone repo
+      - name: Clone repo
         uses: actions/checkout@master
-      - name: install deno
+
+      - name: Install deno
         uses: denolib/setup-deno@master
-      - name: check formatting
+        with:
+          deno-version: 0.41.0
+
+      - name: Check formatting
         run: deno fmt --check
-      - name: run tests
-        run: deno run -r --allow-net --allow-env --allow-read test.ts
+
+      - name: Run tests
+        run: deno run -r --allow-net --allow-env test.ts
