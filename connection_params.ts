@@ -2,14 +2,14 @@ import { parseDsn } from "./utils.ts";
 
 function getPgEnv(): IConnectionParams {
   try {
-    const env = Deno.env();
+    const env = Deno.env;
     return {
-      database: env.PGDATABASE,
-      host: env.PGHOST,
-      port: env.PGPORT,
-      user: env.PGUSER,
-      password: env.PGPASSWORD,
-      application_name: env.PGAPPNAME,
+      database: env.get("PGDATABASE"),
+      host: env.get("PGHOST"),
+      port: env.get("PGPORT"),
+      user: env.get("PGUSER"),
+      password: env.get("PGPASSWORD"),
+      application_name: env.get("PGAPPNAME"),
     };
   } catch (e) {
     // PermissionDenied (--allow-env not passed)
@@ -110,9 +110,11 @@ export class ConnectionParams {
 
     if (missingParams.length) {
       throw new ConnectionParamsError(
-        `Missing connection parameters: ${missingParams.join(
-          ", ",
-        )}. Connection parameters can be read 
+        `Missing connection parameters: ${
+          missingParams.join(
+            ", ",
+          )
+        }. Connection parameters can be read 
         from environment only if Deno is run with env permission (deno run --allow-env)`,
       );
     }

@@ -27,10 +27,10 @@ jobs:
       - name: Install deno
         uses: denolib/setup-deno@master
         with: 
-          deno-version: 0.41.0
+          deno-version: 0.42.0
 
       - name: Check formatting
         run: deno fmt --check
 
       - name: Run tests
-        run: deno run -r --allow-net --allow-env test.ts
+        run: deno test --allow-net --allow-env test.ts

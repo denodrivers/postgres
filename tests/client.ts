@@ -3,7 +3,7 @@ import { Client, PostgresError } from "../mod.ts";
 import { assert, assertStrContains } from "../test_deps.ts";
 import { TEST_CONNECTION_PARAMS } from "./constants.ts";
 
-test(async function badAuthData() {
+test("badAuthData", async function () {
   const badConnectionData = { ...TEST_CONNECTION_PARAMS };
   badConnectionData.password += "foobar";
   const client = new Client(badConnectionData);

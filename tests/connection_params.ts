@@ -2,7 +2,7 @@ const { test } = Deno;
 import { assertEquals, assertStrContains } from "../test_deps.ts";
 import { ConnectionParams } from "../connection_params.ts";
 
-test(async function dsnStyleParameters() {
+test("dsnStyleParameters", async function () {
   const p = new ConnectionParams(
     "postgres://some_user@some_host:10101/deno_postgres",
   );
@@ -13,7 +13,7 @@ test(async function dsnStyleParameters() {
   assertEquals(p.port, "10101");
 });
 
-test(async function objectStyleParameters() {
+test("objectStyleParameters", async function () {
   const p = new ConnectionParams({
     user: "some_user",
     host: "some_host",
@@ -28,13 +28,13 @@ test(async function objectStyleParameters() {
 });
 
 // TODO: add test when env is not allowed
-test(async function envParameters() {
-  const currentEnv = Deno.env();
+test("envParameters", async function () {
+  const currentEnv = Deno.env;
 
-  currentEnv.PGUSER = "some_user";
-  currentEnv.PGHOST = "some_host";
-  currentEnv.PGPORT = "10101";
-  currentEnv.PGDATABASE = "deno_postgres";
+  currentEnv.set("PGUSER", "some_user");
+  currentEnv.set("PGHOST", "some_host");
+  currentEnv.set("PGPORT", "10101");
+  currentEnv.set("PGDATABASE", "deno_postgres");
 
   const p = new ConnectionParams();
   assertEquals(p.database, "deno_postgres");
@@ -43,13 +43,13 @@ test(async function envParameters() {
   assertEquals(p.port, "10101");
 
   // clear out env
-  currentEnv.PGUSER = "";
-  currentEnv.PGHOST = "";
-  currentEnv.PGPORT = "";
-  currentEnv.PGDATABASE = "";
+  currentEnv.set("PGUSER", "");
+  currentEnv.set("PGHOST", "");
+  currentEnv.set("PGPORT", "");
+  currentEnv.set("PGDATABASE", "");
 });
 
-test(async function defaultParameters() {
+test("defaultParameters", async function () {
   const p = new ConnectionParams({
     database: "deno_postgres",
     user: "deno_postgres",
@@ -61,7 +61,7 @@ test(async function defaultParameters() {
   assertEquals(p.password, undefined);
 });
 
-test(async function requiredParameters() {
+test("requiredParameters", async function () {
   let thrown = false;
 
   try {
