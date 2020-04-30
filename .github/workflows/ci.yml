@@ -33,4 +33,4 @@ jobs:
         run: deno fmt --check
 
       - name: Run tests
-        run: deno run -r --allow-net --allow-env test.ts
+        run: deno test --allow-net --allow-env test.ts
