@@ -64,7 +64,7 @@ test("encodeObject", function () {
 
 test("encodeUint8Array", function () {
   const buf_1 = new Uint8Array([1, 2, 3]);
-  const buf_2 = new Uint8Array([2,10,500]);
+  const buf_2 = new Uint8Array([2, 10, 500]);
 
   assertEquals("\\x010203", encode(buf_1));
   assertEquals("\\x02af4", encode(buf_2));
