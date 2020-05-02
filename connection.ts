@@ -109,12 +109,11 @@ export class Connection {
     writer.addInt16(3).addInt16(0);
     const connParams = this.connParams;
     // TODO: recognize other parameters
-    (["user", "database", "application_name"] as Array<
-      keyof ConnectionParams
-    >).forEach(function (key) {
-      const val = connParams[key];
-      writer.addCString(key).addCString(val);
-    });
+    writer.addCString("user").addCString(connParams.user);
+    writer.addCString("database").addCString(connParams.database);
+    writer.addCString("application_name").addCString(
+      connParams.application_name,
+    );
 
     // eplicitly set utf-8 encoding
     writer.addCString("client_encoding").addCString("'utf-8'");
@@ -135,11 +134,8 @@ export class Connection {
   }
 
   async startup() {
-    const { host, port } = this.connParams;
-    this.conn = await Deno.connect({
-      port: parseInt(port, 10),
-      hostname: host,
-    });
+    const { port, hostname } = this.connParams;
+    this.conn = await Deno.connect({ port, hostname });
 
     this.bufReader = new BufReader(this.conn);
     this.bufWriter = new BufWriter(this.conn);

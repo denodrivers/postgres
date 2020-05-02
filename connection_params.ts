@@ -1,12 +1,13 @@
 import { parseDsn } from "./utils.ts";
 
-function getPgEnv(): IConnectionParams {
+function getPgEnv(): ConnectionOptions {
   try {
     const env = Deno.env;
+    const port = env.get("PGPORT");
     return {
       database: env.get("PGDATABASE"),
-      host: env.get("PGHOST"),
-      port: env.get("PGPORT"),
+      hostname: env.get("PGHOST"),
+      port: port !== undefined ? parseInt(port, 10) : undefined,
       user: env.get("PGUSER"),
       password: env.get("PGPASSWORD"),
       application_name: env.get("PGAPPNAME"),
@@ -17,39 +18,8 @@ function getPgEnv(): IConnectionParams {
   }
 }
 
-function selectFrom(
-  sources: Array<IConnectionParams>,
-  key: keyof IConnectionParams,
-): string | undefined {
-  for (const source of sources) {
-    if (source[key]) {
-      return source[key];
-    }
-  }
-
-  return undefined;
-}
-
-function selectFromWithDefault(
-  sources: Array<IConnectionParams>,
-  key: keyof typeof DEFAULT_CONNECTION_PARAMS,
-): string {
-  return selectFrom(sources, key) || DEFAULT_CONNECTION_PARAMS[key];
-}
-
-const DEFAULT_CONNECTION_PARAMS = {
-  host: "127.0.0.1",
-  port: "5432",
-  application_name: "deno_postgres",
-};
-
-export interface IConnectionParams {
-  database?: string;
-  host?: string;
-  port?: string;
-  user?: string;
-  password?: string;
-  application_name?: string;
+function isDefined<T>(value: T): value is Exclude<T, undefined | null> {
+  return value !== undefined && value !== null;
 }
 
 class ConnectionParamsError extends Error {
@@ -59,64 +29,106 @@ class ConnectionParamsError extends Error {
   }
 }
 
-export class ConnectionParams {
-  database!: string;
-  host: string;
-  port: string;
-  user!: string;
+export interface ConnectionOptions {
+  database?: string;
+  hostname?: string;
+  port?: number;
+  user?: string;
+  password?: string;
+  application_name?: string;
+}
+
+export interface ConnectionParams {
+  database: string;
+  hostname: string;
+  port: number;
+  user: string;
   password?: string;
   application_name: string;
   // TODO: support other params
+}
 
-  constructor(config?: string | IConnectionParams) {
-    if (!config) {
-      config = {};
-    }
+function select<T extends keyof ConnectionOptions>(
+  sources: ConnectionOptions[],
+  key: T,
+): ConnectionOptions[T] {
+  return sources.map((s) => s[key]).find(isDefined);
+}
 
-    const pgEnv = getPgEnv();
+function selectRequired<T extends keyof ConnectionOptions>(
+  sources: ConnectionOptions[],
+  key: T,
+): Exclude<ConnectionOptions[T], undefined | null> {
+  const result = select(sources, key);
 
-    if (typeof config === "string") {
-      const dsn = parseDsn(config);
-      if (dsn.driver !== "postgres") {
-        throw new Error(`Supplied DSN has invalid driver: ${dsn.driver}.`);
-      }
-      config = dsn;
-    }
+  if (!isDefined(result)) {
+    throw new ConnectionParamsError(`Required parameter ${key} not provided`);
+  }
 
-    let potentiallyNull: { [K in keyof IConnectionParams]?: string } = {
-      database: selectFrom([config, pgEnv], "database"),
-      user: selectFrom([config, pgEnv], "user"),
-    };
+  return result;
+}
 
-    this.host = selectFromWithDefault([config, pgEnv], "host");
-    this.port = selectFromWithDefault([config, pgEnv], "port");
-    this.application_name = selectFromWithDefault(
-      [config, pgEnv],
-      "application_name",
-    );
-    this.password = selectFrom([config, pgEnv], "password");
-
-    const missingParams: string[] = [];
-
-    (["database", "user"] as Array<keyof IConnectionParams>).forEach(
-      (param) => {
-        if (potentiallyNull[param]) {
-          this[param] = potentiallyNull[param]!;
-        } else {
-          missingParams.push(param);
-        }
-      },
-    );
-
-    if (missingParams.length) {
-      throw new ConnectionParamsError(
-        `Missing connection parameters: ${
-          missingParams.join(
-            ", ",
-          )
-        }. Connection parameters can be read 
-        from environment only if Deno is run with env permission (deno run --allow-env)`,
-      );
+function assertRequiredOptions(
+  sources: ConnectionOptions[],
+  requiredKeys: (keyof ConnectionOptions)[],
+) {
+  const missingParams: (keyof ConnectionOptions)[] = [];
+  for (const key of requiredKeys) {
+    if (!isDefined(select(sources, key))) {
+      missingParams.push(key);
     }
   }
+
+  if (missingParams.length) {
+    throw new ConnectionParamsError(formatMissingParams(missingParams));
+  }
+}
+
+function formatMissingParams(missingParams: string[]) {
+  return `Missing connection parameters: ${
+    missingParams.join(
+      ", ",
+    )
+  }. Connection parameters can be read from environment only if Deno is run with env permission (deno run --allow-env)`;
+}
+
+const DEFAULT_OPTIONS: ConnectionOptions = {
+  hostname: "127.0.0.1",
+  port: 5432,
+  application_name: "deno_postgres",
+};
+
+export function createParams(
+  config: string | ConnectionOptions = {},
+): ConnectionParams {
+  if (typeof config === "string") {
+    const dsn = parseDsn(config);
+    return createParams({
+      ...dsn,
+      port: parseInt(dsn.port, 10),
+    });
+  }
+
+  const pgEnv = getPgEnv();
+
+  const sources = [config, pgEnv, DEFAULT_OPTIONS];
+  assertRequiredOptions(
+    sources,
+    ["database", "hostname", "port", "user", "application_name"],
+  );
+
+  const params = {
+    database: selectRequired(sources, "database"),
+    hostname: selectRequired(sources, "hostname"),
+    port: selectRequired(sources, "port"),
+    application_name: selectRequired(sources, "application_name"),
+    user: selectRequired(sources, "user"),
+    password: select(sources, "password"),
+  };
+
+  if (isNaN(params.port)) {
+    throw new ConnectionParamsError(`Invalid port ${params.port}`);
+  }
+
+  return params;
 }
