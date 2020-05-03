@@ -46,7 +46,41 @@ test("dsnStyleParameters", function () {
   assertEquals(p.port, 10101);
 });
 
-test("dsnStyleParametersWithInvalidPortPort", function () {
+test("dsnStyleParametersWithoutExplicitPort", function () {
+  const p = createParams(
+    "postgres://some_user@some_host/deno_postgres",
+  );
+
+  assertEquals(p.database, "deno_postgres");
+  assertEquals(p.user, "some_user");
+  assertEquals(p.hostname, "some_host");
+  assertEquals(p.port, 5432);
+});
+
+test("dsnStyleParametersWithApplicationName", function () {
+  const p = createParams(
+    "postgres://some_user@some_host:10101/deno_postgres?application_name=test_app",
+  );
+
+  assertEquals(p.database, "deno_postgres");
+  assertEquals(p.user, "some_user");
+  assertEquals(p.hostname, "some_host");
+  assertEquals(p.application_name, "test_app");
+  assertEquals(p.port, 10101);
+});
+
+test("dsnStyleParametersWithInvalidDriver", function () {
+  assertThrows(
+    () =>
+      createParams(
+        "somedriver://some_user@some_host:10101/deno_postgres",
+      ),
+    undefined,
+    "Supplied DSN has invalid driver: somedriver.",
+  );
+});
+
+test("dsnStyleParametersWithInvalidPort", function () {
   assertThrows(
     () =>
       createParams(
@@ -57,7 +91,7 @@ test("dsnStyleParametersWithInvalidPortPort", function () {
   );
 });
 
-test("objectStyleParameters", async function () {
+test("objectStyleParameters", function () {
   const p = createParams({
     user: "some_user",
     hostname: "some_host",
@@ -119,7 +153,7 @@ test(
   }),
 );
 
-test("defaultParameters", async function () {
+test("defaultParameters", function () {
   const p = createParams({
     database: "deno_postgres",
     user: "deno_postgres",
@@ -131,7 +165,7 @@ test("defaultParameters", async function () {
   assertEquals(p.password, undefined);
 });
 
-test("requiredParameters", async function () {
+test("requiredParameters", function () {
   const error = assertThrows(
     () => createParams(),
     undefined,

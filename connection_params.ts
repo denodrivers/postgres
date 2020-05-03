@@ -10,7 +10,7 @@ function getPgEnv(): ConnectionOptions {
       port: port !== undefined ? parseInt(port, 10) : undefined,
       user: env.get("PGUSER"),
       password: env.get("PGPASSWORD"),
-      application_name: env.get("PGAPPNAME"),
+      applicationName: env.get("PGAPPNAME"),
     };
   } catch (e) {
     // PermissionDenied (--allow-env not passed)
@@ -35,7 +35,7 @@ export interface ConnectionOptions {
   port?: number;
   user?: string;
   password?: string;
-  application_name?: string;
+  applicationName?: string;
 }
 
 export interface ConnectionParams {
@@ -95,18 +95,29 @@ function formatMissingParams(missingParams: string[]) {
 const DEFAULT_OPTIONS: ConnectionOptions = {
   hostname: "127.0.0.1",
   port: 5432,
-  application_name: "deno_postgres",
+  applicationName: "deno_postgres",
 };
+
+function parseOptionsFromDsn(connString: string): ConnectionOptions {
+  const dsn = parseDsn(connString);
+
+  if (dsn.driver !== "postgres") {
+    throw new Error(`Supplied DSN has invalid driver: ${dsn.driver}.`);
+  }
+
+  return {
+    ...dsn,
+    port: dsn.port ? parseInt(dsn.port, 10) : undefined,
+    applicationName: dsn.params.application_name,
+  };
+}
 
 export function createParams(
   config: string | ConnectionOptions = {},
 ): ConnectionParams {
   if (typeof config === "string") {
-    const dsn = parseDsn(config);
-    return createParams({
-      ...dsn,
-      port: parseInt(dsn.port, 10),
-    });
+    const dsn = parseOptionsFromDsn(config);
+    return createParams(dsn);
   }
 
   const pgEnv = getPgEnv();
@@ -114,14 +125,14 @@ export function createParams(
   const sources = [config, pgEnv, DEFAULT_OPTIONS];
   assertRequiredOptions(
     sources,
-    ["database", "hostname", "port", "user", "application_name"],
+    ["database", "hostname", "port", "user", "applicationName"],
   );
 
   const params = {
     database: selectRequired(sources, "database"),
     hostname: selectRequired(sources, "hostname"),
     port: selectRequired(sources, "port"),
-    application_name: selectRequired(sources, "application_name"),
+    application_name: selectRequired(sources, "applicationName"),
     user: selectRequired(sources, "user"),
     password: select(sources, "password"),
   };
