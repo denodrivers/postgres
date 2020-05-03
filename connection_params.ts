@@ -18,7 +18,7 @@ function getPgEnv(): ConnectionOptions {
   }
 }
 
-function isDefined<T>(value: T): value is Exclude<T, undefined | null> {
+function isDefined<T>(value: T): value is NonNullable<T> {
   return value !== undefined && value !== null;
 }
 
@@ -58,7 +58,7 @@ function select<T extends keyof ConnectionOptions>(
 function selectRequired<T extends keyof ConnectionOptions>(
   sources: ConnectionOptions[],
   key: T,
-): Exclude<ConnectionOptions[T], undefined | null> {
+): NonNullable<ConnectionOptions[T]> {
   const result = select(sources, key);
 
   if (!isDefined(result)) {
