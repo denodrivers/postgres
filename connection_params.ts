@@ -44,7 +44,7 @@ export interface ConnectionParams {
   port: number;
   user: string;
   password?: string;
-  application_name: string;
+  applicationName: string;
   // TODO: support other params
 }
 
@@ -132,7 +132,7 @@ export function createParams(
     database: selectRequired(sources, "database"),
     hostname: selectRequired(sources, "hostname"),
     port: selectRequired(sources, "port"),
-    application_name: selectRequired(sources, "applicationName"),
+    applicationName: selectRequired(sources, "applicationName"),
     user: selectRequired(sources, "user"),
     password: select(sources, "password"),
   };

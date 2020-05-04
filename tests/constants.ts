@@ -19,5 +19,5 @@ export const TEST_CONNECTION_PARAMS: ConnectionParams = {
   database: "deno_postgres",
   hostname: "127.0.0.1",
   port: 5432,
-  application_name: "deno_postgres",
+  applicationName: "deno_postgres",
 };

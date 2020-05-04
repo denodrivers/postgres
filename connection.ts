@@ -112,7 +112,7 @@ export class Connection {
     writer.addCString("user").addCString(connParams.user);
     writer.addCString("database").addCString(connParams.database);
     writer.addCString("application_name").addCString(
-      connParams.application_name,
+      connParams.applicationName,
     );
 
     // eplicitly set utf-8 encoding

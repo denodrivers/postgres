@@ -1,7 +1,6 @@
 const { test } = Deno;
-import { assertEquals, assertStrContains } from "../test_deps.ts";
+import { assertEquals, assertThrows } from "../test_deps.ts";
 import { createParams } from "../connection_params.ts";
-import { assertThrows } from "https://deno.land/std@v0.42.0/testing/asserts.ts";
 
 function withEnv(obj: Record<string, string>, fn: () => void) {
   return () => {
@@ -65,7 +64,7 @@ test("dsnStyleParametersWithApplicationName", function () {
   assertEquals(p.database, "deno_postgres");
   assertEquals(p.user, "some_user");
   assertEquals(p.hostname, "some_host");
-  assertEquals(p.application_name, "test_app");
+  assertEquals(p.applicationName, "test_app");
   assertEquals(p.port, 10101);
 });
 
