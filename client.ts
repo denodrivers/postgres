@@ -1,12 +1,12 @@
 import { Connection } from "./connection.ts";
-import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
+import { ConnectionOptions, createParams } from "./connection_params.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
 
 export class Client {
   protected _connection: Connection;
 
-  constructor(config?: IConnectionParams | string) {
-    const connectionParams = new ConnectionParams(config);
+  constructor(config?: ConnectionOptions | string) {
+    const connectionParams = createParams(config);
     this._connection = new Connection(connectionParams);
   }
 

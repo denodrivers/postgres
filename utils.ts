@@ -62,7 +62,7 @@ export interface DsnResult {
   driver: string;
   user: string;
   password: string;
-  host: string;
+  hostname: string;
   port: string;
   database: string;
   params: {
@@ -78,7 +78,7 @@ export function parseDsn(dsn: string): DsnResult {
     driver: url.protocol.slice(0, url.protocol.length - 1),
     user: url.username,
     password: url.password,
-    host: url.hostname,
+    hostname: url.hostname,
     port: url.port,
     // remove leading slash from path
     database: url.pathname.slice(1),

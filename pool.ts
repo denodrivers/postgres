@@ -1,6 +1,10 @@
 import { PoolClient } from "./client.ts";
 import { Connection } from "./connection.ts";
-import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
+import {
+  ConnectionOptions,
+  ConnectionParams,
+  createParams,
+} from "./connection_params.ts";
 import { DeferredStack } from "./deferred.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
 
@@ -13,11 +17,11 @@ export class Pool {
   private _lazy: boolean;
 
   constructor(
-    connectionParams: IConnectionParams,
+    connectionParams: ConnectionOptions,
     maxSize: number,
     lazy?: boolean,
   ) {
-    this._connectionParams = new ConnectionParams(connectionParams);
+    this._connectionParams = createParams(connectionParams);
     this._maxSize = maxSize;
     this._lazy = !!lazy;
     this._ready = this._startup();
