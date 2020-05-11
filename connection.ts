@@ -140,7 +140,7 @@ export class Connection {
     this.bufReader = new BufReader(this.conn);
     this.bufWriter = new BufWriter(this.conn);
     this.packetWriter = new PacketWriter();
-
+    console.log("startup ", this.bufWriter);
     await this._sendStartupMessage();
     await this.bufWriter.flush();
 
@@ -576,6 +576,7 @@ export class Connection {
   }
 
   async end(): Promise<void> {
+    console.warn("end", this.bufWriter);
     const terminationMessage = new Uint8Array([0x58, 0x00, 0x00, 0x00, 0x04]);
     await this.bufWriter.write(terminationMessage);
     await this.bufWriter.flush();
