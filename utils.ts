@@ -71,11 +71,13 @@ export interface DsnResult {
 }
 
 export function parseDsn(dsn: string): DsnResult {
-  const url = new URL(dsn);
+  //URL object won't parse the URL if it doesn't recognize the protocol
+  //This line replaces the protocol with http and then leaves it up to URL
+  const [protocol, stripped_url] = dsn.match(/(?:(?!:\/\/).)+/g) ?? ["", ""];
+  const url = new URL(`http:${stripped_url}`);
 
   return {
-    // remove trailing colon
-    driver: url.protocol.slice(0, url.protocol.length - 1),
+    driver: protocol,
     user: url.username,
     password: url.password,
     hostname: url.hostname,
