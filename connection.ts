@@ -93,7 +93,8 @@ export class Connection {
   async readMessage(): Promise<Message> {
     // TODO: reuse buffer instead of allocating new ones each for each read
     const header = new Uint8Array(5);
-    await this.bufReader.readFull(header);
+    const nread = await this.bufReader.read(header);
+    console.error("nread", nread, header);
     const msgType = this.decoder.decode(header.slice(0, 1));
     const msgLength = readUInt32BE(header, 1) - 4;
     const msgBody = new Uint8Array(msgLength);
