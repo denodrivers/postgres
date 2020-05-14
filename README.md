@@ -37,8 +37,8 @@ async function main() {
   const client = new Client({
     user: "user",
     database: "test",
-    host: "localhost",
-    port: "5432"
+    hostname: "localhost",
+    port: 5432
   });
   await client.connect();
   const result = await client.query("SELECT * FROM people;");
