@@ -97,9 +97,10 @@ export class Connection {
     console.error("nread", nread, header);
     const msgType = this.decoder.decode(header.slice(0, 1));
     const msgLength = readUInt32BE(header, 1) - 4;
+    console.error("type", msgType, "len", msgLength);
     const msgBody = new Uint8Array(msgLength);
-    await this.bufReader.readFull(msgBody);
-
+    const nread1 = await this.bufReader.read(msgBody);
+    console.error("nread1", nread1, msgBody);
     return new Message(msgType, msgLength, msgBody);
   }
 
