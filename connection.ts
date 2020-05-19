@@ -33,6 +33,7 @@ import { PacketReader } from "./packet_reader.ts";
 import { QueryConfig, QueryResult, Query } from "./query.ts";
 import { parseError } from "./error.ts";
 import { ConnectionParams } from "./connection_params.ts";
+import { Deferred, deferred } from "./deps.ts";
 
 export enum Format {
   TEXT = 0,
@@ -73,6 +74,12 @@ export class RowDescription {
   constructor(public columnCount: number, public columns: Column[]) {}
 }
 
+interface QueryQueueItem {
+  started: boolean;
+  query: Query;
+  deferred: Deferred<QueryResult>;
+}
+
 export class Connection {
   private conn!: Deno.Conn;
 
@@ -86,6 +93,7 @@ export class Connection {
   private _pid?: number;
   private _secretKey?: number;
   private _parameters: { [key: string]: string } = {};
+  private _queryQueue: QueryQueueItem[] = [];
 
   constructor(private connParams: ConnectionParams) {}
 
@@ -522,10 +530,41 @@ export class Connection {
   }
 
   async query(query: Query): Promise<QueryResult> {
-    if (query.args.length === 0) {
-      return await this._simpleQuery(query);
+    const queueItem: QueryQueueItem = {
+      query: query,
+      deferred: deferred(),
+      started: false,
+    };
+
+    this._queryQueue.push(queueItem);
+    this._pulseQueryQueue();
+    return queueItem.deferred;
+  }
+
+  private async _pulseQueryQueue() {
+    const queueItem = this._queryQueue[0];
+    if (queueItem == null) {
+      return;
     }
-    return await this._preparedQuery(query);
+
+    if (queueItem.started) {
+      return;
+    }
+    queueItem.started = true;
+
+    try {
+      const query = queueItem.query;
+      const result = query.args.length === 0
+        ? await this._simpleQuery(query)
+        : await this._preparedQuery(query);
+
+      queueItem.deferred.resolve(result);
+    } catch (e) {
+      queueItem.deferred.reject(e);
+    } finally {
+      this._queryQueue.shift();
+      this._pulseQueryQueue();
+    }
   }
 
   private _processRowDescription(msg: Message): RowDescription {
