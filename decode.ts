@@ -211,6 +211,8 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.int2:
     case Oid.int4:
       return parseInt(strValue, 10);
+    case Oid._int4:
+      return strValue.replace('{', '').replace('}','').split(",").map(x => Number(x));
     case Oid.float4:
     case Oid.float8:
       return parseFloat(strValue);
