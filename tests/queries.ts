@@ -150,7 +150,7 @@ testClient(async function resultMetadata() {
   result = await CLIENT.query(
     "SELECT * FROM ids WHERE id IN ($1, $2)",
     200,
-    300
+    300,
   );
   assertEquals(result.command, "SELECT");
   assertEquals(result.rowCount, 2);
@@ -177,7 +177,7 @@ testClient(async function resultMetadata() {
 
   // simple update
   result = await CLIENT.query(
-    "UPDATE ids SET id = 500 WHERE id IN (500, 600)"
+    "UPDATE ids SET id = 500 WHERE id IN (500, 600)",
   );
   assertEquals(result.command, "UPDATE");
   assertEquals(result.rowCount, 2);
@@ -189,5 +189,5 @@ testClient(async function resultMetadata() {
 }, [
   "DROP TABLE IF EXISTS ids",
   "CREATE UNLOGGED TABLE ids (id integer)",
-  "INSERT INTO ids VALUES (100), (200), (300), (400), (500), (600)"
+  "INSERT INTO ids VALUES (100), (200), (300), (400), (500), (600)",
 ]);

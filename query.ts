@@ -7,7 +7,7 @@ import { decode } from "./decode.ts";
 const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
 
 type CommandType = (
-  "INSERT"
+  | "INSERT"
   | "DELETE"
   | "UPDATE"
   | "SELECT"
