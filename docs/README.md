@@ -47,7 +47,7 @@ config = {
   port: "5432",
   user: "user",
   database: "test",
-  application_name: "my_custom_app"
+  applicationName: "my_custom_app"
 };
 // alternatively
 config = "postgres://user@localhost:5432/test?application_name=my_custom_app";

@@ -1,6 +1,6 @@
 import {
   assertEquals,
-  assertThrowsAsync
+  assertThrowsAsync,
 } from "../test_deps.ts";
 import { Pool } from "../pool.ts";
 import { delay } from "../utils.ts";
@@ -9,7 +9,7 @@ import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
 async function testPool(
   t: (pool: Pool) => void | Promise<void>,
   setupQueries?: Array<string> | null,
-  lazy?: boolean
+  lazy?: boolean,
 ) {
   // constructing Pool instantiates the connections,
   // so this has to be constructed for each test.
@@ -76,12 +76,12 @@ testPool(
     assertEquals(POOL.available, 10);
     assertEquals(POOL.size, 10);
 
-    const result = qs.map(r => r.rows[0][1]);
+    const result = qs.map((r) => r.rows[0][1]);
     const expected = [...Array(25)].map((_, i) => i.toString());
     assertEquals(result, expected);
   },
   null,
-  true
+  true,
 );
 
 /**
@@ -114,7 +114,7 @@ testPool(async function manyQueries(POOL) {
   assertEquals(POOL.available, 10);
   assertEquals(POOL.size, 10);
 
-  const result = qs.map(r => r.rows[0][1]);
+  const result = qs.map((r) => r.rows[0][1]);
   const expected = [...Array(25)].map((_, i) => i.toString());
   assertEquals(result, expected);
 });

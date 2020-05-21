@@ -1,78 +1,175 @@
 const { test } = Deno;
-import { assertEquals, assertStrContains } from "../test_deps.ts";
-import { ConnectionParams } from "../connection_params.ts";
+import { assertEquals, assertThrows } from "../test_deps.ts";
+import { createParams } from "../connection_params.ts";
 
-test(async function dsnStyleParameters() {
-  const p = new ConnectionParams(
-    "postgres://some_user@some_host:10101/deno_postgres"
+function withEnv(obj: Record<string, string>, fn: () => void) {
+  return () => {
+    const getEnv = Deno.env.get;
+
+    Deno.env.get = (key: string) => {
+      return obj[key] || getEnv(key);
+    };
+
+    try {
+      fn();
+    } finally {
+      Deno.env.get = getEnv;
+    }
+  };
+}
+
+function withNotAllowedEnv(fn: () => void) {
+  return () => {
+    const getEnv = Deno.env.get;
+
+    Deno.env.get = (_key: string) => {
+      throw new Deno.errors.PermissionDenied("");
+    };
+
+    try {
+      fn();
+    } finally {
+      Deno.env.get = getEnv;
+    }
+  };
+}
+
+test("dsnStyleParameters", function () {
+  const p = createParams(
+    "postgres://some_user@some_host:10101/deno_postgres",
   );
 
   assertEquals(p.database, "deno_postgres");
   assertEquals(p.user, "some_user");
-  assertEquals(p.host, "some_host");
-  assertEquals(p.port, "10101");
+  assertEquals(p.hostname, "some_host");
+  assertEquals(p.port, 10101);
 });
 
-test(async function objectStyleParameters() {
-  const p = new ConnectionParams({
+test("dsnStyleParametersWithoutExplicitPort", function () {
+  const p = createParams(
+    "postgres://some_user@some_host/deno_postgres",
+  );
+
+  assertEquals(p.database, "deno_postgres");
+  assertEquals(p.user, "some_user");
+  assertEquals(p.hostname, "some_host");
+  assertEquals(p.port, 5432);
+});
+
+test("dsnStyleParametersWithApplicationName", function () {
+  const p = createParams(
+    "postgres://some_user@some_host:10101/deno_postgres?application_name=test_app",
+  );
+
+  assertEquals(p.database, "deno_postgres");
+  assertEquals(p.user, "some_user");
+  assertEquals(p.hostname, "some_host");
+  assertEquals(p.applicationName, "test_app");
+  assertEquals(p.port, 10101);
+});
+
+test("dsnStyleParametersWithInvalidDriver", function () {
+  assertThrows(
+    () =>
+      createParams(
+        "somedriver://some_user@some_host:10101/deno_postgres",
+      ),
+    undefined,
+    "Supplied DSN has invalid driver: somedriver.",
+  );
+});
+
+test("dsnStyleParametersWithInvalidPort", function () {
+  assertThrows(
+    () =>
+      createParams(
+        "postgres://some_user@some_host:abc/deno_postgres",
+      ),
+    undefined,
+    "Invalid URL",
+  );
+});
+
+test("objectStyleParameters", function () {
+  const p = createParams({
     user: "some_user",
-    host: "some_host",
-    port: "10101",
-    database: "deno_postgres"
+    hostname: "some_host",
+    port: 10101,
+    database: "deno_postgres",
   });
 
   assertEquals(p.database, "deno_postgres");
   assertEquals(p.user, "some_user");
-  assertEquals(p.host, "some_host");
-  assertEquals(p.port, "10101");
+  assertEquals(p.hostname, "some_host");
+  assertEquals(p.port, 10101);
 });
 
-// TODO: add test when env is not allowed
-test(async function envParameters() {
-  const currentEnv = Deno.env();
+test(
+  "envParameters",
+  withEnv({
+    PGUSER: "some_user",
+    PGHOST: "some_host",
+    PGPORT: "10101",
+    PGDATABASE: "deno_postgres",
+  }, function () {
+    const p = createParams();
+    assertEquals(p.database, "deno_postgres");
+    assertEquals(p.user, "some_user");
+    assertEquals(p.hostname, "some_host");
+    assertEquals(p.port, 10101);
+  }),
+);
 
-  currentEnv.PGUSER = "some_user";
-  currentEnv.PGHOST = "some_host";
-  currentEnv.PGPORT = "10101";
-  currentEnv.PGDATABASE = "deno_postgres";
+test(
+  "envParametersWithInvalidPort",
+  withEnv({
+    PGUSER: "some_user",
+    PGHOST: "some_host",
+    PGPORT: "abc",
+    PGDATABASE: "deno_postgres",
+  }, function () {
+    const error = assertThrows(
+      () => createParams(),
+      undefined,
+      "Invalid port NaN",
+    );
+    assertEquals(error.name, "ConnectionParamsError");
+  }),
+);
 
-  const p = new ConnectionParams();
-  assertEquals(p.database, "deno_postgres");
-  assertEquals(p.user, "some_user");
-  assertEquals(p.host, "some_host");
-  assertEquals(p.port, "10101");
+test(
+  "envParametersWhenNotAllowed",
+  withNotAllowedEnv(function () {
+    const p = createParams({
+      database: "deno_postgres",
+      user: "deno_postgres",
+    });
 
-  // clear out env
-  currentEnv.PGUSER = "";
-  currentEnv.PGHOST = "";
-  currentEnv.PGPORT = "";
-  currentEnv.PGDATABASE = "";
-});
+    assertEquals(p.database, "deno_postgres");
+    assertEquals(p.user, "deno_postgres");
+    assertEquals(p.hostname, "127.0.0.1");
+    assertEquals(p.port, 5432);
+  }),
+);
 
-test(async function defaultParameters() {
-  const p = new ConnectionParams({
+test("defaultParameters", function () {
+  const p = createParams({
     database: "deno_postgres",
-    user: "deno_postgres"
+    user: "deno_postgres",
   });
   assertEquals(p.database, "deno_postgres");
   assertEquals(p.user, "deno_postgres");
-  assertEquals(p.host, "127.0.0.1");
-  assertEquals(p.port, "5432");
+  assertEquals(p.hostname, "127.0.0.1");
+  assertEquals(p.port, 5432);
   assertEquals(p.password, undefined);
 });
 
-test(async function requiredParameters() {
-  let thrown = false;
+test("requiredParameters", function () {
+  const error = assertThrows(
+    () => createParams(),
+    undefined,
+    "Missing connection parameters: database, user",
+  );
 
-  try {
-    new ConnectionParams();
-  } catch (e) {
-    thrown = true;
-    assertEquals(e.name, "ConnectionParamsError");
-    assertStrContains(
-      e.message,
-      "Missing connection parameters: database, user"
-    );
-  }
-  assertEquals(thrown, true);
+  assertEquals(error.name, "ConnectionParamsError");
 });

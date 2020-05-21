@@ -3,5 +3,6 @@ export {
   assert,
   assertEquals,
   assertStrContains,
-  assertThrowsAsync
-} from "https://deno.land/std@v0.35.0/testing/asserts.ts";
+  assertThrows,
+  assertThrowsAsync,
+} from "https://deno.land/std@0.51.0/testing/asserts.ts";

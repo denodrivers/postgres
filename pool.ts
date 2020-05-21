@@ -1,8 +1,12 @@
 import { PoolClient } from "./client.ts";
 import { Connection } from "./connection.ts";
-import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
-import { Query, QueryConfig, QueryResult } from "./query.ts";
+import {
+  ConnectionOptions,
+  ConnectionParams,
+  createParams,
+} from "./connection_params.ts";
 import { DeferredStack } from "./deferred.ts";
+import { Query, QueryConfig, QueryResult } from "./query.ts";
 
 export class Pool {
   private _connectionParams: ConnectionParams;
@@ -13,11 +17,11 @@ export class Pool {
   private _lazy: boolean;
 
   constructor(
-    connectionParams: IConnectionParams,
+    connectionParams: ConnectionOptions,
     maxSize: number,
-    lazy?: boolean
+    lazy?: boolean,
   ) {
-    this._connectionParams = new ConnectionParams(connectionParams);
+    this._connectionParams = createParams(connectionParams);
     this._maxSize = maxSize;
     this._lazy = !!lazy;
     this._ready = this._startup();
@@ -37,11 +41,17 @@ export class Pool {
 
   /** number of connections created */
   get size(): number {
+    if (this._availableConnections == null) {
+      return 0;
+    }
     return this._availableConnections.size;
   }
 
   /** number of available connections */
   get available(): number {
+    if (this._availableConnections == null) {
+      return 0;
+    }
     return this._availableConnections.available;
   }
 
@@ -54,7 +64,7 @@ export class Pool {
     this._availableConnections = new DeferredStack(
       this._maxSize,
       this._connections,
-      this._createConnection.bind(this)
+      this._createConnection.bind(this),
     );
   }
 
@@ -89,8 +99,10 @@ export class Pool {
 
   async end(): Promise<void> {
     await this._ready;
-    const ending = this._connections.map(c => c.end());
-    await Promise.all(ending);
+    while (this.available > 0) {
+      const conn = await this._availableConnections.pop();
+      await conn.end();
+    }
   }
 
   // Support `using` module

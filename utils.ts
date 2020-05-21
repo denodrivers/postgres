@@ -47,7 +47,7 @@ function md5(bytes: Uint8Array): string {
 export function hashMd5Password(
   password: string,
   username: string,
-  salt: Uint8Array
+  salt: Uint8Array,
 ): string {
   const innerHash = md5(encoder.encode(password + username));
   const innerBytes = encoder.encode(innerHash);
@@ -62,7 +62,7 @@ export interface DsnResult {
   driver: string;
   user: string;
   password: string;
-  host: string;
+  hostname: string;
   port: string;
   database: string;
   params: {
@@ -71,18 +71,20 @@ export interface DsnResult {
 }
 
 export function parseDsn(dsn: string): DsnResult {
-  const url = new URL(dsn);
+  //URL object won't parse the URL if it doesn't recognize the protocol
+  //This line replaces the protocol with http and then leaves it up to URL
+  const [protocol, stripped_url] = dsn.match(/(?:(?!:\/\/).)+/g) ?? ["", ""];
+  const url = new URL(`http:${stripped_url}`);
 
   return {
-    // remove trailing colon
-    driver: url.protocol.slice(0, url.protocol.length - 1),
+    driver: protocol,
     user: url.username,
     password: url.password,
-    host: url.hostname,
+    hostname: url.hostname,
     port: url.port,
     // remove leading slash from path
     database: url.pathname.slice(1),
-    params: Object.fromEntries(url.searchParams.entries())
+    params: Object.fromEntries(url.searchParams.entries()),
   };
 }
 

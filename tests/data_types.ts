@@ -9,7 +9,7 @@ const SETUP = [
      inet_t inet,
      macaddr_t macaddr,
      cidr_t cidr
-  );`
+  );`,
 ];
 
 const CLIENT = new Client(TEST_CONNECTION_PARAMS);
@@ -20,11 +20,11 @@ testClient(async function inet() {
   const inet = "127.0.0.1";
   const insertRes = await CLIENT.query(
     "INSERT INTO data_types (inet_t) VALUES($1)",
-    inet
+    inet,
   );
   const selectRes = await CLIENT.query(
     "SELECT inet_t FROM data_types WHERE inet_t=$1",
-    inet
+    inet,
   );
   assertEquals(selectRes.rows, [[inet]]);
 });
@@ -33,11 +33,11 @@ testClient(async function macaddr() {
   const macaddr = "08:00:2b:01:02:03";
   const insertRes = await CLIENT.query(
     "INSERT INTO data_types (macaddr_t) VALUES($1)",
-    macaddr
+    macaddr,
   );
   const selectRes = await CLIENT.query(
     "SELECT macaddr_t FROM data_types WHERE macaddr_t=$1",
-    macaddr
+    macaddr,
   );
   assertEquals(selectRes.rows, [[macaddr]]);
 });
@@ -46,11 +46,11 @@ testClient(async function cidr() {
   const cidr = "192.168.100.128/25";
   const insertRes = await CLIENT.query(
     "INSERT INTO data_types (cidr_t) VALUES($1)",
-    cidr
+    cidr,
   );
   const selectRes = await CLIENT.query(
     "SELECT cidr_t FROM data_types WHERE cidr_t=$1",
-    cidr
+    cidr,
   );
   assertEquals(selectRes.rows, [[cidr]]);
 });
@@ -93,7 +93,7 @@ testClient(async function regtype() {
 testClient(async function regrole() {
   const result = await CLIENT.query(
     `SELECT ($1)::regrole`,
-    TEST_CONNECTION_PARAMS.user
+    TEST_CONNECTION_PARAMS.user,
   );
   assertEquals(result.rows, [[TEST_CONNECTION_PARAMS.user]]);
 });
@@ -122,4 +122,9 @@ testClient(async function numeric() {
   const numeric = "1234567890.1234567890";
   const result = await CLIENT.query(`SELECT $1::numeric`, numeric);
   assertEquals(result.rows, [[numeric]]);
+});
+
+testClient(async function voidType() {
+  const result = await CLIENT.query("select pg_sleep(0.01)"); // `pg_sleep()` returns void.
+  assertEquals(result.rows, [[""]]);
 });

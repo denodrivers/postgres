@@ -11,12 +11,12 @@ function resetTimezoneOffset() {
 }
 
 function overrideTimezoneOffset(offset: number) {
-  Date.prototype.getTimezoneOffset = function() {
+  Date.prototype.getTimezoneOffset = function () {
     return offset;
   };
 }
 
-test(function encodeDatetime() {
+test("encodeDatetime", function () {
   // GMT
   overrideTimezoneOffset(0);
 
@@ -36,53 +36,54 @@ test(function encodeDatetime() {
   resetTimezoneOffset();
 });
 
-test(function encodeUndefined() {
+test("encodeUndefined", function () {
   assertEquals(encode(undefined), null);
 });
 
-test(function encodeNull() {
+test("encodeNull", function () {
   assertEquals(encode(null), null);
 });
 
-test(function encodeBoolean() {
+test("encodeBoolean", function () {
   assertEquals(encode(true), "true");
   assertEquals(encode(false), "false");
 });
 
-test(function encodeNumber() {
+test("encodeNumber", function () {
   assertEquals(encode(1), "1");
   assertEquals(encode(1.2345), "1.2345");
 });
 
-test(function encodeString() {
+test("encodeString", function () {
   assertEquals(encode("deno-postgres"), "deno-postgres");
 });
 
-test(function encodeObject() {
+test("encodeObject", function () {
   assertEquals(encode({ x: 1 }), '{"x":1}');
 });
 
-test(function encodeUint8Array() {
-  const buf = new Uint8Array([1, 2, 3]);
-  const encoded = encode(buf);
+test("encodeUint8Array", function () {
+  const buf_1 = new Uint8Array([1, 2, 3]);
+  const buf_2 = new Uint8Array([2, 10, 500]);
 
-  assertEquals(buf, encoded);
+  assertEquals("\\x010203", encode(buf_1));
+  assertEquals("\\x02af4", encode(buf_2));
 });
 
-test(function encodeArray() {
+test("encodeArray", function () {
   const array = [null, "postgres", 1, ["foo", "bar"]];
   const encodedArray = encode(array);
 
   assertEquals(encodedArray, '{NULL,"postgres","1",{"foo","bar"}}');
 });
 
-test(function encodeObjectArray() {
+test("encodeObjectArray", function () {
   const array = [{ x: 1 }, { y: 2 }];
   const encodedArray = encode(array);
   assertEquals(encodedArray, '{"{\\"x\\":1}","{\\"y\\":2}"}');
 });
 
-test(function encodeDateArray() {
+test("encodeDateArray", function () {
   overrideTimezoneOffset(0);
 
   const array = [new Date(2019, 1, 10, 20, 30, 40, 5)];

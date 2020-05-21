@@ -10,11 +10,11 @@ export interface ErrorFields {
   internalPosition?: string;
   internalQuery?: string;
   where?: string;
-  schemaName?: string;
+  schema?: string;
   table?: string;
   column?: string;
   dataType?: string;
-  contraint?: string;
+  constraint?: string;
   file?: string;
   line?: string;
   routine?: string;

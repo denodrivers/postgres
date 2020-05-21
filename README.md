@@ -1,6 +1,6 @@
 # deno-postgres
 
-[![Build Status](https://travis-ci.com/buildondata/deno-postgres.svg?branch=master)](https://travis-ci.com/buildondata/deno-postgres)
+![ci](https://github.com/buildondata/deno-postgres/workflows/ci/badge.svg)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/deno-postgres/community)
 
 PostgreSQL driver for Deno.
@@ -37,8 +37,8 @@ async function main() {
   const client = new Client({
     user: "user",
     database: "test",
-    host: "localhost",
-    port: "5432"
+    hostname: "localhost",
+    port: 5432
   });
   await client.connect();
   const result = await client.query("SELECT * FROM people;");
@@ -59,13 +59,7 @@ When contributing to repository make sure to:
 
 a) open an issue for what you're working on
 
-b) use strict mode in TypeScript code (use `tsconfig.test.json` configuration)
-
-```shell
-$ deno run -c tsconfig.test.json -A test.ts
-```
-
-c) properly format code using `deno fmt`
+b) properly format code using `deno fmt`
 
 ```shell
 $ deno fmt -- --check

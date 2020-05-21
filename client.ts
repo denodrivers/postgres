@@ -1,12 +1,12 @@
 import { Connection } from "./connection.ts";
+import { ConnectionOptions, createParams } from "./connection_params.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
-import { ConnectionParams, IConnectionParams } from "./connection_params.ts";
 
 export class Client {
   protected _connection: Connection;
 
-  constructor(config?: IConnectionParams | string) {
-    const connectionParams = new ConnectionParams(config);
+  constructor(config?: ConnectionOptions | string) {
+    const connectionParams = createParams(config);
     this._connection = new Connection(connectionParams);
   }
 
@@ -22,6 +22,16 @@ export class Client {
   ): Promise<QueryResult> {
     const query = new Query(text, ...args);
     return await this._connection.query(query);
+  }
+
+  async multiQuery(queries: QueryConfig[]): Promise<QueryResult[]> {
+    const result: QueryResult[] = [];
+
+    for (const query of queries) {
+      result.push(await this.query(query));
+    }
+
+    return result;
   }
 
   async end(): Promise<void> {
