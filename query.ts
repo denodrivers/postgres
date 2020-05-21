@@ -4,6 +4,18 @@ import { encode, EncodedArg } from "./encode.ts";
 
 import { decode } from "./decode.ts";
 
+const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
+
+type CommandType = (
+  | "INSERT"
+  | "DELETE"
+  | "UPDATE"
+  | "SELECT"
+  | "MOVE"
+  | "FETCH"
+  | "COPY"
+);
+
 export interface QueryConfig {
   text: string;
   args?: Array<unknown>;
@@ -15,6 +27,8 @@ export class QueryResult {
   public rowDescription!: RowDescription;
   private _done = false;
   public rows: any[] = []; // actual results
+  public rowCount?: number;
+  public command!: CommandType;
 
   constructor(public query: Query) {}
 
@@ -46,6 +60,20 @@ export class QueryResult {
 
     const parsedRow = this._parseDataRow(dataRow);
     this.rows.push(parsedRow);
+  }
+
+  handleCommandComplete(commandTag: string): void {
+    const match = commandTagRegexp.exec(commandTag);
+    if (match) {
+      this.command = match[1] as CommandType;
+      if (match[3]) {
+        // COMMAND OID ROWS
+        this.rowCount = parseInt(match[3], 10);
+      } else {
+        // COMMAND ROWS
+        this.rowCount = parseInt(match[2], 10);
+      }
+    }
   }
 
   rowsOfObjects() {
