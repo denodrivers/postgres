@@ -41,11 +41,17 @@ export class Pool {
 
   /** number of connections created */
   get size(): number {
+    if (this._availableConnections == null) {
+      return 0;
+    }
     return this._availableConnections.size;
   }
 
   /** number of available connections */
   get available(): number {
+    if (this._availableConnections == null) {
+      return 0;
+    }
     return this._availableConnections.available;
   }
 
