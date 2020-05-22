@@ -191,3 +191,21 @@ testClient(async function resultMetadata() {
   "CREATE UNLOGGED TABLE ids (id integer)",
   "INSERT INTO ids VALUES (100), (200), (300), (400), (500), (600)",
 ]);
+
+testClient(async function transactionWithConcurrentQueries() {
+  const result = await CLIENT.query("BEGIN");
+
+  assertEquals(result.rows.length, 0);
+  const concurrentCount = 5;
+  const queries = [...Array(concurrentCount)].map((_, i) => {
+    return CLIENT.query({
+      text: "INSERT INTO ids (id) VALUES ($1) RETURNING id;",
+      args: [i],
+    });
+  });
+  const results = await Promise.all(queries);
+
+  results.forEach((r, i) => {
+    assertEquals(r.rows[0][0], i);
+  });
+});

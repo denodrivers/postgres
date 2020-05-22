@@ -33,6 +33,7 @@ import { PacketReader } from "./packet_reader.ts";
 import { QueryConfig, QueryResult, Query } from "./query.ts";
 import { parseError } from "./error.ts";
 import { ConnectionParams } from "./connection_params.ts";
+import { DeferredStack } from "./deferred.ts";
 
 export enum Format {
   TEXT = 0,
@@ -86,6 +87,10 @@ export class Connection {
   private _pid?: number;
   private _secretKey?: number;
   private _parameters: { [key: string]: string } = {};
+  private _queryLock: DeferredStack<undefined> = new DeferredStack(
+    1,
+    [undefined],
+  );
 
   constructor(private connParams: ConnectionParams) {}
 
@@ -528,10 +533,16 @@ export class Connection {
   }
 
   async query(query: Query): Promise<QueryResult> {
-    if (query.args.length === 0) {
-      return await this._simpleQuery(query);
+    await this._queryLock.pop();
+    try {
+      if (query.args.length === 0) {
+        return await this._simpleQuery(query);
+      } else {
+        return await this._preparedQuery(query);
+      }
+    } finally {
+      this._queryLock.push(undefined);
     }
-    return await this._preparedQuery(query);
   }
 
   private _processRowDescription(msg: Message): RowDescription {
