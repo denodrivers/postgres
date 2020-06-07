@@ -128,3 +128,8 @@ testClient(async function voidType() {
   const result = await CLIENT.query("select pg_sleep(0.01)"); // `pg_sleep()` returns void.
   assertEquals(result.rows, [[""]]);
 });
+
+testClient(async function bpcharType() {
+  const result = await CLIENT.query("SELECT cast('U7DV6WQ26D7X2IILX5L4LTYMZUKJ5F3CEDDQV3ZSLQVYNRPX2WUA' as char(52));");
+  assertEquals(result.rows, [["U7DV6WQ26D7X2IILX5L4LTYMZUKJ5F3CEDDQV3ZSLQVYNRPX2WUA"]]);
+});
