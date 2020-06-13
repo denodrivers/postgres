@@ -130,6 +130,11 @@ testClient(async function voidType() {
 });
 
 testClient(async function bpcharType() {
-  const result = await CLIENT.query("SELECT cast('U7DV6WQ26D7X2IILX5L4LTYMZUKJ5F3CEDDQV3ZSLQVYNRPX2WUA' as char(52));");
-  assertEquals(result.rows, [["U7DV6WQ26D7X2IILX5L4LTYMZUKJ5F3CEDDQV3ZSLQVYNRPX2WUA"]]);
+  const result = await CLIENT.query(
+    "SELECT cast('U7DV6WQ26D7X2IILX5L4LTYMZUKJ5F3CEDDQV3ZSLQVYNRPX2WUA' as char(52));",
+  );
+  assertEquals(
+    result.rows,
+    [["U7DV6WQ26D7X2IILX5L4LTYMZUKJ5F3CEDDQV3ZSLQVYNRPX2WUA"]],
+  );
 });
