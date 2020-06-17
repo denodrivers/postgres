@@ -40,6 +40,7 @@ function encodeDate(date: Date): string {
 }
 
 function escapeArrayElement(value: unknown): string {
+  // deno-lint-ignore no-explicit-any
   let strValue = (value as any).toString();
   const escapedValue = strValue.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
@@ -92,6 +93,7 @@ export function encode(value: unknown): EncodedArg {
   } else if (value instanceof Object) {
     return JSON.stringify(value);
   } else {
+    // deno-lint-ignore no-explicit-any
     return (value as any).toString();
   }
 }

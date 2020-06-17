@@ -186,12 +186,13 @@ export class Connection {
         await this._authCleartext();
         await this._readAuthResponse();
         break;
-      case 5:
+      case 5: {
         // md5 password
         const salt = msg.reader.readBytes(4);
         await this._authMd5(salt);
         await this._readAuthResponse();
         break;
+      }
       default:
         throw new Error(`Unknown auth message code ${code}`);
     }
@@ -303,11 +304,12 @@ export class Connection {
         break;
       // command complete
       // TODO: this is duplicated in next loop
-      case "C":
+      case "C": {
         const commandTag = this._readCommandTag(msg);
         result.handleCommandComplete(commandTag);
         result.done();
         break;
+      }
       default:
         throw new Error(`Unexpected frame: ${msg.type}`);
     }
@@ -316,17 +318,19 @@ export class Connection {
       msg = await this.readMessage();
       switch (msg.type) {
         // data row
-        case "D":
+        case "D": {
           // this is actually packet read
           const foo = this._readDataRow(msg);
           result.handleDataRow(foo);
           break;
+        }
         // command complete
-        case "C":
+        case "C": {
           const commandTag = this._readCommandTag(msg);
           result.handleCommandComplete(commandTag);
           result.done();
           break;
+        }
         // ready for query
         case "Z":
           this._processReadyForQuery(msg);
@@ -487,10 +491,11 @@ export class Connection {
 
     switch (msg.type) {
       // row description
-      case "T":
+      case "T": {
         const rowDescription = this._processRowDescription(msg);
         result.handleRowDescription(rowDescription);
         break;
+      }
       // no data
       case "n":
         break;
@@ -507,17 +512,19 @@ export class Connection {
       msg = await this.readMessage();
       switch (msg.type) {
         // data row
-        case "D":
+        case "D": {
           // this is actually packet read
           const rawDataRow = this._readDataRow(msg);
           result.handleDataRow(rawDataRow);
           break;
+        }
         // command complete
-        case "C":
+        case "C": {
           const commandTag = this._readCommandTag(msg);
           result.handleCommandComplete(commandTag);
           result.done();
           break outerLoop;
+        }
         // error response
         case "E":
           await this._processError(msg);
@@ -567,6 +574,7 @@ export class Connection {
     return new RowDescription(columnCount, columns);
   }
 
+  // deno-lint-ignore no-explicit-any
   _readDataRow(msg: Message): any[] {
     const fieldCount = msg.reader.readInt16();
     const row = [];

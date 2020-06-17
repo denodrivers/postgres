@@ -18,6 +18,7 @@ export class Client {
   // TODO: can we use more specific type for args?
   async query(
     text: string | QueryConfig,
+    // deno-lint-ignore no-explicit-any
     ...args: any[]
   ): Promise<QueryResult> {
     const query = new Query(text, ...args);
@@ -54,6 +55,7 @@ export class PoolClient {
 
   async query(
     text: string | QueryConfig,
+    // deno-lint-ignore no-explicit-any
     ...args: any[]
   ): Promise<QueryResult> {
     const query = new Query(text, ...args);

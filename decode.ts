@@ -177,6 +177,7 @@ function decodeByteaEscape(byteaStr: string): Uint8Array {
 
 const decoder = new TextDecoder();
 
+// deno-lint-ignore no-explicit-any
 function decodeText(value: Uint8Array, typeOid: number): any {
   const strValue = decoder.decode(value);
 
