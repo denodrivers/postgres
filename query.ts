@@ -26,6 +26,7 @@ export interface QueryConfig {
 export class QueryResult {
   public rowDescription!: RowDescription;
   private _done = false;
+  // deno-lint-ignore no-explicit-any
   public rows: any[] = []; // actual results
   public rowCount?: number;
   public command!: CommandType;
@@ -36,6 +37,7 @@ export class QueryResult {
     this.rowDescription = description;
   }
 
+  // deno-lint-ignore no-explicit-any
   private _parseDataRow(dataRow: any[]): any[] {
     const parsedRow = [];
 
@@ -53,6 +55,7 @@ export class QueryResult {
     return parsedRow;
   }
 
+  // deno-lint-ignore no-explicit-any
   handleDataRow(dataRow: any[]): void {
     if (this._done) {
       throw new Error("New data row, after result if done.");
@@ -78,6 +81,7 @@ export class QueryResult {
 
   rowsOfObjects() {
     return this.rows.map((row) => {
+      // deno-lint-ignore no-explicit-any
       const rv: { [key: string]: any } = {};
       this.rowDescription.columns.forEach((column, index) => {
         rv[column.name] = row[index];

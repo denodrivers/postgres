@@ -32,5 +32,8 @@ jobs:
       - name: Check formatting
         run: deno fmt --check
 
+      - name: Check lint
+        run: deno lint --unstable
+
       - name: Run tests
         run: deno test --allow-net --allow-env test.ts
