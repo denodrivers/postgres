@@ -17,7 +17,7 @@ async function main() {
   const client = new Client({
     user: "user",
     database: "test",
-    host: "localhost",
+    hostname: "localhost",
     port: "5432"
   });
   await client.connect();
@@ -43,7 +43,7 @@ import { Client } from "https://deno.land/x/postgres/mod.ts";
 let config;
 
 config = {
-  host: "localhost",
+  hostname: "localhost",
   port: "5432",
   user: "user",
   database: "test",
