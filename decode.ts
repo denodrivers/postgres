@@ -178,16 +178,18 @@ function decodeByteaEscape(byteaStr: string): Uint8Array {
 
 const decoder = new TextDecoder();
 
-function decodeStringArray (value: string): any {
-  if (!value) { return null }
-  return parseArray(value, undefined)
+// deno-lint-ignore no-explicit-any
+function decodeStringArray(value: string): any {
+  if (!value) return null;
+  return parseArray(value, undefined);
 }
 
-function decodeBaseTenInt (value: string): number {
+function decodeBaseTenInt(value: string): number {
   return parseInt(value, 10);
 }
 
-function decodeIntArray (value: string): any {
+// deno-lint-ignore no-explicit-any
+function decodeIntArray(value: string): any {
   if (!value) return null;
   return parseArray(value, decodeBaseTenInt);
 }
