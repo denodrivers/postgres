@@ -1,5 +1,6 @@
 import { Oid } from "./oid.ts";
 import { Column, Format } from "./connection.ts";
+import { parseArray } from "./array_parser.ts";
 
 // Datetime parsing based on:
 // https://github.com/bendrucker/postgres-date/blob/master/index.js
@@ -177,6 +178,20 @@ function decodeByteaEscape(byteaStr: string): Uint8Array {
 
 const decoder = new TextDecoder();
 
+function decodeStringArray (value: string): any {
+  if (!value) { return null }
+  return parseArray(value, undefined)
+}
+
+function decodeBaseTenInt (value: string): number {
+  return parseInt(value, 10);
+}
+
+function decodeIntArray (value: string): any {
+  if (!value) return null;
+  return parseArray(value, decodeBaseTenInt);
+}
+
 // deno-lint-ignore no-explicit-any
 function decodeText(value: Uint8Array, typeOid: number): any {
   const strValue = decoder.decode(value);
@@ -208,15 +223,22 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.void:
     case Oid.bpchar:
       return strValue;
+    case Oid._text:
+    case Oid._varchar:
+    case Oid._macaddr:
+    case Oid._cidr:
+    case Oid._inet:
+    case Oid._bpchar:
+    case Oid._uuid:
+      return decodeStringArray(strValue);
     case Oid.bool:
       return strValue[0] === "t";
     case Oid.int2:
     case Oid.int4:
-      return parseInt(strValue, 10);
+      return decodeBaseTenInt(strValue);
+    case Oid._int2:
     case Oid._int4:
-      return strValue.replace("{", "").replace("}", "").split(",").map((x) =>
-        Number(x)
-      );
+      return decodeIntArray(strValue);
     case Oid.float4:
     case Oid.float8:
       return parseFloat(strValue);
