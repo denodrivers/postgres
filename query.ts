@@ -28,7 +28,7 @@ export interface IQueryResult {
   _done: boolean;
   rows: any[];
   rowCount?: number;
-  command: CommandType
+  command: CommandType;
 }
 
 export class QueryResult {

@@ -1,6 +1,6 @@
 import { Connection } from "./connection.ts";
 import { ConnectionOptions, createParams } from "./connection_params.ts";
-import { IQueryResult, Query, QueryConfig, QueryResult} from "./query.ts";
+import { IQueryResult, Query, QueryConfig, QueryResult } from "./query.ts";
 
 export class Client {
   protected _connection: Connection;

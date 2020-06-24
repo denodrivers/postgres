@@ -38,8 +38,8 @@ testPool(async function parametrizedQuery(POOL) {
   const result = await POOL.query("SELECT * FROM ids WHERE id < $1;", 2);
   assertEquals(result.rows.length, 1);
 
-  const queryResult = new QueryResult(new Query("", []))
-  queryResult.rows = result.rows
+  const queryResult = new QueryResult(new Query("", []));
+  queryResult.rows = result.rows;
   const objectRows = queryResult.rowsOfObjects();
   const row = objectRows[0];
 
