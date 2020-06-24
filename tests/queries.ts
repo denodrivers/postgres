@@ -22,7 +22,7 @@ testClient(async function parametrizedQuery() {
 
   const queryResult = new QueryResult(new Query("", []));
   queryResult.rows = result.rows;
-  queryResult.rowDescription = result.rowDescription
+  queryResult.rowDescription = result.rowDescription;
   const objectRows = queryResult.rowsOfObjects();
   const row = objectRows[0];
 
