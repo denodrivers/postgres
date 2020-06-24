@@ -20,7 +20,7 @@ export class Client {
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ): Promise<IQueryResult> {
+  ): Promise<QueryResult> {
     const query = new Query(text, ...args);
     return await this._connection.query(query);
   }

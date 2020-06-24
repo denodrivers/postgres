@@ -30,7 +30,7 @@ import { BufReader, BufWriter, Hash } from "./deps.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { hashMd5Password, readUInt32BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
-import { QueryConfig, QueryResult, Query } from "./query.ts";
+import { QueryConfig, QueryResult, Query, IQueryResult } from "./query.ts";
 import { parseError } from "./error.ts";
 import { ConnectionParams } from "./connection_params.ts";
 import { DeferredStack } from "./deferred.ts";

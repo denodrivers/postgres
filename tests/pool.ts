@@ -5,6 +5,7 @@ import {
 import { Pool } from "../pool.ts";
 import { delay } from "../utils.ts";
 import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
+import { Query, QueryResult } from "../query.ts";
 
 async function testPool(
   t: (pool: Pool) => void | Promise<void>,
@@ -37,7 +38,9 @@ testPool(async function parametrizedQuery(POOL) {
   const result = await POOL.query("SELECT * FROM ids WHERE id < $1;", 2);
   assertEquals(result.rows.length, 1);
 
-  const objectRows = result.rowsOfObjects();
+  const queryResult = new QueryResult(new Query("", []))
+  queryResult.rows = result.rows
+  const objectRows = queryResult.rowsOfObjects();
   const row = objectRows[0];
 
   assertEquals(row.id, 1);

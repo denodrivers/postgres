@@ -1,8 +1,8 @@
-import { Client } from "../mod.ts";
+import {Client, IQueryResult} from "../mod.ts";
 import { assertEquals } from "../test_deps.ts";
 import { DEFAULT_SETUP, TEST_CONNECTION_PARAMS } from "./constants.ts";
 import { getTestClient } from "./helpers.ts";
-import { QueryResult } from "../query.ts";
+import { Query, QueryResult} from "../query.ts";
 
 const CLIENT = new Client(TEST_CONNECTION_PARAMS);
 
@@ -14,10 +14,12 @@ testClient(async function simpleQuery() {
 });
 
 testClient(async function parametrizedQuery() {
-  const result = await CLIENT.query("SELECT * FROM ids WHERE id < $1;", 2);
+  const result: IQueryResult|QueryResult = await CLIENT.query("SELECT * FROM ids WHERE id < $1;", 2);
   assertEquals(result.rows.length, 1);
 
-  const objectRows = result.rowsOfObjects();
+  const queryResult = new QueryResult(new Query("", []))
+  queryResult.rows = result.rows
+  const objectRows = queryResult.rowsOfObjects();
   const row = objectRows[0];
 
   assertEquals(row.id, 1);
@@ -139,7 +141,7 @@ testClient(async function multiQueryWithManyQueryTypeArray() {
 });
 
 testClient(async function resultMetadata() {
-  let result: QueryResult;
+  let result: IQueryResult|QueryResult;
 
   // simple select
   result = await CLIENT.query("SELECT * FROM ids WHERE id = 100");
