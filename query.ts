@@ -26,6 +26,7 @@ export interface QueryConfig {
 export interface IQueryResult {
   rowDescription: RowDescription;
   _done: boolean;
+  // deno-lint-ignore no-explicit-any
   rows: any[];
   rowCount?: number;
   command: CommandType;
