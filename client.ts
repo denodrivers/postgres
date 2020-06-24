@@ -1,6 +1,6 @@
 import { Connection } from "./connection.ts";
 import { ConnectionOptions, createParams } from "./connection_params.ts";
-import { Query, QueryConfig, QueryResult } from "./query.ts";
+import { IQueryResult, Query, QueryConfig, QueryResult} from "./query.ts";
 
 export class Client {
   protected _connection: Connection;
@@ -20,7 +20,7 @@ export class Client {
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ): Promise<QueryResult> {
+  ): Promise<IQueryResult> {
     const query = new Query(text, ...args);
     return await this._connection.query(query);
   }

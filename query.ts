@@ -23,6 +23,14 @@ export interface QueryConfig {
   encoder?: (arg: unknown) => EncodedArg;
 }
 
+export interface IQueryResult {
+  rowDescription: RowDescription;
+  _done: boolean;
+  rows: any[];
+  rowCount?: number;
+  command: CommandType
+}
+
 export class QueryResult {
   public rowDescription!: RowDescription;
   private _done = false;
