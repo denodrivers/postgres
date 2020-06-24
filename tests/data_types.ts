@@ -29,6 +29,20 @@ testClient(async function inet() {
   assertEquals(selectRes.rows, [[inet]]);
 });
 
+testClient(async function inetArray() {
+  const selectRes = await CLIENT.query(
+    "SELECT '{ 127.0.0.1, 192.168.178.0/24 }'::inet[]",
+  );
+  assertEquals(selectRes.rows[0], [["127.0.0.1", "192.168.178.0/24"]]);
+});
+
+testClient(async function inetNestedArray() {
+  const selectRes = await CLIENT.query(
+    "SELECT '{{127.0.0.1},{192.168.178.0/24}}'::inet[]",
+  );
+  assertEquals(selectRes.rows[0], [[["127.0.0.1"], ["192.168.178.0/24"]]]);
+});
+
 testClient(async function macaddr() {
   const macaddr = "08:00:2b:01:02:03";
   const insertRes = await CLIENT.query(
@@ -42,6 +56,23 @@ testClient(async function macaddr() {
   assertEquals(selectRes.rows, [[macaddr]]);
 });
 
+testClient(async function macaddrArray() {
+  const selectRes = await CLIENT.query(
+    "SELECT '{ 08:00:2b:01:02:03, 09:00:2b:01:02:04 }'::macaddr[]",
+  );
+  assertEquals(selectRes.rows[0], [["08:00:2b:01:02:03", "09:00:2b:01:02:04"]]);
+});
+
+testClient(async function macaddrNestedArray() {
+  const selectRes = await CLIENT.query(
+    "SELECT '{{08:00:2b:01:02:03},{09:00:2b:01:02:04}}'::macaddr[]",
+  );
+  assertEquals(
+    selectRes.rows[0],
+    [[["08:00:2b:01:02:03"], ["09:00:2b:01:02:04"]]],
+  );
+});
+
 testClient(async function cidr() {
   const cidr = "192.168.100.128/25";
   const insertRes = await CLIENT.query(
@@ -53,6 +84,20 @@ testClient(async function cidr() {
     cidr,
   );
   assertEquals(selectRes.rows, [[cidr]]);
+});
+
+testClient(async function cidrArray() {
+  const selectRes = await CLIENT.query(
+    "SELECT '{ 10.1.0.0/16, 11.11.11.0/24 }'::cidr[]",
+  );
+  assertEquals(selectRes.rows[0], [["10.1.0.0/16", "11.11.11.0/24"]]);
+});
+
+testClient(async function cidrNestedArray() {
+  const selectRes = await CLIENT.query(
+    "SELECT '{{10.1.0.0/16},{11.11.11.0/24}}'::cidr[]",
+  );
+  assertEquals(selectRes.rows[0], [[["10.1.0.0/16"], ["11.11.11.0/24"]]]);
 });
 
 testClient(async function oid() {
@@ -124,6 +169,78 @@ testClient(async function numeric() {
   assertEquals(result.rows, [[numeric]]);
 });
 
+testClient(async function integerArray() {
+  const result = await CLIENT.query("SELECT '{1,100}'::int[]");
+  assertEquals(result.rows[0], [[1, 100]]);
+});
+
+testClient(async function integerNestedArray() {
+  const result = await CLIENT.query("SELECT '{{1},{100}}'::int[]");
+  assertEquals(result.rows[0], [[[1], [100]]]);
+});
+
+testClient(async function textArray() {
+  const result = await CLIENT.query(
+    `SELECT '{"(ZYX)-123-456","(ABC)-987-654"}'::text[]`,
+  );
+  assertEquals(result.rows[0], [["(ZYX)-123-456", "(ABC)-987-654"]]);
+});
+
+testClient(async function textNestedArray() {
+  const result = await CLIENT.query(
+    `SELECT '{{"(ZYX)-123-456"},{"(ABC)-987-654"}}'::text[]`,
+  );
+  assertEquals(result.rows[0], [[["(ZYX)-123-456"], ["(ABC)-987-654"]]]);
+});
+
+testClient(async function varcharArray() {
+  const result = await CLIENT.query(
+    `SELECT '{"(ZYX)-(PQR)-456","(ABC)-987-(?=+)"}'::varchar[]`,
+  );
+  assertEquals(result.rows[0], [["(ZYX)-(PQR)-456", "(ABC)-987-(?=+)"]]);
+});
+
+testClient(async function varcharNestedArray() {
+  const result = await CLIENT.query(
+    `SELECT '{{"(ZYX)-(PQR)-456"},{"(ABC)-987-(?=+)"}}'::varchar[]`,
+  );
+  assertEquals(result.rows[0], [[["(ZYX)-(PQR)-456"], ["(ABC)-987-(?=+)"]]]);
+});
+
+testClient(async function uuid() {
+  const uuid = "c4792ecb-c00a-43a2-bd74-5b0ed551c599";
+  const result = await CLIENT.query(`SELECT $1::uuid`, uuid);
+  assertEquals(result.rows, [[uuid]]);
+});
+
+testClient(async function uuidArray() {
+  const result = await CLIENT.query(
+    `SELECT '{"c4792ecb-c00a-43a2-bd74-5b0ed551c599",
+      "c9dd159e-d3d7-4bdf-b0ea-e51831c28e9b"}'::uuid[]`,
+  );
+  assertEquals(
+    result.rows[0],
+    [[
+      "c4792ecb-c00a-43a2-bd74-5b0ed551c599",
+      "c9dd159e-d3d7-4bdf-b0ea-e51831c28e9b",
+    ]],
+  );
+});
+
+testClient(async function uuidNestedArray() {
+  const result = await CLIENT.query(
+    `SELECT '{{"c4792ecb-c00a-43a2-bd74-5b0ed551c599"},
+      {"c9dd159e-d3d7-4bdf-b0ea-e51831c28e9b"}}'::uuid[]`,
+  );
+  assertEquals(
+    result.rows[0],
+    [[
+      ["c4792ecb-c00a-43a2-bd74-5b0ed551c599"],
+      ["c9dd159e-d3d7-4bdf-b0ea-e51831c28e9b"],
+    ]],
+  );
+});
+
 testClient(async function voidType() {
   const result = await CLIENT.query("select pg_sleep(0.01)"); // `pg_sleep()` returns void.
   assertEquals(result.rows, [[""]]);
@@ -137,4 +254,16 @@ testClient(async function bpcharType() {
     result.rows,
     [["U7DV6WQ26D7X2IILX5L4LTYMZUKJ5F3CEDDQV3ZSLQVYNRPX2WUA"]],
   );
+});
+
+testClient(async function bpcharArray() {
+  const result = await CLIENT.query(`SELECT '{"AB1234","4321BA"}'::bpchar[]`);
+  assertEquals(result.rows[0], [["AB1234", "4321BA"]]);
+});
+
+testClient(async function bpcharNestedArray() {
+  const result = await CLIENT.query(
+    `SELECT '{{"AB1234"},{"4321BA"}}'::bpchar[]`,
+  );
+  assertEquals(result.rows[0], [[["AB1234"], ["4321BA"]]]);
 });
