@@ -139,7 +139,7 @@ export class Connection {
     const parsedPort = parseInt(port, 10);
 
     if (typeof certFile !== "undefined") {
-      this.conn = await Deno.connectTLS({
+      this.conn = await Deno.connectTls({
         port: parsedPort,
         hostname: host,
         certFile,
