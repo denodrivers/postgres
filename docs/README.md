@@ -83,3 +83,16 @@ const result = await client.query({
 });
 console.log(result.rows);
 ```
+
+Interface for query result
+
+```typescript
+import { QueryResult } from "https://deno.land/x/postgres@v0.4.2/query.ts";
+
+const result: QueryResult = await client.query(...)
+if (result.rowCount > 0) {
+  console.log("Success")
+} else {
+  console.log("A new row should have been added but wasnt")
+}
+```
