@@ -1,7 +1,7 @@
 import { readInt16BE, readInt32BE } from "./utils.ts";
 
 export class PacketReader {
-  private offset: number = 0;
+  private offset = 0;
   private decoder: TextDecoder = new TextDecoder();
 
   constructor(private buffer: Uint8Array) {}

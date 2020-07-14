@@ -27,10 +27,10 @@ export function parseArray(source: string, transform: Function | undefined) {
 class ArrayParser {
   source: string;
   transform: Function;
-  position: number = 0;
+  position = 0;
   entries: Array<unknown> = [];
   recorded: Array<unknown> = [];
-  dimension: number = 0;
+  dimension = 0;
 
   constructor(source: string, transform: Function | undefined) {
     this.source = source;
@@ -59,7 +59,7 @@ class ArrayParser {
     this.recorded.push(character);
   }
 
-  newEntry(includeEmpty: boolean = false): void {
+  newEntry(includeEmpty = false): void {
     let entry;
     if (this.recorded.length > 0 || includeEmpty) {
       entry = this.recorded.join("");
