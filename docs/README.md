@@ -29,6 +29,47 @@ async function main() {
 main();
 ```
 
+## Connection Management
+
+You are free to create your 'clients' like so:
+
+```typescript
+const client = new Client({
+  ...
+})
+await client.connect()
+```
+
+But for stronger management and scalability, you can use **pools**:
+```typescript
+import { Pool } from "https://deno.land/x/postgres@v0.4.0/mod.ts";
+import { PoolClient } from "https://deno.land/x/postgres@v0.4.0/client.ts";
+
+const POOL_CONNECTIONS = 20;
+const dbPool = new Pool({
+  user: "user",
+  password: "password",
+  database: "database",
+  hostname: "hostname",
+  port: 5432,
+}, POOL_CONNECTIONS);
+
+function runQuery (query: string) {
+  const client: PoolClient = await dbPool.connect();
+  const dbResult = await client.query(query);
+  client.release();
+  return dbResult
+}
+
+runQuery("SELECT * FROM users;");
+runQuery("SELECT * FROM users WHERE id = '1';");
+```
+
+This improves performance, as creating a whole new connection for each query can be an expensive operation.
+With pools, you can keep the connections open to be re-used when requested (`const client = dbPool.connect()`). So one of the active connections will be used instead  of creating a new one.
+
+The number of pools is up to you, but I feel a pool of 20 is good for small applications. Though remember this can differ based on how active your application is. Increase or decrease where necessary.
+
 ## API
 
 `deno-postgres` follows `node-postgres` API to make transition for Node devs as easy as possible.
@@ -82,4 +123,17 @@ const result = await client.query({
   args: [10, 20]
 });
 console.log(result.rows);
+```
+
+Interface for query result
+
+```typescript
+import { QueryResult } from "https://deno.land/x/postgres@v0.4.2/query.ts";
+
+const result: QueryResult = await client.query(...)
+if (result.rowCount > 0) {
+  console.log("Success")
+} else {
+  console.log("A new row should have been added but wasnt")
+}
 ```
