@@ -45,7 +45,7 @@ But for stronger management and scalability, you can use **pools**:
 import { Pool } from "https://deno.land/x/postgres@v0.4.0/mod.ts";
 import { PoolClient } from "https://deno.land/x/postgres@v0.4.0/client.ts";
 
-const POOL_CONNECTIONS = 50;
+const POOL_CONNECTIONS = 20;
 const dbPool = new Pool({
   user: "user",
   password: "password",
@@ -68,7 +68,7 @@ runQuery("SELECT * FROM users WHERE id = '1';");
 This improves performance, as creating a whole new connection for each query can be an expensive operation.
 With pools, you can keep the connections open to be re-used when requested (`const client = dbPool.connect()`). So one of the active connections will be used instead  of creating a new one.
 
-The number of pools is up to you, but 50 is generally a good number, but this can differ based on how active your application is.
+The number of pools is up to you, but I feel a pool of 20 is good for small applications. Though remember this can differ based on how active your application is. Increase or decrease where necessary.
 
 ## API
 
