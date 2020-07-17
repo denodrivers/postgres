@@ -1,12 +1,23 @@
 import { Connection } from "./connection.ts";
-import { ConnectionOptions, createParams } from "./connection_params.ts";
+import {
+  ConnectionOptions,
+  ConnectionParams,
+  createParams,
+} from "./connection_params.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
+
+// deno-lint-ignore no-explicit-any
+function instanceOfConnectionParams(object: any): object is ConnectionParams {
+  return object.conn !== undefined;
+}
 
 export class Client {
   protected _connection: Connection;
 
-  constructor(config?: ConnectionOptions | string) {
-    const connectionParams = createParams(config);
+  constructor(config?: ConnectionParams | ConnectionOptions | string) {
+    const connectionParams = instanceOfConnectionParams(config)
+      ? config
+      : createParams(config);
     this._connection = new Connection(connectionParams);
   }
 

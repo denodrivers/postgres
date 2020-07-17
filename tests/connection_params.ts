@@ -1,6 +1,6 @@
 const { test } = Deno;
-import { assertEquals, assertThrows } from "../test_deps.ts";
-import { createParams } from "../connection_params.ts";
+import { is, assert, assertEquals, assertThrows } from "../test_deps.ts";
+import { createParams, parseOptionsFromDsn } from "../connection_params.ts";
 
 function withEnv(obj: Record<string, string>, fn: () => void) {
   return () => {
@@ -35,7 +35,7 @@ function withNotAllowedEnv(fn: () => void) {
 }
 
 test("dsnStyleParameters", function () {
-  const p = createParams(
+  const p = parseOptionsFromDsn(
     "postgres://some_user@some_host:10101/deno_postgres",
   );
 
@@ -46,18 +46,18 @@ test("dsnStyleParameters", function () {
 });
 
 test("dsnStyleParametersWithoutExplicitPort", function () {
-  const p = createParams(
+  const p = parseOptionsFromDsn(
     "postgres://some_user@some_host/deno_postgres",
   );
 
   assertEquals(p.database, "deno_postgres");
   assertEquals(p.user, "some_user");
   assertEquals(p.hostname, "some_host");
-  assertEquals(p.port, 5432);
+  assertEquals(p.port, undefined);
 });
 
 test("dsnStyleParametersWithApplicationName", function () {
-  const p = createParams(
+  const p = parseOptionsFromDsn(
     "postgres://some_user@some_host:10101/deno_postgres?application_name=test_app",
   );
 
@@ -71,7 +71,7 @@ test("dsnStyleParametersWithApplicationName", function () {
 test("dsnStyleParametersWithInvalidDriver", function () {
   assertThrows(
     () =>
-      createParams(
+      parseOptionsFromDsn(
         "somedriver://some_user@some_host:10101/deno_postgres",
       ),
     undefined,
@@ -82,7 +82,7 @@ test("dsnStyleParametersWithInvalidDriver", function () {
 test("dsnStyleParametersWithInvalidPort", function () {
   assertThrows(
     () =>
-      createParams(
+      parseOptionsFromDsn(
         "postgres://some_user@some_host:abc/deno_postgres",
       ),
     undefined,
@@ -100,8 +100,7 @@ test("objectStyleParameters", function () {
 
   assertEquals(p.database, "deno_postgres");
   assertEquals(p.user, "some_user");
-  assertEquals(p.hostname, "some_host");
-  assertEquals(p.port, 10101);
+  assert(is.function_(p.conn));
 });
 
 test(
@@ -115,8 +114,7 @@ test(
     const p = createParams();
     assertEquals(p.database, "deno_postgres");
     assertEquals(p.user, "some_user");
-    assertEquals(p.hostname, "some_host");
-    assertEquals(p.port, 10101);
+    assert(is.function_(p.conn));
   }),
 );
 
@@ -147,8 +145,7 @@ test(
 
     assertEquals(p.database, "deno_postgres");
     assertEquals(p.user, "deno_postgres");
-    assertEquals(p.hostname, "127.0.0.1");
-    assertEquals(p.port, 5432);
+    assert(is.function_(p.conn));
   }),
 );
 
@@ -159,8 +156,7 @@ test("defaultParameters", function () {
   });
   assertEquals(p.database, "deno_postgres");
   assertEquals(p.user, "deno_postgres");
-  assertEquals(p.hostname, "127.0.0.1");
-  assertEquals(p.port, 5432);
+  assert(is.function_(p.conn));
   assertEquals(p.password, undefined);
 });
 

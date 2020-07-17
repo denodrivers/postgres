@@ -39,9 +39,8 @@ export interface ConnectionOptions {
 }
 
 export interface ConnectionParams {
+  conn: () => Promise<Deno.Conn>;
   database: string;
-  hostname: string;
-  port: number;
   user: string;
   password?: string;
   applicationName: string;
@@ -98,7 +97,7 @@ const DEFAULT_OPTIONS: ConnectionOptions = {
   applicationName: "deno_postgres",
 };
 
-function parseOptionsFromDsn(connString: string): ConnectionOptions {
+export function parseOptionsFromDsn(connString: string): ConnectionOptions {
   const dsn = parseDsn(connString);
 
   if (dsn.driver !== "postgres") {
@@ -128,18 +127,20 @@ export function createParams(
     ["database", "hostname", "port", "user", "applicationName"],
   );
 
+  const hostname = selectRequired(sources, "hostname");
+  const port = selectRequired(sources, "port");
+
+  if (isNaN(port)) {
+    throw new ConnectionParamsError(`Invalid port ${port}`);
+  }
+
   const params = {
     database: selectRequired(sources, "database"),
-    hostname: selectRequired(sources, "hostname"),
-    port: selectRequired(sources, "port"),
     applicationName: selectRequired(sources, "applicationName"),
     user: selectRequired(sources, "user"),
     password: select(sources, "password"),
+    conn: () => Deno.connect({ hostname, port }),
   };
-
-  if (isNaN(params.port)) {
-    throw new ConnectionParamsError(`Invalid port ${params.port}`);
-  }
 
   return params;
 }

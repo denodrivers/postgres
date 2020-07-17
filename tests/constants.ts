@@ -17,7 +17,6 @@ export const TEST_CONNECTION_PARAMS: ConnectionParams = {
   user: "test",
   password: "test",
   database: "deno_postgres",
-  hostname: "127.0.0.1",
-  port: 5432,
   applicationName: "deno_postgres",
+  conn: () => Deno.connect({ hostname: "127.0.0.1", port: 5432 }),
 };
