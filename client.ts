@@ -51,10 +51,10 @@ export class Client {
   _aexit = this.end;
 
   /**
- * Use a connection/meant for transaction processor
- * 
- * @param fn transation processor
- */
+  * Use a connection/meant for transaction processor
+  * 
+  * @param fn transation processor
+  */
   async useConnection<T>(fn: (conn: Connection) => Promise<T>) {
     if (!this._connection) {
       throw new Error("Unconnected");
@@ -63,12 +63,11 @@ export class Client {
       const result = await fn(this._connection);
       return result;
     } catch (error) {
-
       throw new PostgresError(
-        { severity: "high", code: "T", message: error.message });
+        { severity: "high", code: "T", message: error.message },
+      );
     }
   }
-
 
   /**
   * Execute a transaction process, and the transaction successfully
