@@ -64,7 +64,8 @@ export class Client {
       return result;
     } catch (error) {
 
-      throw new PostgresError({ severity: "high", code: 'T', message: error.message });
+      throw new PostgresError(
+        { severity: "high", code: 'T', message: error.message });
     }
   }
 
