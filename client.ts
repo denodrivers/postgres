@@ -1,6 +1,13 @@
 import { Connection } from "./connection.ts";
 import { ConnectionOptions, createParams } from "./connection_params.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
+import { PostgresError } from "./error.ts";
+import { log } from "./deps.ts";
+
+/** Transaction processor */
+export interface TransactionProcessor<T> {
+  (connection: Connection): Promise<T>;
+}
 
 export class Client {
   protected _connection: Connection;
@@ -42,6 +49,45 @@ export class Client {
   // Support `using` module
   _aenter = this.connect;
   _aexit = this.end;
+
+    /**
+   * Use a connection/meant for transaction processor
+   * 
+   * @param fn transation processor
+   */
+  async useConnection<T>(fn: (conn: Connection) => Promise<T>) {
+    if (!this._connection) {
+      throw new Error("Unconnected");
+    }
+    try {
+      const result = await fn(this._connection);
+      return result;
+    } catch (error) {
+      
+      throw new PostgresError({severity: "high", code: 'T', message: error.message});
+    }
+  }
+
+
+/**
+* Execute a transaction process, and the transaction successfully
+* returns the return value of the transaction process
+* @param processor transation processor
+*/
+async transaction<T = any>(processor: TransactionProcessor<T>): Promise<T> {
+return await this.useConnection(async (connection) => {
+  try {
+    await connection.query(new Query("BEGIN"));
+    const result = await processor(connection);
+    await connection.query(new Query("COMMIT"));
+    return result;
+  } catch (error) {
+    log.info(`ROLLBACK: ${error.message}`);
+    await connection.query(new Query("ROLLBACK"));
+    throw error;
+  }
+});
+}
 }
 
 export class PoolClient {

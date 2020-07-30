@@ -11,3 +11,8 @@ export {
 } from "https://deno.land/std@0.61.0/async/deferred.ts";
 
 export { Hash } from "https://deno.land/x/checksum@1.2.0/mod.ts";
+
+
+export {
+  log
+} from "https://deno.land/x/mysql/src/logger.ts";
