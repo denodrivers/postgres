@@ -74,7 +74,7 @@ export class Client {
   * returns the return value of the transaction process
   * @param processor transation processor
   */
-  async transaction<T = any>(processor: TransactionProcessor<T>): Promise<T> {
+  async transaction<T>(processor: TransactionProcessor<T>): Promise<T> {
     return await this.useConnection(async (connection) => {
       try {
         await connection.query(new Query("BEGIN"));
