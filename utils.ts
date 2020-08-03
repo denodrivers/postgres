@@ -1,4 +1,4 @@
-import { Hash } from "./deps.ts";
+import { createHash } from "./deps.ts";
 
 export function readInt16BE(buffer: Uint8Array, offset: number): number {
   offset = offset >>> 0;
@@ -36,7 +36,7 @@ export function readUInt32BE(buffer: Uint8Array, offset: number): number {
 const encoder = new TextEncoder();
 
 function md5(bytes: Uint8Array): string {
-  return new Hash("md5").digest(bytes).hex();
+  return createHash("md5").update(bytes).toString("hex");
 }
 
 // https://www.postgresql.org/docs/current/protocol-flow.html
