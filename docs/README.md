@@ -18,7 +18,7 @@ async function main() {
     user: "user",
     database: "test",
     hostname: "localhost",
-    port: "5432"
+    port: 5432
   });
   await client.connect();
   const result = await client.query("SELECT * FROM people;");
@@ -85,7 +85,7 @@ let config;
 
 config = {
   hostname: "localhost",
-  port: "5432",
+  port: 5432,
   user: "user",
   database: "test",
   applicationName: "my_custom_app"
