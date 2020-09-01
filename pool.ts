@@ -9,7 +9,7 @@ import { DeferredStack } from "./deferred.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
 
 export class Pool {
-  private _connectionParams: ConnectionParams;
+  private _connectionParams: ConnectionParams | string;
   private _connections!: Array<Connection>;
   private _availableConnections!: DeferredStack<Connection>;
   private _maxSize: number;
