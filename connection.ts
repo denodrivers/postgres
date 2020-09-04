@@ -609,9 +609,5 @@ export class Connection {
     await this.bufWriter.write(terminationMessage);
     await this.bufWriter.flush();
     this.conn.close();
-    delete this.conn;
-    delete this.bufReader;
-    delete this.bufWriter;
-    delete this.packetWriter;
   }
 }
