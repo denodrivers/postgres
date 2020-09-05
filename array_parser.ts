@@ -21,22 +21,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// deno-lint-ignore ban-types
-export function parseArray(source: string, transform: Function | undefined) {
+// deno-lint-ignore no-explicit-any
+type Transformer = (value: string) => any;
+
+export function parseArray(source: string, transform: Transformer | undefined) {
   return new ArrayParser(source, transform).parse();
 }
 
 class ArrayParser {
   source: string;
-  // deno-lint-ignore ban-types
-  transform: Function;
+  transform: Transformer;
   position = 0;
   entries: Array<unknown> = [];
   recorded: Array<unknown> = [];
   dimension = 0;
 
-  // deno-lint-ignore ban-types
-  constructor(source: string, transform: Function | undefined) {
+  constructor(source: string, transform: Transformer | undefined) {
     this.source = source;
     this.transform = transform || identity;
   }
