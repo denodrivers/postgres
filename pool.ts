@@ -13,7 +13,7 @@ export class Pool {
   private _connections!: Array<Connection>;
   private _availableConnections!: DeferredStack<Connection>;
   private _maxSize: number;
-  private _ready: Promise<void>;
+  public ready: Promise<void>;
   private _lazy: boolean;
 
   constructor(
@@ -24,7 +24,7 @@ export class Pool {
     this._connectionParams = createParams(connectionParams);
     this._maxSize = maxSize;
     this._lazy = !!lazy;
-    this._ready = this._startup();
+    this.ready = this._startup();
   }
 
   private async _createConnection(): Promise<Connection> {
@@ -69,7 +69,7 @@ export class Pool {
   }
 
   private async _execute(query: Query): Promise<QueryResult> {
-    await this._ready;
+    await this.ready;
     const connection = await this._availableConnections.pop();
     try {
       const result = await connection.query(query);
@@ -82,7 +82,7 @@ export class Pool {
   }
 
   async connect(): Promise<PoolClient> {
-    await this._ready;
+    await this.ready;
     const connection = await this._availableConnections.pop();
     const release = () => this._availableConnections.push(connection);
     return new PoolClient(connection, release);
@@ -99,7 +99,7 @@ export class Pool {
   }
 
   async end(): Promise<void> {
-    await this._ready;
+    await this.ready;
     while (this.available > 0) {
       const conn = await this._availableConnections.pop();
       await conn.end();

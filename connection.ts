@@ -26,7 +26,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { BufReader, BufWriter, Hash } from "./deps.ts";
+import { BufReader, BufWriter } from "./deps.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { hashMd5Password, readUInt32BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
@@ -607,9 +607,5 @@ export class Connection {
     await this.bufWriter.write(terminationMessage);
     await this.bufWriter.flush();
     this.conn.close();
-    delete this.conn;
-    delete this.bufReader;
-    delete this.bufWriter;
-    delete this.packetWriter;
   }
 }
