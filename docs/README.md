@@ -61,8 +61,8 @@ async function runQuery (query: string) {
   return dbResult
 }
 
-runQuery("SELECT * FROM users;");
-runQuery("SELECT * FROM users WHERE id = '1';");
+await runQuery("SELECT * FROM users;");
+await runQuery("SELECT * FROM users WHERE id = '1';");
 ```
 
 This improves performance, as creating a whole new connection for each query can be an expensive operation.
