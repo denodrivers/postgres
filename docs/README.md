@@ -54,7 +54,7 @@ const dbPool = new Pool({
   port: 5432,
 }, POOL_CONNECTIONS);
 
-function runQuery (query: string) {
+async function runQuery (query: string) {
   const client: PoolClient = await dbPool.connect();
   const dbResult = await client.query(query);
   client.release();
