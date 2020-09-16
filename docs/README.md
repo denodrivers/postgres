@@ -54,15 +54,15 @@ const dbPool = new Pool({
   port: 5432,
 }, POOL_CONNECTIONS);
 
-function runQuery (query: string) {
+async function runQuery (query: string) {
   const client: PoolClient = await dbPool.connect();
   const dbResult = await client.query(query);
   client.release();
   return dbResult
 }
 
-runQuery("SELECT * FROM users;");
-runQuery("SELECT * FROM users WHERE id = '1';");
+await runQuery("SELECT * FROM users;");
+await runQuery("SELECT * FROM users WHERE id = '1';");
 ```
 
 This improves performance, as creating a whole new connection for each query can be an expensive operation.
