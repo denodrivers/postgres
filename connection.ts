@@ -32,7 +32,7 @@ import { hashMd5Password, readUInt32BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
 import { QueryConfig, QueryResult, Query } from "./query.ts";
 import { parseError } from "./error.ts";
-import { ConnectionParams } from "./connection_params.ts";
+import type { ConnectionParams } from "./connection_params.ts";
 import { DeferredStack } from "./deferred.ts";
 
 export enum Format {

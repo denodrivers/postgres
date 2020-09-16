@@ -1,4 +1,4 @@
-import { ConnectionParams } from "../connection_params.ts";
+import type { ConnectionParams } from "../connection_params.ts";
 
 export const DEFAULT_SETUP = [
   "DROP TABLE IF EXISTS ids;",

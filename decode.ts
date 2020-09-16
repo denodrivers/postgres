@@ -150,6 +150,7 @@ function decodeByteaHex(byteaStr: string): Uint8Array {
 function decodeByteaEscape(byteaStr: string): Uint8Array {
   let bytes = [];
   let i = 0;
+  let k = 0;
   while (i < byteaStr.length) {
     if (byteaStr[i] !== "\\") {
       bytes.push(byteaStr.charCodeAt(i));
@@ -166,7 +167,7 @@ function decodeByteaEscape(byteaStr: string): Uint8Array {
         ) {
           backslashes++;
         }
-        for (var k = 0; k < Math.floor(backslashes / 2); ++k) {
+        for (k = 0; k < Math.floor(backslashes / 2); ++k) {
           bytes.push(BACKSLASH_BYTE_VALUE);
         }
         i += Math.floor(backslashes / 2) * 2;

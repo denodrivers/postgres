@@ -2,7 +2,7 @@ import { Client } from "../mod.ts";
 import { assertEquals } from "../test_deps.ts";
 import { DEFAULT_SETUP, TEST_CONNECTION_PARAMS } from "./constants.ts";
 import { getTestClient } from "./helpers.ts";
-import { QueryResult } from "../query.ts";
+import type { QueryResult } from "../query.ts";
 
 const CLIENT = new Client(TEST_CONNECTION_PARAMS);
 
