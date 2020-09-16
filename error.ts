@@ -1,4 +1,4 @@
-import { Message } from "./connection.ts";
+import type { Message } from "./connection.ts";
 
 export interface ErrorFields {
   severity: string;

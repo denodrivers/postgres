@@ -1,4 +1,4 @@
-import { Client } from "../client.ts";
+import type { Client } from "../client.ts";
 
 export function getTestClient(
   client: Client,
