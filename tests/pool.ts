@@ -10,7 +10,7 @@ import { TEST_CONNECTION_PARAMS, DEFAULT_SETUP } from "./constants.ts";
 Deno.test("string pool connection", async function () {
   const { user, password, database, hostname, port } = TEST_CONNECTION_PARAMS;
   const pool = new Pool(
-    `pgsql://${user}:${password}@${hostname}:${port}/${database}`,
+    `postgres://${user}:${password}@${hostname}:${port}/${database}`,
     10,
   );
   const result = await pool.query("SELECT * FROM ids;");
