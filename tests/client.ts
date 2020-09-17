@@ -21,3 +21,10 @@ test("badAuthData", async function () {
   }
   assert(thrown);
 });
+
+test("string client connection", async function () {
+  const {user, password, database, hostname, port} = TEST_CONNECTION_PARAMS
+  const client = new Client(`pgsql://${user}:${password}@${hostname}:${port}/${database}`);
+  const result = await client.query("SELECT * FROM ids;");
+  assert(result);
+})
