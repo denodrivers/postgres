@@ -28,5 +28,6 @@ test("string client connection", async function () {
     `postgres://${user}:${password}@${hostname}:${port}/${database}`,
   );
   const result = await client.query("SELECT * FROM ids;");
+  await client.end();
   assert(result);
 });

@@ -14,6 +14,7 @@ Deno.test("string pool connection", async function () {
     10,
   );
   const result = await pool.query("SELECT * FROM ids;");
+  await Pool.end();
   assert(result);
 });
 
