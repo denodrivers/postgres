@@ -13,7 +13,8 @@ Deno.test("string pool connection", async function () {
     `postgres://${user}:${password}@${hostname}:${port}/${database}`,
     10,
   );
-  const result = await pool.query("SELECT * FROM ids;");
+  await pool.connect();
+  const result = await pool.query("SELECT true;");
   await pool.end();
   assert(result);
 });
