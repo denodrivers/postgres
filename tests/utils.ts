@@ -1,6 +1,6 @@
 const { test } = Deno;
 import { assertEquals } from "../test_deps.ts";
-import { parseDsn, DsnResult } from "../utils.ts";
+import { DsnResult, parseDsn } from "../utils.ts";
 
 test("testParseDsn", function () {
   let c: DsnResult;
