@@ -196,6 +196,11 @@ function decodeIntArray(value: string): any {
 }
 
 // deno-lint-ignore no-explicit-any
+function decodeJsonArray(value: any): unknown[] {
+  return parseArray(value, JSON.parse);
+}
+
+// deno-lint-ignore no-explicit-any
 function decodeText(value: Uint8Array, typeOid: number): any {
   const strValue = decoder.decode(value);
 
@@ -253,6 +258,8 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.json:
     case Oid.jsonb:
       return JSON.parse(strValue);
+    case Oid.json_array:
+      return decodeJsonArray(strValue);
     case Oid.bytea:
       return decodeBytea(strValue);
     default:

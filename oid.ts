@@ -23,7 +23,7 @@ export const Oid = {
   xml: 142,
   _xml: 143,
   pg_node_tree: 194,
-  _json: 199,
+  json_array: 199,
   smgr: 210,
   index_am_handler: 325,
   point: 600,
