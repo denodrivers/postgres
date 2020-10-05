@@ -195,8 +195,7 @@ function decodeIntArray(value: string): any {
   return parseArray(value, decodeBaseTenInt);
 }
 
-// deno-lint-ignore no-explicit-any
-function decodeJsonArray(value: any): unknown[] {
+function decodeJsonArray(value: string): unknown[] {
   return parseArray(value, JSON.parse);
 }
 

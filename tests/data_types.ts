@@ -274,29 +274,29 @@ testClient(async function jsonArray() {
       SELECT JSON_BUILD_OBJECT( 'X', '1' ) AS A
       UNION ALL
       SELECT JSON_BUILD_OBJECT( 'Y', '2' ) AS A
-    )	A`
+    )	A`,
   );
 
-  assertEquals(json_array.rows[0][0], [{X: '1'}, {Y: '2'}]);
+  assertEquals(json_array.rows[0][0], [{ X: "1" }, { Y: "2" }]);
 
   const json_array_nested = await CLIENT.query(
     `SELECT ARRAY[ARRAY[ARRAY_AGG(A), ARRAY_AGG(A)], ARRAY[ARRAY_AGG(A), ARRAY_AGG(A)]] FROM  (
       SELECT JSON_BUILD_OBJECT( 'X', '1' ) AS A
       UNION ALL
       SELECT JSON_BUILD_OBJECT( 'Y', '2' ) AS A
-    )	A`
+    )	A`,
   );
 
   assertEquals(
     json_array_nested.rows[0][0],
     [
       [
-        [{X: '1'}, {Y: '2'}],
-        [{X: '1'}, {Y: '2'}],
+        [{ X: "1" }, { Y: "2" }],
+        [{ X: "1" }, { Y: "2" }],
       ],
       [
-        [{X: '1'}, {Y: '2'}],
-        [{X: '1'}, {Y: '2'}],
+        [{ X: "1" }, { Y: "2" }],
+        [{ X: "1" }, { Y: "2" }],
       ],
     ],
   );
