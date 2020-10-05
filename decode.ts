@@ -259,6 +259,7 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.jsonb:
       return JSON.parse(strValue);
     case Oid.json_array:
+    case Oid.jsonb_array:
       return decodeJsonArray(strValue);
     case Oid.bytea:
       return decodeBytea(strValue);

@@ -146,7 +146,7 @@ export const Oid = {
   regdictionary: 3769,
   _regdictionary: 3770,
   jsonb: 3802,
-  _jsonb: 3807,
+  jsonb_array: 3807,
   anyrange: 3831,
   event_trigger: 3838,
   int4range: 3904,
