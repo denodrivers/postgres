@@ -199,6 +199,14 @@ function decodeJsonArray(value: string): unknown[] {
   return parseArray(value, JSON.parse);
 }
 
+function decodeFloatArray(value: string): number[] {
+  return parseArray(value, parseFloat) as number[];
+}
+
+function decodeIntVector(strValue: string): number[] {
+  return strValue.split(" ").map((n) => parseInt(n));
+}
+
 // deno-lint-ignore no-explicit-any
 function decodeText(value: Uint8Array, typeOid: number): any {
   const strValue = decoder.decode(value);
@@ -209,6 +217,7 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.text:
     case Oid.time:
     case Oid.timetz:
+    case Oid.interval:
     case Oid.inet:
     case Oid.cidr:
     case Oid.macaddr:
@@ -229,6 +238,8 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.numeric:
     case Oid.void:
     case Oid.bpchar:
+    case Oid.pg_node_tree:
+    case Oid._aclitem:
       return strValue;
     case Oid._text:
     case Oid._varchar:
@@ -237,15 +248,23 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid._inet:
     case Oid._bpchar:
     case Oid._uuid:
+    case Oid._char:
+    case Oid._name:
       return decodeStringArray(strValue);
     case Oid.bool:
       return strValue[0] === "t";
     case Oid.int2:
     case Oid.int4:
+    case Oid.xid:
+    case Oid.cid:
       return decodeBaseTenInt(strValue);
     case Oid._int2:
     case Oid._int4:
+    case Oid._oid:
       return decodeIntArray(strValue);
+    case Oid.int2vector:
+    case Oid.oidvector:
+      return decodeIntVector(strValue);
     case Oid.float4:
     case Oid.float8:
       return parseFloat(strValue);
@@ -262,8 +281,12 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeJsonArray(strValue);
     case Oid.bytea:
       return decodeBytea(strValue);
+    case Oid._float4:
+    case Oid._float8:
+      return decodeFloatArray(strValue);
     default:
-      throw new Error(`Don't know how to parse column type: ${typeOid}`);
+      console.error(`Don't know how to parse column type: ${typeOid}`);
+      return strValue;
   }
 }
 
