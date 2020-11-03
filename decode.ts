@@ -126,6 +126,31 @@ function decodeBinary() {
   throw new Error("Not implemented!");
 }
 
+// Ported from https://github.com/brianc/node-pg-types
+// The MIT License (MIT)
+//
+// Copyright (c) 2014 Brian M. Carlson
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+function decodePoint(value: string): unknown {
+  if (value[0] !== "(") return null;
+
+  const [x, y] = value.substring(1, value.length - 1).split(",");
+
+  return {
+    x: parseFloat(x),
+    y: parseFloat(y),
+  };
+}
+
+function decodePointArray(value: string): unknown[] {
+  return parseArray(value, decodePoint);
+}
+
 const HEX = 16;
 const BACKSLASH_BYTE_VALUE = 92;
 const HEX_PREFIX_REGEX = /^\\x/;
@@ -260,6 +285,10 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.json_array:
     case Oid.jsonb_array:
       return decodeJsonArray(strValue);
+    case Oid.point:
+      return decodePoint(strValue);
+    case Oid._point:
+      return decodePointArray(strValue);
     case Oid.bytea:
       return decodeBytea(strValue);
     default:

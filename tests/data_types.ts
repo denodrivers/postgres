@@ -301,3 +301,19 @@ testClient(async function jsonArray() {
     ],
   );
 });
+
+testClient(async function point() {
+  const selectRes = await CLIENT.query(
+    "SELECT point(1, 2)",
+  );
+  assertEquals(selectRes.rows, [[{ x: 1, y: 2 }]]);
+});
+
+testClient(async function pointArray() {
+  const selectRes = await CLIENT.query(
+    `SELECT '{"(1, 2)","(3.5, 4.1)"}'::point[]`,
+  );
+  assertEquals(selectRes.rows, [
+    [[{ x: 1, y: 2 }, { x: 3.5, y: 4.1 }]],
+  ]);
+});
