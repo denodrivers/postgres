@@ -25,7 +25,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { copyBytes } from "./deps.ts";
+import { copy } from "./deps.ts";
 
 export class PacketWriter {
   private size: number;
@@ -49,7 +49,7 @@ export class PacketWriter {
       // https://stackoverflow.com/questions/2269063/buffer-growth-strategy
       const newSize = oldBuffer.length + (oldBuffer.length >> 1) + size;
       this.buffer = new Uint8Array(newSize);
-      copyBytes(oldBuffer, this.buffer);
+      copy(oldBuffer, this.buffer);
     }
   }
 
@@ -76,7 +76,7 @@ export class PacketWriter {
     } else {
       const encodedStr = this.encoder.encode(string);
       this._ensure(encodedStr.byteLength + 1); // +1 for null terminator
-      copyBytes(encodedStr, this.buffer, this.offset);
+      copy(encodedStr, this.buffer, this.offset);
       this.offset += encodedStr.byteLength;
     }
 
@@ -90,7 +90,7 @@ export class PacketWriter {
     }
 
     this._ensure(1);
-    copyBytes(this.encoder.encode(c), this.buffer, this.offset);
+    copy(this.encoder.encode(c), this.buffer, this.offset);
     this.offset++;
     return this;
   }
@@ -99,14 +99,14 @@ export class PacketWriter {
     string = string || "";
     const encodedStr = this.encoder.encode(string);
     this._ensure(encodedStr.byteLength);
-    copyBytes(encodedStr, this.buffer, this.offset);
+    copy(encodedStr, this.buffer, this.offset);
     this.offset += encodedStr.byteLength;
     return this;
   }
 
   add(otherBuffer: Uint8Array) {
     this._ensure(otherBuffer.length);
-    copyBytes(otherBuffer, this.buffer, this.offset);
+    copy(otherBuffer, this.buffer, this.offset);
     this.offset += otherBuffer.length;
     return this;
   }
