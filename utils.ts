@@ -73,6 +73,7 @@ export interface DsnResult {
 export function parseDsn(dsn: string): DsnResult {
   //URL object won't parse the URL if it doesn't recognize the protocol
   //This line replaces the protocol with http and then leaves it up to URL
+  // deno-lint-ignore camelcase
   const [protocol, stripped_url] = dsn.match(/(?:(?!:\/\/).)+/g) ?? ["", ""];
   const url = new URL(`http:${stripped_url}`);
 

@@ -269,6 +269,7 @@ testClient(async function bpcharNestedArray() {
 });
 
 testClient(async function jsonArray() {
+  // deno-lint-ignore camelcase
   const json_array = await CLIENT.query(
     `SELECT ARRAY_AGG(A) FROM  (
       SELECT JSON_BUILD_OBJECT( 'X', '1' ) AS A
@@ -279,6 +280,7 @@ testClient(async function jsonArray() {
 
   assertEquals(json_array.rows[0][0], [{ X: "1" }, { Y: "2" }]);
 
+  // deno-lint-ignore camelcase
   const json_array_nested = await CLIENT.query(
     `SELECT ARRAY[ARRAY[ARRAY_AGG(A), ARRAY_AGG(A)], ARRAY[ARRAY_AGG(A), ARRAY_AGG(A)]] FROM  (
       SELECT JSON_BUILD_OBJECT( 'X', '1' ) AS A
