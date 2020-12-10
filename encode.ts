@@ -41,7 +41,7 @@ function encodeDate(date: Date): string {
 
 function escapeArrayElement(value: unknown): string {
   // deno-lint-ignore no-explicit-any
-  const strValue = (value as any).toString();
+  let strValue = (value as any).toString();
   const escapedValue = strValue.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
   return `"${escapedValue}"`;
@@ -73,7 +73,7 @@ function encodeArray(array: Array<unknown>): string {
 }
 
 function encodeBytes(value: Uint8Array): string {
-  const hex = Array.from(value)
+  let hex = Array.from(value)
     .map((val) => (val < 10 ? `0${val.toString(16)}` : val.toString(16)))
     .join("");
   return `\\x${hex}`;

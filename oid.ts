@@ -14,25 +14,17 @@ export const Oid = {
   xid: 28,
   cid: 29,
   oidvector: 30,
-  // deno-lint-ignore camelcase
   pg_ddl_command: 32,
-  // deno-lint-ignore camelcase
   pg_type: 71,
-  // deno-lint-ignore camelcase
   pg_attribute: 75,
-  // deno-lint-ignore camelcase
   pg_proc: 81,
-  // deno-lint-ignore camelcase
   pg_class: 83,
   json: 114,
   xml: 142,
   _xml: 143,
-  // deno-lint-ignore camelcase
   pg_node_tree: 194,
-  // deno-lint-ignore camelcase
   json_array: 199,
   smgr: 210,
-  // deno-lint-ignore camelcase
   index_am_handler: 325,
   point: 600,
   lseg: 601,
@@ -99,7 +91,6 @@ export const Oid = {
   interval: 1186,
   _interval: 1187,
   _numeric: 1231,
-  // deno-lint-ignore camelcase
   pg_database: 1248,
   _cstring: 1263,
   timetz: 1266,
@@ -127,30 +118,21 @@ export const Oid = {
   anyarray: 2277,
   void: 2278,
   trigger: 2279,
-  // deno-lint-ignore camelcase
   language_handler: 2280,
   internal: 2281,
   opaque: 2282,
   anyelement: 2283,
   _record: 2287,
   anynonarray: 2776,
-  // deno-lint-ignore camelcase
   pg_authid: 2842,
-  // deno-lint-ignore camelcase
   pg_auth_members: 2843,
-  // deno-lint-ignore camelcase
   _txid_snapshot: 2949,
   uuid: 2950,
   _uuid: 2951,
-  // deno-lint-ignore camelcase
   txid_snapshot: 2970,
-  // deno-lint-ignore camelcase
   fdw_handler: 3115,
-  // deno-lint-ignore camelcase
   pg_lsn: 3220,
-  // deno-lint-ignore camelcase
   _pg_lsn: 3221,
-  // deno-lint-ignore camelcase
   tsm_handler: 3310,
   anyenum: 3500,
   tsvector: 3614,
@@ -164,10 +146,8 @@ export const Oid = {
   regdictionary: 3769,
   _regdictionary: 3770,
   jsonb: 3802,
-  // deno-lint-ignore camelcase
   jsonb_array: 3807,
   anyrange: 3831,
-  // deno-lint-ignore camelcase
   event_trigger: 3838,
   int4range: 3904,
   _int4range: 3905,
@@ -181,7 +161,6 @@ export const Oid = {
   _daterange: 3913,
   int8range: 3926,
   _int8range: 3927,
-  // deno-lint-ignore camelcase
   pg_shseclabel: 4066,
   regnamespace: 4089,
   _regnamespace: 4090,

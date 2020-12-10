@@ -63,9 +63,7 @@ test("encodeObject", function () {
 });
 
 test("encodeUint8Array", function () {
-  // deno-lint-ignore camelcase
   const buf_1 = new Uint8Array([1, 2, 3]);
-  // deno-lint-ignore camelcase
   const buf_2 = new Uint8Array([2, 10, 500]);
 
   assertEquals("\\x010203", encode(buf_1));
