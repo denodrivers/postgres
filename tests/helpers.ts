@@ -4,7 +4,7 @@ export function getTestClient(
   client: Client,
   defSetupQueries?: Array<string>,
 ) {
-  return async function testClient(
+  return function testClient(
     t: Deno.TestDefinition["fn"],
     setupQueries?: Array<string>,
   ) {

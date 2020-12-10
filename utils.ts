@@ -73,8 +73,8 @@ export interface DsnResult {
 export function parseDsn(dsn: string): DsnResult {
   //URL object won't parse the URL if it doesn't recognize the protocol
   //This line replaces the protocol with http and then leaves it up to URL
-  const [protocol, stripped_url] = dsn.match(/(?:(?!:\/\/).)+/g) ?? ["", ""];
-  const url = new URL(`http:${stripped_url}`);
+  const [protocol, strippedUrl] = dsn.match(/(?:(?!:\/\/).)+/g) ?? ["", ""];
+  const url = new URL(`http:${strippedUrl}`);
 
   return {
     driver: protocol,
@@ -88,8 +88,10 @@ export function parseDsn(dsn: string): DsnResult {
   };
 }
 
-export function delay<T>(ms: number, value?: T): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
+export function delay(ms: number): Promise<void>;
+export function delay<T>(ms: number, value: T): Promise<T>;
+export function delay(ms: number, value?: unknown) {
+  return new Promise((resolve) => {
     setTimeout(() => {
       resolve(value);
     }, ms);
