@@ -3,7 +3,7 @@ import { Pool } from "../pool.ts";
 import { delay } from "../utils.ts";
 import { DEFAULT_SETUP, TEST_CONNECTION_PARAMS } from "./constants.ts";
 
-async function testPool(
+function testPool(
   t: (pool: Pool) => void | Promise<void>,
   setupQueries?: Array<string> | null,
   lazy?: boolean,
@@ -63,13 +63,13 @@ testPool(
     await p;
     assertEquals(POOL.available, 1);
 
-    const qs_thunks = [...Array(25)].map((_, i) =>
+    const qsThunks = [...Array(25)].map((_, i) =>
       POOL.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
     );
-    const qs_promises = Promise.all(qs_thunks);
+    const qsPromises = Promise.all(qsThunks);
     await delay(1);
     assertEquals(POOL.available, 0);
-    const qs = await qs_promises;
+    const qs = await qsPromises;
     assertEquals(POOL.available, 10);
     assertEquals(POOL.size, 10);
 
@@ -101,13 +101,13 @@ testPool(async function manyQueries(POOL) {
   await p;
   assertEquals(POOL.available, 10);
 
-  const qs_thunks = [...Array(25)].map((_, i) =>
+  const qsThunks = [...Array(25)].map((_, i) =>
     POOL.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
   );
-  const qs_promises = Promise.all(qs_thunks);
+  const qsPromises = Promise.all(qsThunks);
   await delay(1);
   assertEquals(POOL.available, 0);
-  const qs = await qs_promises;
+  const qs = await qsPromises;
   assertEquals(POOL.available, 10);
   assertEquals(POOL.size, 10);
 

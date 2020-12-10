@@ -269,7 +269,7 @@ testClient(async function bpcharNestedArray() {
 });
 
 testClient(async function jsonArray() {
-  const json_array = await CLIENT.query(
+  const jsonArray = await CLIENT.query(
     `SELECT ARRAY_AGG(A) FROM  (
       SELECT JSON_BUILD_OBJECT( 'X', '1' ) AS A
       UNION ALL
@@ -277,9 +277,9 @@ testClient(async function jsonArray() {
     )	A`,
   );
 
-  assertEquals(json_array.rows[0][0], [{ X: "1" }, { Y: "2" }]);
+  assertEquals(jsonArray.rows[0][0], [{ X: "1" }, { Y: "2" }]);
 
-  const json_array_nested = await CLIENT.query(
+  const jsonArrayNested = await CLIENT.query(
     `SELECT ARRAY[ARRAY[ARRAY_AGG(A), ARRAY_AGG(A)], ARRAY[ARRAY_AGG(A), ARRAY_AGG(A)]] FROM  (
       SELECT JSON_BUILD_OBJECT( 'X', '1' ) AS A
       UNION ALL
@@ -288,7 +288,7 @@ testClient(async function jsonArray() {
   );
 
   assertEquals(
-    json_array_nested.rows[0][0],
+    jsonArrayNested.rows[0][0],
     [
       [
         [{ X: "1" }, { Y: "2" }],

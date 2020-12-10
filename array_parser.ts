@@ -79,7 +79,7 @@ class ArrayParser {
   consumeDimensions(): void {
     if (this.source[0] === "[") {
       while (!this.isEof()) {
-        let char = this.nextCharacter();
+        const char = this.nextCharacter();
         if (char.value === "=") break;
       }
     }
