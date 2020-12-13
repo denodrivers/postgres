@@ -301,3 +301,37 @@ testClient(async function jsonArray() {
     ],
   );
 });
+
+testClient(async function bool() {
+  const result = await CLIENT.query(
+    `SELECT bool('y')`,
+  );
+  assertEquals(result.rows[0][0], true);
+});
+
+testClient(async function _bool() {
+  const result = await CLIENT.query(
+    `SELECT array[bool('y'), bool('n'), bool('1'), bool('0')]`,
+  );
+  assertEquals(result.rows[0][0], [true, false, true, false]);
+});
+
+testClient(async function bytea() {
+  const result = await CLIENT.query(
+    `SELECT decode('MTIzAAE=','base64')`,
+  );
+  assertEquals(result.rows[0][0], new Uint8Array([49, 50, 51, 0, 1]));
+});
+
+testClient(async function _bytea() {
+  const result = await CLIENT.query(
+    `SELECT array[ decode('MTIzAAE=','base64'), decode('MAZzBtf=', 'base64') ]`,
+  );
+  assertEquals(
+    result.rows[0][0],
+    [
+      new Uint8Array([49, 50, 51, 0, 1]),
+      new Uint8Array([48, 6, 115, 6, 215]),
+    ],
+  );
+});
