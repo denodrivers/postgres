@@ -240,6 +240,8 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeStringArray(strValue);
     case Oid.bool:
       return strValue[0] === "t";
+    case Oid._bool:
+      return parseArray(strValue, (x) => x[0] === "t");
     case Oid.int2:
     case Oid.int4:
       return decodeBaseTenInt(strValue);

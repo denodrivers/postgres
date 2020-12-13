@@ -301,3 +301,17 @@ testClient(async function jsonArray() {
     ],
   );
 });
+
+testClient(async function bool() {
+  const result = await CLIENT.query(
+    `SELECT bool('y')`,
+  );
+  assertEquals(result.rows[0][0], true);
+});
+
+testClient(async function _bool() {
+  const result = await CLIENT.query(
+    `SELECT array[bool('y'), bool('n'), bool('1'), bool('0')]`,
+  );
+  assertEquals(result.rows[0][0], [true, false, true, false]);
+});
