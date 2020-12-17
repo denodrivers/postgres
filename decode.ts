@@ -177,6 +177,10 @@ function decodeByteaEscape(byteaStr: string): Uint8Array {
   return new Uint8Array(bytes);
 }
 
+function decodeByteaArray(value: string): unknown[] {
+  return parseArray(value, decodeBytea);
+}
+
 const decoder = new TextDecoder();
 
 // deno-lint-ignore no-explicit-any
@@ -264,6 +268,8 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeJsonArray(strValue);
     case Oid.bytea:
       return decodeBytea(strValue);
+    case Oid._bytea:
+      return decodeByteaArray(strValue);
     default:
       throw new Error(`Don't know how to parse column type: ${typeOid}`);
   }
