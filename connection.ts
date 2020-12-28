@@ -339,6 +339,12 @@ export class Connection {
         case "E":
           await this._processError(msg);
           break;
+        case "N":
+          // TODO:
+          console.log("TODO: handle notice");
+          console.info(`Notices are not yet fully implemented, however here is the message received as a string:\n${msg.reader.readString(msg.byteCount)}`);
+          result.done();
+          break;
         default:
           throw new Error(`Unexpected frame: ${msg.type}`);
       }
