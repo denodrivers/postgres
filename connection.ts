@@ -342,7 +342,11 @@ export class Connection {
         case "N":
           // TODO:
           console.log("TODO: handle notice");
-          console.info(`Notices are not yet fully implemented, however here is the message received as a string:\n${msg.reader.readString(msg.byteCount)}`);
+          console.info(
+            `Notices are not yet fully implemented, however here is the message received as a string:\n${
+              msg.reader.readString(msg.byteCount)
+            }`,
+          );
           result.done();
           break;
         default:
