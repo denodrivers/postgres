@@ -362,10 +362,27 @@ testClient(async function point() {
 });
 
 testClient(async function pointArray() {
-  const selectRes = await CLIENT.query(
+  const result1 = await CLIENT.query(
     `SELECT '{"(1, 2)","(3.5, 4.1)"}'::point[]`,
   );
-  assertEquals(selectRes.rows, [
+  assertEquals(result1.rows, [
     [[{ x: 1, y: 2 }, { x: 3.5, y: 4.1 }]],
+  ]);
+
+  const result2 = await CLIENT.query(
+    `SELECT array[ point(1,2), point(3.5, 4.1) ]`,
+  );
+  assertEquals(result2.rows, [
+    [[{ x: 1, y: 2 }, { x: 3.5, y: 4.1 }]],
+  ]);
+
+  const result3 = await CLIENT.query(
+    `SELECT array[ array[ point(1,2), point(3.5, 4.1) ], array[ point(25, 50), point(-10, -17.5) ] ]`,
+  );
+  assertEquals(result3.rows[0], [
+    [
+      [{ x: 1, y: 2 }, { x: 3.5, y: 4.1 }],
+      [{ x: 25, y: 50 }, { x: -10, y: -17.5 }],
+    ],
   ]);
 });

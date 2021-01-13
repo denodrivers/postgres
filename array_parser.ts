@@ -21,25 +21,33 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// deno-lint-ignore no-explicit-any
-type Transformer = (value: string) => any;
+/** Incorrectly parsed data types default to null */
+type ArrayResult<T> = Array<T | null | ArrayResult<T>>;
+type Transformer<T> = (value: string) => T;
 
-export function parseArray(source: string, transform: Transformer | undefined) {
+function defaultValue(value: string): string {
+  return value;
+}
+
+export function parseArray(source: string): ArrayResult<string>;
+export function parseArray<T>(
+  source: string,
+  transform: Transformer<T>,
+): ArrayResult<T>;
+export function parseArray(source: string, transform = defaultValue) {
   return new ArrayParser(source, transform).parse();
 }
 
-class ArrayParser {
-  source: string;
-  transform: Transformer;
+class ArrayParser<T> {
   position = 0;
-  entries: Array<unknown> = [];
-  recorded: Array<unknown> = [];
+  entries: ArrayResult<T> = [];
+  recorded: string[] = [];
   dimension = 0;
 
-  constructor(source: string, transform: Transformer | undefined) {
-    this.source = source;
-    this.transform = transform || identity;
-  }
+  constructor(
+    public source: string,
+    public transform: Transformer<T>,
+  ) {}
 
   isEof(): boolean {
     return this.position >= this.source.length;
@@ -85,7 +93,7 @@ class ArrayParser {
     }
   }
 
-  parse(nested?: boolean): Array<unknown> {
+  parse(nested = false): ArrayResult<T> {
     let character, parser, quote;
     this.consumeDimensions();
     while (!this.isEof()) {
@@ -120,8 +128,4 @@ class ArrayParser {
     }
     return this.entries;
   }
-}
-
-function identity(value: string): string {
-  return value;
 }

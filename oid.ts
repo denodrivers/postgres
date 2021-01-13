@@ -73,7 +73,8 @@ export const Oid = {
   _bpchar: 1014,
   _varchar: 1015,
   _int8: 1016,
-  _point: 1017,
+  // deno-lint-ignore camelcase
+  point_array: 1017,
   _lseg: 1018,
   _path: 1019,
   _box: 1020,
