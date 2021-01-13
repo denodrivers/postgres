@@ -244,7 +244,7 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeStringArray(strValue);
     case Oid.bool:
       return strValue[0] === "t";
-    case Oid._bool:
+    case Oid.bool_array:
       return parseArray(strValue, (x) => x[0] === "t");
     case Oid.int2:
     case Oid.int4:
@@ -268,7 +268,7 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeJsonArray(strValue);
     case Oid.bytea:
       return decodeBytea(strValue);
-    case Oid._bytea:
+    case Oid.byte_array:
       return decodeByteaArray(strValue);
     default:
       throw new Error(`Don't know how to parse column type: ${typeOid}`);

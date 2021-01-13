@@ -1,4 +1,4 @@
-import { assertEquals } from "../test_deps.ts";
+import { assertEquals, decodeBase64, encodeBase64 } from "../test_deps.ts";
 import { Client } from "../mod.ts";
 import { TEST_CONNECTION_PARAMS } from "./constants.ts";
 import { getTestClient } from "./helpers.ts";
@@ -309,29 +309,47 @@ testClient(async function bool() {
   assertEquals(result.rows[0][0], true);
 });
 
-testClient(async function _bool() {
+testClient(async function boolArray() {
   const result = await CLIENT.query(
     `SELECT array[bool('y'), bool('n'), bool('1'), bool('0')]`,
   );
   assertEquals(result.rows[0][0], [true, false, true, false]);
 });
 
-testClient(async function bytea() {
-  const result = await CLIENT.query(
-    `SELECT decode('MTIzAAE=','base64')`,
+const CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+function randomBase64(): string {
+  return encodeBase64(
+    Array.from(
+      { length: Math.ceil(Math.random() * 256) },
+      () => CHARS[Math.floor(Math.random() * CHARS.length)],
+    ).join(""),
   );
-  assertEquals(result.rows[0][0], new Uint8Array([49, 50, 51, 0, 1]));
+}
+
+testClient(async function bytea() {
+  const base64 = randomBase64();
+
+  const result = await CLIENT.query(
+    `SELECT decode('${base64}','base64')`,
+  );
+
+  assertEquals(result.rows[0][0], decodeBase64(base64));
 });
 
-testClient(async function _bytea() {
-  const result = await CLIENT.query(
-    `SELECT array[ decode('MTIzAAE=','base64'), decode('MAZzBtf=', 'base64') ]`,
+testClient(async function byteaArray() {
+  const strings = Array.from(
+    { length: Math.ceil(Math.random() * 10) },
+    randomBase64,
   );
+
+  const result = await CLIENT.query(
+    `SELECT array[ ${
+      strings.map((x) => `decode('${x}', 'base64')`).join(", ")
+    } ]`,
+  );
+
   assertEquals(
     result.rows[0][0],
-    [
-      new Uint8Array([49, 50, 51, 0, 1]),
-      new Uint8Array([48, 6, 115, 6, 215]),
-    ],
+    strings.map(decodeBase64),
   );
 });

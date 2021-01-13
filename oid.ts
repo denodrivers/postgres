@@ -55,8 +55,10 @@ export const Oid = {
   _money: 791,
   macaddr: 829,
   inet: 869,
-  _bool: 1000,
-  _bytea: 1001,
+  // deno-lint-ignore camelcase
+  bool_array: 1000,
+  // deno-lint-ignore camelcase
+  byte_array: 1001,
   _char: 1002,
   _name: 1003,
   _int2: 1005,
