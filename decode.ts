@@ -126,19 +126,14 @@ function decodeBinary() {
   throw new Error("Not implemented!");
 }
 
-// Ported from https://github.com/brianc/node-pg-types
-// The MIT License (MIT)
-//
-// Copyright (c) 2014 Brian M. Carlson
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-function decodePoint(value: string): unknown {
-  if (value[0] !== "(") return null;
+interface Point {
+  x: number;
+  y: number;
+}
 
+// Ported from https://github.com/brianc/node-pg-types
+// Copyright (c) 2014 Brian M. Carlson. All rights reserved. MIT License.
+function decodePoint(value: string): Point {
   const [x, y] = value.substring(1, value.length - 1).split(",");
 
   return {
@@ -147,7 +142,7 @@ function decodePoint(value: string): unknown {
   };
 }
 
-function decodePointArray(value: string): unknown[] {
+function decodePointArray(value: string) {
   return parseArray(value, decodePoint);
 }
 
@@ -211,7 +206,7 @@ const decoder = new TextDecoder();
 // deno-lint-ignore no-explicit-any
 function decodeStringArray(value: string): any {
   if (!value) return null;
-  return parseArray(value, undefined);
+  return parseArray(value);
 }
 
 function decodeBaseTenInt(value: string): number {
@@ -293,7 +288,7 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeJsonArray(strValue);
     case Oid.point:
       return decodePoint(strValue);
-    case Oid._point:
+    case Oid.point_array:
       return decodePointArray(strValue);
     case Oid.bytea:
       return decodeBytea(strValue);
