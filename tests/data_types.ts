@@ -1,6 +1,6 @@
 import { assertEquals, decodeBase64, encodeBase64 } from "../test_deps.ts";
 import { Client } from "../mod.ts";
-import { TEST_CONNECTION_PARAMS } from "./constants.ts";
+import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
 
 const SETUP = [

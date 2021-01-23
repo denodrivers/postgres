@@ -1,7 +1,7 @@
 const { test } = Deno;
 import { Client, PostgresError } from "../mod.ts";
 import { assert } from "../test_deps.ts";
-import { TEST_CONNECTION_PARAMS } from "./constants.ts";
+import TEST_CONNECTION_PARAMS from "./config.ts";
 
 test("badAuthData", async function () {
   const badConnectionData = { ...TEST_CONNECTION_PARAMS };
