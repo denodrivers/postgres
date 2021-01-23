@@ -1,5 +1,5 @@
 import { Client } from "../mod.ts";
-import { assertEquals } from "../test_deps.ts";
+import { assert, assertEquals } from "../test_deps.ts";
 import { DEFAULT_SETUP, TEST_CONNECTION_PARAMS } from "./constants.ts";
 import { getTestClient } from "./helpers.ts";
 import type { QueryResult } from "../query.ts";
@@ -24,11 +24,12 @@ testClient(async function parametrizedQuery() {
   assertEquals(typeof row.id, "number");
 });
 
-// TODO
-// Find a way to assert STDOUT
 testClient(async function handleDebugNotice() {
-  const result = await CLIENT.query("SELECT * FROM CREATE_NOTICE();");
-  assertEquals(result.rows[0][0], 1);
+  const { rows, warnings } = await CLIENT.query(
+    "SELECT * FROM CREATE_NOTICE();",
+  );
+  assertEquals(rows[0][0], 1);
+  assertEquals(warnings[0].message, "NOTICED");
 });
 
 // This query doesn't recreate the table and outputs
@@ -37,9 +38,11 @@ testClient(async function handleQueryNotice() {
   await CLIENT.query(
     "CREATE TEMP TABLE NOTICE_TEST (ABC INT);",
   );
-  await CLIENT.query(
+  const { warnings } = await CLIENT.query(
     "CREATE TEMP TABLE IF NOT EXISTS NOTICE_TEST (ABC INT);",
   );
+
+  assert(warnings[0].message.includes("already exists"));
 });
 
 testClient(async function nativeType() {

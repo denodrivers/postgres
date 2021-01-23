@@ -300,7 +300,7 @@ export class Connection {
         break;
       // notice response
       case "N":
-        await this._processNotice(msg);
+        result.warnings.push(await this._processNotice(msg));
         break;
       // command complete
       // TODO: this is duplicated in next loop
@@ -341,7 +341,7 @@ export class Connection {
           break;
         // notice response
         case "N":
-          await this._processNotice(msg);
+          result.warnings.push(await this._processNotice(msg));
           break;
         default:
           throw new Error(`Unexpected frame: ${msg.type}`);
@@ -441,10 +441,9 @@ export class Connection {
   }
 
   _processNotice(msg: Message) {
-    const { severity, message } = parseNotice(msg);
-    // TODO
-    // Should this output to STDOUT or STDERR ?
-    console.error(`${bold(yellow(severity))}: ${message}`);
+    const warning = parseNotice(msg);
+    console.error(`${bold(yellow(warning.severity))}: ${warning.message}`);
+    return warning;
   }
 
   private async _readParseComplete() {

@@ -1,7 +1,7 @@
 import type { RowDescription } from "./connection.ts";
 import { encode, EncodedArg } from "./encode.ts";
-
 import { decode } from "./decode.ts";
+import { WarningFields } from "./warning.ts";
 
 const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
 
@@ -23,12 +23,13 @@ export interface QueryConfig {
 }
 
 export class QueryResult {
-  public rowDescription!: RowDescription;
   private _done = false;
+  public command!: CommandType;
+  public rowCount?: number;
+  public rowDescription!: RowDescription;
   // deno-lint-ignore no-explicit-any
   public rows: any[] = []; // actual results
-  public rowCount?: number;
-  public command!: CommandType;
+  public warnings: WarningFields[] = [];
 
   constructor(public query: Query) {}
 
