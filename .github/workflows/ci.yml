@@ -9,9 +9,9 @@ jobs:
       postgres:
         image: postgres
         env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: deno_postgres
+          PGDATABASE: deno_postgres
+          PGPASSWORD: test
+          PGUSER: test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
