@@ -2,6 +2,7 @@ const { test } = Deno;
 import { assertEquals, assertThrows } from "../test_deps.ts";
 import { ConnectionParamsError, createParams } from "../connection_params.ts";
 
+// deno-lint-ignore camelcase
 let has_env_access = true;
 try {
   Deno.env.toObject();
