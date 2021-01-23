@@ -1,6 +1,6 @@
 import { assertEquals, decodeBase64, encodeBase64 } from "../test_deps.ts";
 import { Client } from "../mod.ts";
-import { TEST_CONNECTION_PARAMS } from "./constants.ts";
+import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
 
 const SETUP = [
@@ -135,12 +135,17 @@ testClient(async function regtype() {
   assertEquals(result.rows, [["integer"]]);
 });
 
+// This test assumes that if the user wasn't provided through
+// the config file, it will be available in the env config
 testClient(async function regrole() {
+  const user = TEST_CONNECTION_PARAMS.user || Deno.env.get("PGUSER");
+
   const result = await CLIENT.query(
     `SELECT ($1)::regrole`,
-    TEST_CONNECTION_PARAMS.user,
+    user,
   );
-  assertEquals(result.rows, [[TEST_CONNECTION_PARAMS.user]]);
+
+  assertEquals(result.rows[0][0], user);
 });
 
 testClient(async function regnamespace() {

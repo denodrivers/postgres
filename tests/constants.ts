@@ -1,5 +1,3 @@
-import type { ConnectionParams } from "../connection_params.ts";
-
 export const DEFAULT_SETUP = [
   "DROP TABLE IF EXISTS ids;",
   "CREATE TABLE ids(id integer);",
@@ -14,11 +12,16 @@ export const DEFAULT_SETUP = [
   "CREATE OR REPLACE FUNCTION CREATE_NOTICE () RETURNS INT AS $$ BEGIN RAISE NOTICE 'NOTICED'; RETURN (SELECT 1); END; $$ LANGUAGE PLPGSQL;",
 ];
 
-export const TEST_CONNECTION_PARAMS: ConnectionParams = {
-  user: "test",
-  password: "test",
-  database: "deno_postgres",
-  hostname: "127.0.0.1",
-  port: 5432,
-  applicationName: "deno_postgres",
-};
+// deno-lint-ignore camelcase
+let has_env_access = true;
+try {
+  Deno.env.toObject();
+} catch (e) {
+  if (e instanceof Deno.errors.PermissionDenied) {
+    has_env_access = false;
+  } else {
+    throw e;
+  }
+}
+
+export { has_env_access };

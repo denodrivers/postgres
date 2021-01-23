@@ -1,6 +1,7 @@
 import { Client } from "../mod.ts";
 import { assert, assertEquals } from "../test_deps.ts";
-import { DEFAULT_SETUP, TEST_CONNECTION_PARAMS } from "./constants.ts";
+import { DEFAULT_SETUP } from "./constants.ts";
+import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
 import type { QueryResult } from "../query.ts";
 
