@@ -1,5 +1,3 @@
-import type { ConnectionParams } from "../connection_params.ts";
-
 export const DEFAULT_SETUP = [
   "DROP TABLE IF EXISTS ids;",
   "CREATE TABLE ids(id integer);",
@@ -13,12 +11,3 @@ export const DEFAULT_SETUP = [
   "INSERT INTO bytes VALUES(E'foo\\\\000\\\\200\\\\\\\\\\\\377')",
   "CREATE OR REPLACE FUNCTION CREATE_NOTICE () RETURNS INT AS $$ BEGIN RAISE NOTICE 'NOTICED'; RETURN (SELECT 1); END; $$ LANGUAGE PLPGSQL;",
 ];
-
-export const TEST_CONNECTION_PARAMS: ConnectionParams = {
-  user: "test",
-  password: "test",
-  database: "deno_postgres",
-  hostname: "127.0.0.1",
-  port: 5432,
-  applicationName: "deno_postgres",
-};

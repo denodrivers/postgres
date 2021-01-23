@@ -1,0 +1,8 @@
+{
+  "applicationName": "deno_postgres",
+  "database": "deno_postgres",
+  "hostname": "127.0.0.1",
+  "password": "test",
+  "port": 5432,
+  "user": "test"
+}
