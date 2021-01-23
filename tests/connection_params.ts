@@ -1,18 +1,8 @@
 const { test } = Deno;
 import { assertEquals, assertThrows } from "../test_deps.ts";
 import { ConnectionParamsError, createParams } from "../connection_params.ts";
-
 // deno-lint-ignore camelcase
-let has_env_access = true;
-try {
-  Deno.env.toObject();
-} catch (e) {
-  if (e instanceof Deno.errors.PermissionDenied) {
-    has_env_access = false;
-  } else {
-    throw e;
-  }
-}
+import { has_env_access } from "./constants.ts";
 
 function withEnv(obj: Record<string, string>, fn: () => void) {
   return () => {

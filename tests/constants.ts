@@ -11,3 +11,17 @@ export const DEFAULT_SETUP = [
   "INSERT INTO bytes VALUES(E'foo\\\\000\\\\200\\\\\\\\\\\\377')",
   "CREATE OR REPLACE FUNCTION CREATE_NOTICE () RETURNS INT AS $$ BEGIN RAISE NOTICE 'NOTICED'; RETURN (SELECT 1); END; $$ LANGUAGE PLPGSQL;",
 ];
+
+// deno-lint-ignore camelcase
+let has_env_access = true;
+try {
+  Deno.env.toObject();
+} catch (e) {
+  if (e instanceof Deno.errors.PermissionDenied) {
+    has_env_access = false;
+  } else {
+    throw e;
+  }
+}
+
+export { has_env_access };

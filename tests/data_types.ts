@@ -2,6 +2,8 @@ import { assertEquals, decodeBase64, encodeBase64 } from "../test_deps.ts";
 import { Client } from "../mod.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
+// deno-lint-ignore camelcase
+import { has_env_access } from "./constants.ts";
 
 const SETUP = [
   "DROP TABLE IF EXISTS data_types;",
@@ -140,7 +142,9 @@ testClient(async function regrole() {
     `SELECT ($1)::regrole`,
     TEST_CONNECTION_PARAMS.user,
   );
-  assertEquals(result.rows, [[TEST_CONNECTION_PARAMS.user]]);
+  assertEquals(result.rows, [[
+    has_env_access ? Deno.env.get("PGUSER") : TEST_CONNECTION_PARAMS.user,
+  ]]);
 });
 
 testClient(async function regnamespace() {
