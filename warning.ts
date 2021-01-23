@@ -1,6 +1,6 @@
 import type { Message } from "./connection.ts";
 
-export interface ErrorFields {
+export interface WarningFields {
   severity: string;
   code: string;
   message: string;
@@ -21,9 +21,9 @@ export interface ErrorFields {
 }
 
 export class PostgresError extends Error {
-  public fields: ErrorFields;
+  public fields: WarningFields;
 
-  constructor(fields: ErrorFields) {
+  constructor(fields: WarningFields) {
     super(fields.message);
     this.fields = fields;
     this.name = "PostgresError";
@@ -31,6 +31,17 @@ export class PostgresError extends Error {
 }
 
 export function parseError(msg: Message): PostgresError {
+  return new PostgresError(parseWarning(msg));
+}
+
+export function parseNotice(msg: Message): WarningFields {
+  return parseWarning(msg);
+}
+
+/**
+ * https://www.postgresql.org/docs/current/protocol-error-fields.html
+ * */
+function parseWarning(msg: Message): WarningFields {
   // https://www.postgresql.org/docs/current/protocol-error-fields.html
   // deno-lint-ignore no-explicit-any
   const errorFields: any = {};
@@ -103,5 +114,5 @@ export function parseError(msg: Message): PostgresError {
     }
   }
 
-  return new PostgresError(errorFields);
+  return errorFields;
 }

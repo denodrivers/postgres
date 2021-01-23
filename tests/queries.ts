@@ -24,6 +24,24 @@ testClient(async function parametrizedQuery() {
   assertEquals(typeof row.id, "number");
 });
 
+// TODO
+// Find a way to assert STDOUT
+testClient(async function handleDebugNotice() {
+  const result = await CLIENT.query("SELECT * FROM CREATE_NOTICE();");
+  assertEquals(result.rows[0][0], 1);
+});
+
+// This query doesn't recreate the table and outputs
+// a notice instead
+testClient(async function handleQueryNotice() {
+  await CLIENT.query(
+    "CREATE TEMP TABLE NOTICE_TEST (ABC INT);",
+  );
+  await CLIENT.query(
+    "CREATE TEMP TABLE IF NOT EXISTS NOTICE_TEST (ABC INT);",
+  );
+});
+
 testClient(async function nativeType() {
   const result = await CLIENT.query("SELECT * FROM timestamps;");
   const row = result.rows[0];

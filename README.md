@@ -7,8 +7,9 @@ PostgreSQL driver for Deno.
 
 It's still work in progress, but you can take it for a test drive!
 
-`deno-postgres` is being developed based on excellent work of [node-postgres](https://github.com/brianc/node-postgres)
-and [pq](https://github.com/lib/pq).
+`deno-postgres` is being developed based on excellent work of
+[node-postgres](https://github.com/brianc/node-postgres) and
+[pq](https://github.com/lib/pq).
 
 ## To Do:
 
@@ -38,7 +39,7 @@ async function main() {
     user: "user",
     database: "test",
     hostname: "localhost",
-    port: 5432
+    port: 5432,
   });
   await client.connect();
   const result = await client.query("SELECT * FROM people;");
@@ -67,8 +68,10 @@ $ deno fmt -- --check
 
 ## License
 
-There are substantial parts of this library based on other libraries. They have preserved their individual licenses and copyrights.
+There are substantial parts of this library based on other libraries. They have
+preserved their individual licenses and copyrights.
 
 Eveything is licensed under the MIT License.
 
-All additional work is copyright 2018 - 2019 — Bartłomiej Iwańczuk — All rights reserved.
+All additional work is copyright 2018 - 2019 — Bartłomiej Iwańczuk — All rights
+reserved.

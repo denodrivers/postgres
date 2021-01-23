@@ -11,6 +11,7 @@ export const DEFAULT_SETUP = [
   "DROP TABLE IF EXISTS bytes;",
   "CREATE TABLE bytes(b bytea);",
   "INSERT INTO bytes VALUES(E'foo\\\\000\\\\200\\\\\\\\\\\\377')",
+  "CREATE OR REPLACE FUNCTION CREATE_NOTICE () RETURNS INT AS $$ BEGIN RAISE NOTICE 'NOTICED'; RETURN (SELECT 1); END; $$ LANGUAGE PLPGSQL;",
 ];
 
 export const TEST_CONNECTION_PARAMS: ConnectionParams = {

@@ -26,14 +26,15 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import { bold, yellow } from "./deps.ts";
 import { BufReader, BufWriter } from "./deps.ts";
-import { PacketWriter } from "./packet_writer.ts";
+import { DeferredStack } from "./deferred.ts";
 import { hashMd5Password, readUInt32BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
+import { PacketWriter } from "./packet_writer.ts";
+import { parseError, parseNotice } from "./warning.ts";
 import { Query, QueryConfig, QueryResult } from "./query.ts";
-import { parseError } from "./error.ts";
 import type { ConnectionParams } from "./connection_params.ts";
-import { DeferredStack } from "./deferred.ts";
 
 export enum Format {
   TEXT = 0,
@@ -299,8 +300,7 @@ export class Connection {
         break;
       // notice response
       case "N":
-        // TODO:
-        console.log("TODO: handle notice");
+        await this._processNotice(msg);
         break;
       // command complete
       // TODO: this is duplicated in next loop
@@ -338,6 +338,10 @@ export class Connection {
         // error response
         case "E":
           await this._processError(msg);
+          break;
+        // notice response
+        case "N":
+          await this._processNotice(msg);
           break;
         default:
           throw new Error(`Unexpected frame: ${msg.type}`);
@@ -434,6 +438,13 @@ export class Connection {
     const error = parseError(msg);
     await this._readReadyForQuery();
     throw error;
+  }
+
+  _processNotice(msg: Message) {
+    const { severity, message } = parseNotice(msg);
+    // TODO
+    // Should this output to STDOUT or STDERR ?
+    console.error(`${bold(yellow(severity))}: ${message}`);
   }
 
   private async _readParseComplete() {

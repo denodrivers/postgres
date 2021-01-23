@@ -1,5 +1,4 @@
 import type { RowDescription } from "./connection.ts";
-import type { Connection } from "./connection.ts";
 import { encode, EncodedArg } from "./encode.ts";
 
 import { decode } from "./decode.ts";

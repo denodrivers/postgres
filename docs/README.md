@@ -5,8 +5,9 @@
 
 PostgreSQL driver for Deno.
 
-`deno-postgres` is being developed based on excellent work of [node-postgres](https://github.com/brianc/node-postgres)
-and [pq](https://github.com/lib/pq).
+`deno-postgres` is being developed based on excellent work of
+[node-postgres](https://github.com/brianc/node-postgres) and
+[pq](https://github.com/lib/pq).
 
 ## Example
 
@@ -18,7 +19,7 @@ async function main() {
     user: "user",
     database: "test",
     hostname: "localhost",
-    port: 5432
+    port: 5432,
   });
   await client.connect();
   const result = await client.query("SELECT * FROM people;");
@@ -41,6 +42,7 @@ await client.connect()
 ```
 
 But for stronger management and scalability, you can use **pools**:
+
 ```typescript
 import { Pool } from "https://deno.land/x/postgres@v0.4.0/mod.ts";
 import { PoolClient } from "https://deno.land/x/postgres@v0.4.0/client.ts";
@@ -54,25 +56,30 @@ const dbPool = new Pool({
   port: 5432,
 }, POOL_CONNECTIONS);
 
-async function runQuery (query: string) {
+async function runQuery(query: string) {
   const client: PoolClient = await dbPool.connect();
   const dbResult = await client.query(query);
   client.release();
-  return dbResult
+  return dbResult;
 }
 
 await runQuery("SELECT * FROM users;");
 await runQuery("SELECT * FROM users WHERE id = '1';");
 ```
 
-This improves performance, as creating a whole new connection for each query can be an expensive operation.
-With pools, you can keep the connections open to be re-used when requested (`const client = dbPool.connect()`). So one of the active connections will be used instead  of creating a new one.
+This improves performance, as creating a whole new connection for each query can
+be an expensive operation. With pools, you can keep the connections open to be
+re-used when requested (`const client = dbPool.connect()`). So one of the active
+connections will be used instead of creating a new one.
 
-The number of pools is up to you, but I feel a pool of 20 is good for small applications. Though remember this can differ based on how active your application is. Increase or decrease where necessary.
+The number of pools is up to you, but I feel a pool of 20 is good for small
+applications. Though remember this can differ based on how active your
+application is. Increase or decrease where necessary.
 
 ## API
 
-`deno-postgres` follows `node-postgres` API to make transition for Node devs as easy as possible.
+`deno-postgres` follows `node-postgres` API to make transition for Node devs as
+easy as possible.
 
 ### Connecting to DB
 
@@ -88,7 +95,7 @@ config = {
   port: 5432,
   user: "user",
   database: "test",
-  applicationName: "my_custom_app"
+  applicationName: "my_custom_app",
 };
 // alternatively
 config = "postgres://user@localhost:5432/test?application_name=my_custom_app";
@@ -113,14 +120,14 @@ Parametrized query
 const result = await client.query(
   "SELECT * FROM people WHERE age > $1 AND age < $2;",
   10,
-  20
+  20,
 );
 console.log(result.rows);
 
 // equivalent using QueryConfig interface
 const result = await client.query({
   text: "SELECT * FROM people WHERE age > $1 AND age < $2;",
-  args: [10, 20]
+  args: [10, 20],
 });
 console.log(result.rows);
 ```
