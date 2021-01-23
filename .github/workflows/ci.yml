@@ -36,4 +36,4 @@ jobs:
         run: deno lint --unstable
 
       - name: Run tests
-        run: deno test --allow-net --allow-env test.ts
+        run: deno test --allow-net --allow-env --allow-read=tests/config.json test.ts
