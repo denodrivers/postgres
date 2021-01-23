@@ -4,22 +4,6 @@ import { ConnectionParamsError, createParams } from "../connection_params.ts";
 // deno-lint-ignore camelcase
 import { has_env_access } from "./constants.ts";
 
-function withEnv(obj: Record<string, string>, fn: () => void) {
-  return () => {
-    const getEnv = Deno.env.get;
-
-    Deno.env.get = (key: string) => {
-      return obj[key] || getEnv(key);
-    };
-
-    try {
-      fn();
-    } finally {
-      Deno.env.get = getEnv;
-    }
-  };
-}
-
 function withNotAllowedEnv(fn: () => void) {
   return () => {
     const getEnv = Deno.env.get;
@@ -106,38 +90,49 @@ test("objectStyleParameters", function () {
   assertEquals(p.port, 10101);
 });
 
-test(
-  "envParameters",
-  withEnv({
-    PGUSER: "some_user",
-    PGHOST: "some_host",
-    PGPORT: "10101",
-    PGDATABASE: "deno_postgres",
-  }, function () {
+test({
+  name: "envParameters",
+  ignore: !has_env_access,
+  fn() {
+    Deno.env.set("PGDATABASE", "deno_postgres");
+    Deno.env.set("PGHOST", "some_host");
+    Deno.env.set("PGPORT", "10101");
+    Deno.env.set("PGUSER", "some_user");
+
     const p = createParams();
     assertEquals(p.database, "deno_postgres");
-    assertEquals(p.user, "some_user");
     assertEquals(p.hostname, "some_host");
     assertEquals(p.port, 10101);
-  }),
-);
+    assertEquals(p.user, "some_user");
 
-test(
-  "envParametersWithInvalidPort",
-  withEnv({
-    PGUSER: "some_user",
-    PGHOST: "some_host",
-    PGPORT: "abc",
-    PGDATABASE: "deno_postgres",
-  }, function () {
-    const error = assertThrows(
+    Deno.env.delete("PGDATABASE");
+    Deno.env.delete("PGHOST");
+    Deno.env.delete("PGPORT");
+    Deno.env.delete("PGUSER");
+  },
+});
+
+test({
+  name: "envParametersWithInvalidPort",
+  ignore: !has_env_access,
+  fn() {
+    Deno.env.set("PGDATABASE", "deno_postgres");
+    Deno.env.set("PGHOST", "some_host");
+    Deno.env.set("PGPORT", "abc");
+    Deno.env.set("PGUSER", "some_user");
+
+    assertThrows(
       () => createParams(),
-      undefined,
+      ConnectionParamsError,
       "Invalid port NaN",
     );
-    assertEquals(error.name, "ConnectionParamsError");
-  }),
-);
+
+    Deno.env.delete("PGDATABASE");
+    Deno.env.delete("PGHOST");
+    Deno.env.delete("PGPORT");
+    Deno.env.delete("PGUSER");
+  },
+});
 
 test(
   "envParametersWhenNotAllowed",

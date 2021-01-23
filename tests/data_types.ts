@@ -2,8 +2,6 @@ import { assertEquals, decodeBase64, encodeBase64 } from "../test_deps.ts";
 import { Client } from "../mod.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
-// deno-lint-ignore camelcase
-import { has_env_access } from "./constants.ts";
 
 const SETUP = [
   "DROP TABLE IF EXISTS data_types;",
@@ -137,14 +135,16 @@ testClient(async function regtype() {
   assertEquals(result.rows, [["integer"]]);
 });
 
+// This test assumes that if the user wasn't provided through
+// the config file, it will be available in the env config
 testClient(async function regrole() {
-  const user = has_env_access
-    ? Deno.env.get("PGUSER")
-    : TEST_CONNECTION_PARAMS.user;
+  const user = TEST_CONNECTION_PARAMS.user || Deno.env.get("PGUSER");
+
   const result = await CLIENT.query(
     `SELECT ($1)::regrole`,
     user,
   );
+
   assertEquals(result.rows[0][0], user);
 });
 
