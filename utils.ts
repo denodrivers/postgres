@@ -87,13 +87,3 @@ export function parseDsn(dsn: string): DsnResult {
     params: Object.fromEntries(url.searchParams.entries()),
   };
 }
-
-export function delay(ms: number): Promise<void>;
-export function delay<T>(ms: number, value: T): Promise<T>;
-export function delay(ms: number, value?: unknown) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(value);
-    }, ms);
-  });
-}

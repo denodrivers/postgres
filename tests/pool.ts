@@ -1,6 +1,5 @@
-import { assertEquals, assertThrowsAsync } from "../test_deps.ts";
+import { assertEquals, assertThrowsAsync, delay } from "../test_deps.ts";
 import { Pool } from "../pool.ts";
-import { delay } from "../utils.ts";
 import { DEFAULT_SETUP, TEST_CONNECTION_PARAMS } from "./constants.ts";
 
 function testPool(
