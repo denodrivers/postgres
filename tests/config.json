@@ -1,0 +1,8 @@
+{
+  "applicationName": "deno_postgres",
+  "database": "procalidad_app_dev",
+  "hostname": "127.0.0.1",
+  "password": "Procalidad2018*",
+  "port": 5432,
+  "user": "postgres"
+}
