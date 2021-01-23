@@ -138,13 +138,14 @@ testClient(async function regtype() {
 });
 
 testClient(async function regrole() {
+  const user = has_env_access
+    ? Deno.env.get("PGUSER")
+    : TEST_CONNECTION_PARAMS.user;
   const result = await CLIENT.query(
     `SELECT ($1)::regrole`,
-    TEST_CONNECTION_PARAMS.user,
+    user,
   );
-  assertEquals(result.rows, [[
-    has_env_access ? Deno.env.get("PGUSER") : TEST_CONNECTION_PARAMS.user,
-  ]]);
+  assertEquals(result.rows[0][0], user);
 });
 
 testClient(async function regnamespace() {
