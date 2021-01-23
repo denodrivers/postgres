@@ -22,7 +22,7 @@ function isDefined<T>(value: T): value is NonNullable<T> {
   return value !== undefined && value !== null;
 }
 
-class ConnectionParamsError extends Error {
+export class ConnectionParamsError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ConnectionParamsError";

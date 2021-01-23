@@ -1,6 +1,17 @@
 const { test } = Deno;
 import { assertEquals, assertThrows } from "../test_deps.ts";
-import { createParams } from "../connection_params.ts";
+import { ConnectionParamsError, createParams } from "../connection_params.ts";
+
+let has_env_access = true;
+try {
+  Deno.env.toObject();
+} catch (e) {
+  if (e instanceof Deno.errors.PermissionDenied) {
+    has_env_access = false;
+  } else {
+    throw e;
+  }
+}
 
 function withEnv(obj: Record<string, string>, fn: () => void) {
   return () => {
@@ -153,23 +164,41 @@ test(
 );
 
 test("defaultParameters", function () {
+  const database = "deno_postgres";
+  const user = "deno_postgres";
+
   const p = createParams({
-    database: "deno_postgres",
-    user: "deno_postgres",
+    database,
+    user,
   });
-  assertEquals(p.database, "deno_postgres");
-  assertEquals(p.user, "deno_postgres");
-  assertEquals(p.hostname, "127.0.0.1");
+
+  assertEquals(p.database, database);
+  assertEquals(p.user, user);
+  assertEquals(
+    p.hostname,
+    has_env_access ? (Deno.env.get("PGHOST") ?? "127.0.0.1") : "127.0.0.1",
+  );
   assertEquals(p.port, 5432);
-  assertEquals(p.password, undefined);
+  assertEquals(
+    p.password,
+    has_env_access ? Deno.env.get("PGPASSWORD") : undefined,
+  );
 });
 
 test("requiredParameters", function () {
-  const error = assertThrows(
-    () => createParams(),
-    undefined,
-    "Missing connection parameters: database, user",
-  );
-
-  assertEquals(error.name, "ConnectionParamsError");
+  if (has_env_access) {
+    if (!(Deno.env.get("PGUSER") && Deno.env.get("PGPASSWORD"))) {
+      assertThrows(
+        () => createParams(),
+        ConnectionParamsError,
+        "Missing connection parameters:",
+      );
+    }
+  } else {
+    assertThrows(
+      () => createParams(),
+      ConnectionParamsError,
+      "Missing connection parameters: database, user",
+    );
+  }
 });
