@@ -4,6 +4,40 @@ import { ConnectionParamsError, createParams } from "../connection_params.ts";
 // deno-lint-ignore camelcase
 import { has_env_access } from "./constants.ts";
 
+/**
+ * This function is ment to be used as a container for env based tests.
+ * It will mutate the env state and run the callback passed to it, then
+ * reset the env variables to it's original state
+ * 
+ * It can only be used in tests that run with env permissions
+ */
+const withEnv = (env: {
+  database: string;
+  host: string;
+  user: string;
+  port: string;
+}, fn: () => void) => {
+  const PGDATABASE = Deno.env.get("PGDATABASE") || "";
+  const PGHOST = Deno.env.get("PGHOST") || "";
+  const PGPORT = Deno.env.get("PGPORT") || "";
+  const PGUSER = Deno.env.get("PGUSER") || "";
+
+  Deno.env.set("PGDATABASE", env.database);
+  Deno.env.set("PGHOST", env.host);
+  Deno.env.set("PGPORT", env.port);
+  Deno.env.set("PGUSER", env.user);
+
+  fn();
+
+  // Reset to original state
+  PGDATABASE
+    ? Deno.env.set("PGDATABASE", PGDATABASE)
+    : Deno.env.delete("PGDATABASE");
+  PGDATABASE ? Deno.env.set("PGHOST", PGHOST) : Deno.env.delete("PGHOST");
+  PGDATABASE ? Deno.env.set("PGPORT", PGPORT) : Deno.env.delete("PGPORT");
+  PGDATABASE ? Deno.env.set("PGUSER", PGUSER) : Deno.env.delete("PGUSER");
+};
+
 function withNotAllowedEnv(fn: () => void) {
   return () => {
     const getEnv = Deno.env.get;
@@ -94,21 +128,18 @@ test({
   name: "envParameters",
   ignore: !has_env_access,
   fn() {
-    Deno.env.set("PGDATABASE", "deno_postgres");
-    Deno.env.set("PGHOST", "some_host");
-    Deno.env.set("PGPORT", "10101");
-    Deno.env.set("PGUSER", "some_user");
-
-    const p = createParams();
-    assertEquals(p.database, "deno_postgres");
-    assertEquals(p.hostname, "some_host");
-    assertEquals(p.port, 10101);
-    assertEquals(p.user, "some_user");
-
-    Deno.env.delete("PGDATABASE");
-    Deno.env.delete("PGHOST");
-    Deno.env.delete("PGPORT");
-    Deno.env.delete("PGUSER");
+    withEnv({
+      database: "deno_postgres",
+      host: "some_host",
+      port: "10101",
+      user: "some_user",
+    }, () => {
+      const p = createParams();
+      assertEquals(p.database, "deno_postgres");
+      assertEquals(p.hostname, "some_host");
+      assertEquals(p.port, 10101);
+      assertEquals(p.user, "some_user");
+    });
   },
 });
 
@@ -116,21 +147,18 @@ test({
   name: "envParametersWithInvalidPort",
   ignore: !has_env_access,
   fn() {
-    Deno.env.set("PGDATABASE", "deno_postgres");
-    Deno.env.set("PGHOST", "some_host");
-    Deno.env.set("PGPORT", "abc");
-    Deno.env.set("PGUSER", "some_user");
-
-    assertThrows(
-      () => createParams(),
-      ConnectionParamsError,
-      "Invalid port NaN",
-    );
-
-    Deno.env.delete("PGDATABASE");
-    Deno.env.delete("PGHOST");
-    Deno.env.delete("PGPORT");
-    Deno.env.delete("PGUSER");
+    withEnv({
+      database: "deno_postgres",
+      host: "some_host",
+      port: "abc",
+      user: "some_user",
+    }, () => {
+      assertThrows(
+        () => createParams(),
+        ConnectionParamsError,
+        "Invalid port NaN",
+      );
+    });
   },
 });
 
@@ -173,7 +201,7 @@ test("defaultParameters", function () {
 
 test("requiredParameters", function () {
   if (has_env_access) {
-    if (!(Deno.env.get("PGUSER") && Deno.env.get("PGPASSWORD"))) {
+    if (!(Deno.env.get("PGUSER") && Deno.env.get("PGDATABASE"))) {
       assertThrows(
         () => createParams(),
         ConnectionParamsError,

@@ -7,7 +7,7 @@ function getPgEnv(): ConnectionOptions {
     return {
       database: env.get("PGDATABASE"),
       hostname: env.get("PGHOST"),
-      port: port !== undefined ? parseInt(port, 10) : undefined,
+      port: port ? parseInt(port, 10) : undefined,
       user: env.get("PGUSER"),
       password: env.get("PGPASSWORD"),
       applicationName: env.get("PGAPPNAME"),
