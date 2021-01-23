@@ -80,7 +80,29 @@ function assertRequiredOptions(
   }
 
   if (missingParams.length) {
-    throw new ConnectionParamsError(formatMissingParams(missingParams));
+    // deno-lint-ignore camelcase
+    const missing_params_message = formatMissingParams(missingParams);
+
+    // deno-lint-ignore camelcase
+    let permission_error_thrown = false;
+    try {
+      Deno.env.toObject();
+    } catch (e) {
+      if (e instanceof Deno.errors.PermissionDenied) {
+        permission_error_thrown = true;
+      } else {
+        throw e;
+      }
+    }
+
+    if (permission_error_thrown) {
+      throw new ConnectionParamsError(
+        missing_params_message +
+          "\nConnection parameters can be read from environment only if Deno is run with env permission",
+      );
+    } else {
+      throw new ConnectionParamsError(missing_params_message);
+    }
   }
 }
 
@@ -89,7 +111,7 @@ function formatMissingParams(missingParams: string[]) {
     missingParams.join(
       ", ",
     )
-  }. Connection parameters can be read from environment only if Deno is run with env permission (deno run --allow-env)`;
+  }`;
 }
 
 const DEFAULT_OPTIONS: ConnectionOptions = {
