@@ -264,6 +264,7 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.oid_array:
     case Oid.regclass_array:
     case Oid.regconfig_array:
+    case Oid.regdictionary_array:
     case Oid.regproc_array:
     case Oid.regrole_array:
     case Oid.regtype_array:

@@ -215,8 +215,13 @@ testClient(async function regconfigArray() {
 });
 
 testClient(async function regdictionary() {
-  const result = await CLIENT.query(`SElECT 'simple'::regdictionary`);
-  assertEquals(result.rows, [["simple"]]);
+  const result = await CLIENT.query("SELECT 'simple'::regdictionary");
+  assertEquals(result.rows[0][0], "simple");
+});
+
+testClient(async function regdictionaryArray() {
+  const result = await CLIENT.query("SELECT ARRAY['simple'::regdictionary]");
+  assertEquals(result.rows[0][0], ["simple"]);
 });
 
 testClient(async function bigint() {
