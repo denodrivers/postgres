@@ -207,6 +207,13 @@ testClient(async function regconfig() {
   assertEquals(result.rows, [["english"]]);
 });
 
+testClient(async function regconfigArray() {
+  const result = await CLIENT.query(
+    `SElECT ARRAY['english'::regconfig, 'spanish']`,
+  );
+  assertEquals(result.rows[0][0], ["english", "spanish"]);
+});
+
 testClient(async function regdictionary() {
   const result = await CLIENT.query(`SElECT 'simple'::regdictionary`);
   assertEquals(result.rows, [["simple"]]);

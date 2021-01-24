@@ -236,7 +236,8 @@ export const Oid = {
   // deno-lint-ignore camelcase
   _tsquery_1: 3645,
   regconfig: 3734,
-  _regconfig: 3735,
+  // deno-lint-ignore camelcase
+  regconfig_array: 3735,
   regdictionary: 3769,
   _regdictionary: 3770,
   jsonb: 3802,
