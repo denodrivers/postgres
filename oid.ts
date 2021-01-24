@@ -180,7 +180,8 @@ export const Oid = {
   regoperator: 2204,
   regclass: 2205,
   regtype: 2206,
-  _regprocedure: 2207,
+  // deno-lint-ignore camelcase
+  regprocedure_array: 2207,
   // deno-lint-ignore camelcase
   regoper_array: 2208,
   // deno-lint-ignore camelcase

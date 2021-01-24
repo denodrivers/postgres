@@ -134,7 +134,14 @@ testClient(async function regprocArray() {
 
 testClient(async function regprocedure() {
   const result = await CLIENT.query(`SELECT 'sum(integer)'::regprocedure`);
-  assertEquals(result.rows, [["sum(integer)"]]);
+  assertEquals(result.rows[0][0], "sum(integer)");
+});
+
+testClient(async function regprocedureArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['sum(integer)'::regprocedure, 'max(integer)']`,
+  );
+  assertEquals(result.rows[0][0], ["sum(integer)", "max(integer)"]);
 });
 
 testClient(async function regoper() {
