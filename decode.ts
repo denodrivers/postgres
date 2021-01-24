@@ -274,6 +274,7 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.regtype_array:
     case Oid.text_array:
     case Oid.time_array:
+    case Oid.timetz_array:
     case Oid.uuid_varchar:
     case Oid.varchar_array:
       return decodeStringArray(strValue);

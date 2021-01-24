@@ -162,7 +162,8 @@ export const Oid = {
   // deno-lint-ignore camelcase
   _cstring_0: 1263,
   timetz: 1266,
-  _timetz: 1270,
+  // deno-lint-ignore camelcase
+  timetz_array: 1270,
   // deno-lint-ignore camelcase
   _bit_0: 1560,
   // deno-lint-ignore camelcase

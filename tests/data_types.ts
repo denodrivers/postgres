@@ -541,3 +541,19 @@ testClient(async function timeArray() {
 
   assertEquals(result.rows[0][0], ["01:01:01"]);
 });
+
+const timezone = new Date().toTimeString().slice(12, 17);
+
+testClient(async function timetz() {
+  const result = await CLIENT.query(`SELECT '01:01:01${timezone}'::TIMETZ`);
+
+  assertEquals(result.rows[0][0].slice(0, 8), "01:01:01");
+});
+
+testClient(async function timetzArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['01:01:01${timezone}'::TIMETZ]`,
+  );
+
+  assertEquals(result.rows[0][0][0].slice(0, 8), "01:01:01");
+});
