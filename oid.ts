@@ -15,8 +15,7 @@ export const Oid = {
   oid: 26,
   // deno-lint-ignore camelcase
   _tid_0: 27,
-  // deno-lint-ignore camelcase
-  _xid_0: 28,
+  xid: 28,
   // deno-lint-ignore camelcase
   _cid_0: 29,
   // deno-lint-ignore camelcase
@@ -101,7 +100,7 @@ export const Oid = {
   // deno-lint-ignore camelcase
   _tid_1: 1010,
   // deno-lint-ignore camelcase
-  _xid_1: 1011,
+  xid_array: 1011,
   // deno-lint-ignore camelcase
   _cid_1: 1012,
   // deno-lint-ignore camelcase

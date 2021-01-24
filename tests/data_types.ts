@@ -557,3 +557,15 @@ testClient(async function timetzArray() {
 
   assertEquals(result.rows[0][0][0].slice(0, 8), "01:01:01");
 });
+
+testClient(async function xid() {
+  const result = await CLIENT.query("SELECT '1'::xid");
+
+  assertEquals(result.rows[0][0], 1);
+});
+
+testClient(async function xidArray() {
+  const result = await CLIENT.query("SELECT ARRAY['12'::xid, '4789'::xid]");
+
+  assertEquals(result.rows[0][0], [12, 4789]);
+});
