@@ -139,12 +139,24 @@ testClient(async function regprocedure() {
 
 testClient(async function regoper() {
   const result = await CLIENT.query(`SELECT '!'::regoper`);
-  assertEquals(result.rows, [["!"]]);
+  assertEquals(result.rows[0][0], "!");
+});
+
+testClient(async function regoperArray() {
+  const result = await CLIENT.query(`SELECT ARRAY['!'::regoper]`);
+  assertEquals(result.rows[0][0], ["!"]);
 });
 
 testClient(async function regoperator() {
   const result = await CLIENT.query(`SELECT '!(bigint,NONE)'::regoperator`);
-  assertEquals(result.rows, [["!(bigint,NONE)"]]);
+  assertEquals(result.rows[0][0], "!(bigint,NONE)");
+});
+
+testClient(async function regoperatorArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['!(bigint,NONE)'::regoperator, '*(integer,integer)']`,
+  );
+  assertEquals(result.rows[0][0], ["!(bigint,NONE)", "*(integer,integer)"]);
 });
 
 testClient(async function regclass() {
