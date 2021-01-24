@@ -1,6 +1,8 @@
 export const Oid = {
   bool: 16,
   bytea: 17,
+  // TODO
+  // Find out how to test char types
   char: 18,
   name: 19,
   int8: 20,
@@ -55,7 +57,8 @@ export const Oid = {
   // deno-lint-ignore camelcase
   _line_1: 629,
   cidr: 650,
-  _cidr: 651,
+  // deno-lint-ignore camelcase
+  cidr_array: 651,
   float4: 700,
   float8: 701,
   // deno-lint-ignore camelcase
@@ -79,14 +82,20 @@ export const Oid = {
   bool_array: 1000,
   // deno-lint-ignore camelcase
   byte_array: 1001,
-  _char: 1002,
+  // TODO
+  // Find out how to test char types
+  // deno-lint-ignore camelcase
+  char_array: 1002,
   _name: 1003,
-  _int2: 1005,
+  // deno-lint-ignore camelcase
+  int2_array: 1005,
   // deno-lint-ignore camelcase
   _int2vector_1: 1006,
-  _int4: 1007,
+  // deno-lint-ignore camelcase
+  int4_array: 1007,
   _regproc: 1008,
-  _text: 1009,
+  // deno-lint-ignore camelcase
+  text_array: 1009,
   // deno-lint-ignore camelcase
   _tid_1: 1010,
   // deno-lint-ignore camelcase
@@ -95,8 +104,10 @@ export const Oid = {
   _cid_1: 1012,
   // deno-lint-ignore camelcase
   _oidvector_1: 1013,
-  _bpchar: 1014,
-  _varchar: 1015,
+  // deno-lint-ignore camelcase
+  bpchar_array: 1014,
+  // deno-lint-ignore camelcase
+  varchar_array: 1015,
   // deno-lint-ignore camelcase
   int8_array: 1016,
   // deno-lint-ignore camelcase
@@ -117,13 +128,15 @@ export const Oid = {
   _tinterval_1: 1025,
   // deno-lint-ignore camelcase
   _polygon_1: 1027,
-  _oid: 1028,
+  oid_array: 1028,
   // deno-lint-ignore camelcase
   _aclitem_0: 1033,
   // deno-lint-ignore camelcase
   _aclitem_1: 1034,
-  _macaddr: 1040,
-  _inet: 1041,
+  // deno-lint-ignore camelcase
+  macaddr_array: 1040,
+  // deno-lint-ignore camelcase
+  inet_array: 1041,
   bpchar: 1042,
   varchar: 1043,
   date: 1082,
@@ -191,7 +204,8 @@ export const Oid = {
   // deno-lint-ignore camelcase
   _txid_snapshot_0: 2949,
   uuid: 2950,
-  _uuid: 2951,
+  // deno-lint-ignore camelcase
+  uuid_varchar: 2951,
   // deno-lint-ignore camelcase
   _txid_snapshot_1: 2970,
   // deno-lint-ignore camelcase

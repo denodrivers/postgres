@@ -18,7 +18,7 @@ const testClient = getTestClient(CLIENT, SETUP);
 
 testClient(async function inet() {
   const inet = "127.0.0.1";
-  const insertRes = await CLIENT.query(
+  await CLIENT.query(
     "INSERT INTO data_types (inet_t) VALUES($1)",
     inet,
   );
@@ -26,7 +26,7 @@ testClient(async function inet() {
     "SELECT inet_t FROM data_types WHERE inet_t=$1",
     inet,
   );
-  assertEquals(selectRes.rows, [[inet]]);
+  assertEquals(selectRes.rows[0][0], inet);
 });
 
 testClient(async function inetArray() {
@@ -102,7 +102,12 @@ testClient(async function cidrNestedArray() {
 
 testClient(async function oid() {
   const result = await CLIENT.query(`SELECT 1::oid`);
-  assertEquals(result.rows, [["1"]]);
+  assertEquals(result.rows[0][0], "1");
+});
+
+testClient(async function oidArray() {
+  const result = await CLIENT.query(`SELECT ARRAY[1::oid, 452, 1023]`);
+  assertEquals(result.rows[0][0], ["1", "452", "1023"]);
 });
 
 testClient(async function regproc() {
@@ -191,6 +196,33 @@ testClient(async function integerNestedArray() {
   assertEquals(result.rows[0], [[[1], [100]]]);
 });
 
+testClient(async function char() {
+  await CLIENT.query(
+    `CREATE TEMP TABLE CHAR_TEST (X CHARACTER(2));`,
+  );
+  await CLIENT.query(
+    `INSERT INTO CHAR_TEST (X) VALUES ('A');`,
+  );
+  const result = await CLIENT.query(
+    `SELECT X FROM CHAR_TEST`,
+  );
+  assertEquals(result.rows[0][0], "A");
+});
+
+testClient(async function charArray() {
+  const result = await CLIENT.query(
+    `SELECT '{"x","Y"}'::char[]`,
+  );
+  assertEquals(result.rows[0][0], ["x", "Y"]);
+});
+
+testClient(async function text() {
+  const result = await CLIENT.query(
+    `SELECT 'ABCD'::text`,
+  );
+  assertEquals(result.rows[0][0], "ABCD");
+});
+
 testClient(async function textArray() {
   const result = await CLIENT.query(
     `SELECT '{"(ZYX)-123-456","(ABC)-987-654"}'::text[]`,
@@ -203,6 +235,13 @@ testClient(async function textNestedArray() {
     `SELECT '{{"(ZYX)-123-456"},{"(ABC)-987-654"}}'::text[]`,
   );
   assertEquals(result.rows[0], [[["(ZYX)-123-456"], ["(ABC)-987-654"]]]);
+});
+
+testClient(async function varchar() {
+  const result = await CLIENT.query(
+    `SELECT 'ABC'::varchar`,
+  );
+  assertEquals(result.rows[0][0], "ABC");
 });
 
 testClient(async function varcharArray() {
