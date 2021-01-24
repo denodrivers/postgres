@@ -152,9 +152,11 @@ testClient(async function regclass() {
   assertEquals(result.rows, [["data_types"]]);
 });
 
-testClient(async function regclass() {
-  const result = await CLIENT.query(`SELECT 'data_types'::regclass`);
-  assertEquals(result.rows, [["data_types"]]);
+testClient(async function regclassArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['data_types'::regclass, 'pg_type']`,
+  );
+  assertEquals(result.rows[0][0], ["data_types", "pg_type"]);
 });
 
 testClient(async function regtype() {
