@@ -199,7 +199,14 @@ testClient(async function regroleArray() {
 
 testClient(async function regnamespace() {
   const result = await CLIENT.query(`SELECT 'public'::regnamespace;`);
-  assertEquals(result.rows, [["public"]]);
+  assertEquals(result.rows[0][0], "public");
+});
+
+testClient(async function regnamespaceArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['public'::regnamespace, 'pg_catalog'];`,
+  );
+  assertEquals(result.rows[0][0], ["public", "pg_catalog"]);
 });
 
 testClient(async function regconfig() {

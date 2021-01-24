@@ -274,7 +274,8 @@ export const Oid = {
   // deno-lint-ignore camelcase
   _pg_shseclabel: 4066,
   regnamespace: 4089,
-  _regnamespace: 4090,
+  // deno-lint-ignore camelcase
+  regnamespace_array: 4090,
   regrole: 4096,
   // deno-lint-ignore camelcase
   regrole_array: 4097,
