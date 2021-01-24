@@ -529,3 +529,15 @@ testClient(async function pointArray() {
     ],
   ]);
 });
+
+testClient(async function time() {
+  const result = await CLIENT.query("SELECT '01:01:01'::TIME");
+
+  assertEquals(result.rows[0][0], "01:01:01");
+});
+
+testClient(async function timeArray() {
+  const result = await CLIENT.query("SELECT ARRAY['01:01:01'::TIME]");
+
+  assertEquals(result.rows[0][0], ["01:01:01"]);
+});
