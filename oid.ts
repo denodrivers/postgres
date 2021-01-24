@@ -128,6 +128,7 @@ export const Oid = {
   _tinterval_1: 1025,
   // deno-lint-ignore camelcase
   _polygon_1: 1027,
+  // deno-lint-ignore camelcase
   oid_array: 1028,
   // deno-lint-ignore camelcase
   _aclitem_0: 1033,
