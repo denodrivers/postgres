@@ -226,8 +226,6 @@ function decodeJsonArray(value: string): unknown[] {
 function decodeText(value: Uint8Array, typeOid: number): any {
   const strValue = decoder.decode(value);
 
-  console.log(typeOid);
-
   switch (typeOid) {
     case Oid.bpchar:
     case Oid.char:
