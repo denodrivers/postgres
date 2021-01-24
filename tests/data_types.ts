@@ -100,6 +100,16 @@ testClient(async function cidrNestedArray() {
   assertEquals(selectRes.rows[0], [[["10.1.0.0/16"], ["11.11.11.0/24"]]]);
 });
 
+testClient(async function name() {
+  const result = await CLIENT.query(`SELECT 'some'::name`);
+  assertEquals(result.rows[0][0], "some");
+});
+
+testClient(async function nameArray() {
+  const result = await CLIENT.query(`SELECT ARRAY['some'::name, 'none']`);
+  assertEquals(result.rows[0][0], ["some", "none"]);
+});
+
 testClient(async function oid() {
   const result = await CLIENT.query(`SELECT 1::oid`);
   assertEquals(result.rows[0][0], "1");

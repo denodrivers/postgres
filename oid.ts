@@ -86,7 +86,8 @@ export const Oid = {
   // Find out how to test char types
   // deno-lint-ignore camelcase
   char_array: 1002,
-  _name: 1003,
+  // deno-lint-ignore camelcase
+  name_array: 1003,
   // deno-lint-ignore camelcase
   int2_array: 1005,
   // deno-lint-ignore camelcase
