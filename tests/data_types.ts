@@ -112,7 +112,14 @@ testClient(async function oidArray() {
 
 testClient(async function regproc() {
   const result = await CLIENT.query(`SELECT 'now'::regproc`);
-  assertEquals(result.rows, [["now"]]);
+  assertEquals(result.rows[0][0], "now");
+});
+
+testClient(async function regprocArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['now'::regproc, 'timeofday']`,
+  );
+  assertEquals(result.rows[0][0], ["now", "timeofday"]);
 });
 
 testClient(async function regprocedure() {
@@ -137,7 +144,14 @@ testClient(async function regclass() {
 
 testClient(async function regtype() {
   const result = await CLIENT.query(`SELECT 'integer'::regtype`);
-  assertEquals(result.rows, [["integer"]]);
+  assertEquals(result.rows[0][0], "integer");
+});
+
+testClient(async function regtypeArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['integer'::regtype, 'bigint']`,
+  );
+  assertEquals(result.rows[0][0], ["integer", "bigint"]);
 });
 
 // This test assumes that if the user wasn't provided through
@@ -151,6 +165,19 @@ testClient(async function regrole() {
   );
 
   assertEquals(result.rows[0][0], user);
+});
+
+// This test assumes that if the user wasn't provided through
+// the config file, it will be available in the env config
+testClient(async function regroleArray() {
+  const user = TEST_CONNECTION_PARAMS.user || Deno.env.get("PGUSER");
+
+  const result = await CLIENT.query(
+    `SELECT ARRAY[($1)::regrole]`,
+    user,
+  );
+
+  assertEquals(result.rows[0][0], [user]);
 });
 
 testClient(async function regnamespace() {

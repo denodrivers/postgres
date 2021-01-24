@@ -93,7 +93,8 @@ export const Oid = {
   _int2vector_1: 1006,
   // deno-lint-ignore camelcase
   int4_array: 1007,
-  _regproc: 1008,
+  // deno-lint-ignore camelcase
+  regproc_array: 1008,
   // deno-lint-ignore camelcase
   text_array: 1009,
   // deno-lint-ignore camelcase
@@ -181,7 +182,8 @@ export const Oid = {
   _regoper: 2208,
   _regoperator: 2209,
   _regclass: 2210,
-  _regtype: 2211,
+  // deno-lint-ignore camelcase
+  regtype_array: 2211,
   // deno-lint-ignore camelcase
   _record_0: 2249,
   // deno-lint-ignore camelcase
@@ -269,5 +271,6 @@ export const Oid = {
   regnamespace: 4089,
   _regnamespace: 4090,
   regrole: 4096,
-  _regrole: 4097,
+  // deno-lint-ignore camelcase
+  regrole_array: 4097,
 };
