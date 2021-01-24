@@ -45,7 +45,7 @@ testClient(async function inetNestedArray() {
 
 testClient(async function macaddr() {
   const macaddr = "08:00:2b:01:02:03";
-  const insertRes = await CLIENT.query(
+  await CLIENT.query(
     "INSERT INTO data_types (macaddr_t) VALUES($1)",
     macaddr,
   );
@@ -75,7 +75,7 @@ testClient(async function macaddrNestedArray() {
 
 testClient(async function cidr() {
   const cidr = "192.168.100.128/25";
-  const insertRes = await CLIENT.query(
+  await CLIENT.query(
     "INSERT INTO data_types (cidr_t) VALUES($1)",
     cidr,
   );
@@ -233,7 +233,7 @@ testClient(async function char() {
   const result = await CLIENT.query(
     `SELECT X FROM CHAR_TEST`,
   );
-  assertEquals(result.rows[0][0], "A");
+  assertEquals(result.rows[0][0], "A ");
 });
 
 testClient(async function charArray() {
