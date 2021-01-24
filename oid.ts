@@ -154,7 +154,8 @@ export const Oid = {
   _interval_0: 1186,
   // deno-lint-ignore camelcase
   _interval_1: 1187,
-  _numeric: 1231,
+  // deno-lint-ignore camelcase
+  numeric_array: 1231,
   // deno-lint-ignore camelcase
   _pg_database: 1248,
   // deno-lint-ignore camelcase

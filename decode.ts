@@ -259,6 +259,8 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.cidr_array:
     case Oid.inet_array:
     case Oid.macaddr_array:
+    case Oid.name_array:
+    case Oid.numeric_array:
     case Oid.oid_array:
     case Oid.regproc_array:
     case Oid.regrole_array:
@@ -266,7 +268,6 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.text_array:
     case Oid.uuid_varchar:
     case Oid.varchar_array:
-    case Oid.name_array:
       return decodeStringArray(strValue);
     case Oid.int8:
       return BigInt(strValue);

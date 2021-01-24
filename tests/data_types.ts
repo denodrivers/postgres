@@ -152,6 +152,11 @@ testClient(async function regclass() {
   assertEquals(result.rows, [["data_types"]]);
 });
 
+testClient(async function regclass() {
+  const result = await CLIENT.query(`SELECT 'data_types'::regclass`);
+  assertEquals(result.rows, [["data_types"]]);
+});
+
 testClient(async function regtype() {
   const result = await CLIENT.query(`SELECT 'integer'::regtype`);
   assertEquals(result.rows[0][0], "integer");
@@ -221,6 +226,16 @@ testClient(async function numeric() {
   const numeric = "1234567890.1234567890";
   const result = await CLIENT.query(`SELECT $1::numeric`, numeric);
   assertEquals(result.rows, [[numeric]]);
+});
+
+testClient(async function numericArray() {
+  const numeric = ["1234567890.1234567890", "6107693.123123124"];
+  const result = await CLIENT.query(
+    `SELECT ARRAY[$1::numeric, $2]`,
+    numeric[0],
+    numeric[1],
+  );
+  assertEquals(result.rows[0][0], numeric);
 });
 
 testClient(async function integerArray() {
