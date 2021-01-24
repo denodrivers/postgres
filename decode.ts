@@ -203,8 +203,7 @@ function decodeByteaArray(value: string): unknown[] {
 
 const decoder = new TextDecoder();
 
-// deno-lint-ignore no-explicit-any
-function decodeStringArray(value: string): any {
+function decodeStringArray(value: string) {
   if (!value) return null;
   return parseArray(value);
 }
@@ -249,7 +248,6 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.regnamespace:
     case Oid.regconfig:
     case Oid.regdictionary:
-    case Oid.int8: // @see https://github.com/buildondata/deno-postgres/issues/91.
     case Oid.numeric:
     case Oid.void:
     case Oid.bpchar:
@@ -262,6 +260,10 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid._bpchar:
     case Oid._uuid:
       return decodeStringArray(strValue);
+    case Oid.int8:
+      return BigInt(strValue);
+    case Oid.int8_array:
+      return parseArray(strValue, (x) => BigInt(x));
     case Oid.bool:
       return strValue[0] === "t";
     case Oid.bool_array:

@@ -97,7 +97,8 @@ export const Oid = {
   _oidvector_1: 1013,
   _bpchar: 1014,
   _varchar: 1015,
-  _int8: 1016,
+  // deno-lint-ignore camelcase
+  int8_array: 1016,
   // deno-lint-ignore camelcase
   point_array: 1017,
   // deno-lint-ignore camelcase

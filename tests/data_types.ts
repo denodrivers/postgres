@@ -165,7 +165,14 @@ testClient(async function regdictionary() {
 
 testClient(async function bigint() {
   const result = await CLIENT.query("SELECT 9223372036854775807");
-  assertEquals(result.rows, [["9223372036854775807"]]);
+  assertEquals(result.rows[0][0], 9223372036854775807n);
+});
+
+testClient(async function bigintArray() {
+  const result = await CLIENT.query(
+    "SELECT ARRAY[9223372036854775807, 789141]",
+  );
+  assertEquals(result.rows[0][0], [9223372036854775807n, 789141n]);
 });
 
 testClient(async function numeric() {
