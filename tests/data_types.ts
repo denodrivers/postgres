@@ -18,7 +18,7 @@ const testClient = getTestClient(CLIENT, SETUP);
 
 testClient(async function inet() {
   const inet = "127.0.0.1";
-  const insertRes = await CLIENT.query(
+  await CLIENT.query(
     "INSERT INTO data_types (inet_t) VALUES($1)",
     inet,
   );
@@ -26,7 +26,7 @@ testClient(async function inet() {
     "SELECT inet_t FROM data_types WHERE inet_t=$1",
     inet,
   );
-  assertEquals(selectRes.rows, [[inet]]);
+  assertEquals(selectRes.rows[0][0], inet);
 });
 
 testClient(async function inetArray() {
@@ -45,7 +45,7 @@ testClient(async function inetNestedArray() {
 
 testClient(async function macaddr() {
   const macaddr = "08:00:2b:01:02:03";
-  const insertRes = await CLIENT.query(
+  await CLIENT.query(
     "INSERT INTO data_types (macaddr_t) VALUES($1)",
     macaddr,
   );
@@ -75,7 +75,7 @@ testClient(async function macaddrNestedArray() {
 
 testClient(async function cidr() {
   const cidr = "192.168.100.128/25";
-  const insertRes = await CLIENT.query(
+  await CLIENT.query(
     "INSERT INTO data_types (cidr_t) VALUES($1)",
     cidr,
   );
@@ -100,29 +100,70 @@ testClient(async function cidrNestedArray() {
   assertEquals(selectRes.rows[0], [[["10.1.0.0/16"], ["11.11.11.0/24"]]]);
 });
 
+testClient(async function name() {
+  const result = await CLIENT.query(`SELECT 'some'::name`);
+  assertEquals(result.rows[0][0], "some");
+});
+
+testClient(async function nameArray() {
+  const result = await CLIENT.query(`SELECT ARRAY['some'::name, 'none']`);
+  assertEquals(result.rows[0][0], ["some", "none"]);
+});
+
 testClient(async function oid() {
   const result = await CLIENT.query(`SELECT 1::oid`);
-  assertEquals(result.rows, [["1"]]);
+  assertEquals(result.rows[0][0], "1");
+});
+
+testClient(async function oidArray() {
+  const result = await CLIENT.query(`SELECT ARRAY[1::oid, 452, 1023]`);
+  assertEquals(result.rows[0][0], ["1", "452", "1023"]);
 });
 
 testClient(async function regproc() {
   const result = await CLIENT.query(`SELECT 'now'::regproc`);
-  assertEquals(result.rows, [["now"]]);
+  assertEquals(result.rows[0][0], "now");
+});
+
+testClient(async function regprocArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['now'::regproc, 'timeofday']`,
+  );
+  assertEquals(result.rows[0][0], ["now", "timeofday"]);
 });
 
 testClient(async function regprocedure() {
   const result = await CLIENT.query(`SELECT 'sum(integer)'::regprocedure`);
-  assertEquals(result.rows, [["sum(integer)"]]);
+  assertEquals(result.rows[0][0], "sum(integer)");
+});
+
+testClient(async function regprocedureArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['sum(integer)'::regprocedure, 'max(integer)']`,
+  );
+  assertEquals(result.rows[0][0], ["sum(integer)", "max(integer)"]);
 });
 
 testClient(async function regoper() {
   const result = await CLIENT.query(`SELECT '!'::regoper`);
-  assertEquals(result.rows, [["!"]]);
+  assertEquals(result.rows[0][0], "!");
+});
+
+testClient(async function regoperArray() {
+  const result = await CLIENT.query(`SELECT ARRAY['!'::regoper]`);
+  assertEquals(result.rows[0][0], ["!"]);
 });
 
 testClient(async function regoperator() {
   const result = await CLIENT.query(`SELECT '!(bigint,NONE)'::regoperator`);
-  assertEquals(result.rows, [["!(bigint,NONE)"]]);
+  assertEquals(result.rows[0][0], "!(bigint,NONE)");
+});
+
+testClient(async function regoperatorArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['!(bigint,NONE)'::regoperator, '*(integer,integer)']`,
+  );
+  assertEquals(result.rows[0][0], ["!(bigint,NONE)", "*(integer,integer)"]);
 });
 
 testClient(async function regclass() {
@@ -130,9 +171,23 @@ testClient(async function regclass() {
   assertEquals(result.rows, [["data_types"]]);
 });
 
+testClient(async function regclassArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['data_types'::regclass, 'pg_type']`,
+  );
+  assertEquals(result.rows[0][0], ["data_types", "pg_type"]);
+});
+
 testClient(async function regtype() {
   const result = await CLIENT.query(`SELECT 'integer'::regtype`);
-  assertEquals(result.rows, [["integer"]]);
+  assertEquals(result.rows[0][0], "integer");
+});
+
+testClient(async function regtypeArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['integer'::regtype, 'bigint']`,
+  );
+  assertEquals(result.rows[0][0], ["integer", "bigint"]);
 });
 
 // This test assumes that if the user wasn't provided through
@@ -148,9 +203,29 @@ testClient(async function regrole() {
   assertEquals(result.rows[0][0], user);
 });
 
+// This test assumes that if the user wasn't provided through
+// the config file, it will be available in the env config
+testClient(async function regroleArray() {
+  const user = TEST_CONNECTION_PARAMS.user || Deno.env.get("PGUSER");
+
+  const result = await CLIENT.query(
+    `SELECT ARRAY[($1)::regrole]`,
+    user,
+  );
+
+  assertEquals(result.rows[0][0], [user]);
+});
+
 testClient(async function regnamespace() {
   const result = await CLIENT.query(`SELECT 'public'::regnamespace;`);
-  assertEquals(result.rows, [["public"]]);
+  assertEquals(result.rows[0][0], "public");
+});
+
+testClient(async function regnamespaceArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['public'::regnamespace, 'pg_catalog'];`,
+  );
+  assertEquals(result.rows[0][0], ["public", "pg_catalog"]);
 });
 
 testClient(async function regconfig() {
@@ -158,9 +233,21 @@ testClient(async function regconfig() {
   assertEquals(result.rows, [["english"]]);
 });
 
+testClient(async function regconfigArray() {
+  const result = await CLIENT.query(
+    `SElECT ARRAY['english'::regconfig, 'spanish']`,
+  );
+  assertEquals(result.rows[0][0], ["english", "spanish"]);
+});
+
 testClient(async function regdictionary() {
-  const result = await CLIENT.query(`SElECT 'simple'::regdictionary`);
-  assertEquals(result.rows, [["simple"]]);
+  const result = await CLIENT.query("SELECT 'simple'::regdictionary");
+  assertEquals(result.rows[0][0], "simple");
+});
+
+testClient(async function regdictionaryArray() {
+  const result = await CLIENT.query("SELECT ARRAY['simple'::regdictionary]");
+  assertEquals(result.rows[0][0], ["simple"]);
 });
 
 testClient(async function bigint() {
@@ -181,6 +268,16 @@ testClient(async function numeric() {
   assertEquals(result.rows, [[numeric]]);
 });
 
+testClient(async function numericArray() {
+  const numeric = ["1234567890.1234567890", "6107693.123123124"];
+  const result = await CLIENT.query(
+    `SELECT ARRAY[$1::numeric, $2]`,
+    numeric[0],
+    numeric[1],
+  );
+  assertEquals(result.rows[0][0], numeric);
+});
+
 testClient(async function integerArray() {
   const result = await CLIENT.query("SELECT '{1,100}'::int[]");
   assertEquals(result.rows[0], [[1, 100]]);
@@ -189,6 +286,33 @@ testClient(async function integerArray() {
 testClient(async function integerNestedArray() {
   const result = await CLIENT.query("SELECT '{{1},{100}}'::int[]");
   assertEquals(result.rows[0], [[[1], [100]]]);
+});
+
+testClient(async function char() {
+  await CLIENT.query(
+    `CREATE TEMP TABLE CHAR_TEST (X CHARACTER(2));`,
+  );
+  await CLIENT.query(
+    `INSERT INTO CHAR_TEST (X) VALUES ('A');`,
+  );
+  const result = await CLIENT.query(
+    `SELECT X FROM CHAR_TEST`,
+  );
+  assertEquals(result.rows[0][0], "A ");
+});
+
+testClient(async function charArray() {
+  const result = await CLIENT.query(
+    `SELECT '{"x","Y"}'::char[]`,
+  );
+  assertEquals(result.rows[0][0], ["x", "Y"]);
+});
+
+testClient(async function text() {
+  const result = await CLIENT.query(
+    `SELECT 'ABCD'::text`,
+  );
+  assertEquals(result.rows[0][0], "ABCD");
 });
 
 testClient(async function textArray() {
@@ -203,6 +327,13 @@ testClient(async function textNestedArray() {
     `SELECT '{{"(ZYX)-123-456"},{"(ABC)-987-654"}}'::text[]`,
   );
   assertEquals(result.rows[0], [[["(ZYX)-123-456"], ["(ABC)-987-654"]]]);
+});
+
+testClient(async function varchar() {
+  const result = await CLIENT.query(
+    `SELECT 'ABC'::varchar`,
+  );
+  assertEquals(result.rows[0][0], "ABC");
 });
 
 testClient(async function varcharArray() {
@@ -397,4 +528,32 @@ testClient(async function pointArray() {
       [{ x: 25, y: 50 }, { x: -10, y: -17.5 }],
     ],
   ]);
+});
+
+testClient(async function time() {
+  const result = await CLIENT.query("SELECT '01:01:01'::TIME");
+
+  assertEquals(result.rows[0][0], "01:01:01");
+});
+
+testClient(async function timeArray() {
+  const result = await CLIENT.query("SELECT ARRAY['01:01:01'::TIME]");
+
+  assertEquals(result.rows[0][0], ["01:01:01"]);
+});
+
+const timezone = new Date().toTimeString().slice(12, 17);
+
+testClient(async function timetz() {
+  const result = await CLIENT.query(`SELECT '01:01:01${timezone}'::TIMETZ`);
+
+  assertEquals(result.rows[0][0].slice(0, 8), "01:01:01");
+});
+
+testClient(async function timetzArray() {
+  const result = await CLIENT.query(
+    `SELECT ARRAY['01:01:01${timezone}'::TIMETZ]`,
+  );
+
+  assertEquals(result.rows[0][0][0].slice(0, 8), "01:01:01");
 });

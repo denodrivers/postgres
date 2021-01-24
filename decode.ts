@@ -227,38 +227,54 @@ function decodeText(value: Uint8Array, typeOid: number): any {
   const strValue = decoder.decode(value);
 
   switch (typeOid) {
+    case Oid.bpchar:
     case Oid.char:
-    case Oid.varchar:
+    case Oid.cidr:
+    case Oid.inet:
+    case Oid.macaddr:
+    case Oid.name:
+    case Oid.numeric:
+    case Oid.oid:
+    case Oid.regclass:
+    case Oid.regconfig:
+    case Oid.regdictionary:
+    case Oid.regnamespace:
+    case Oid.regoper:
+    case Oid.regoperator:
+    case Oid.regproc:
+    case Oid.regprocedure:
+    case Oid.regrole:
+    case Oid.regtype:
     case Oid.text:
     case Oid.time:
     case Oid.timetz:
-    case Oid.inet:
-    case Oid.cidr:
-    case Oid.macaddr:
-    case Oid.name:
     case Oid.uuid:
-    case Oid.oid:
-    case Oid.regproc:
-    case Oid.regprocedure:
-    case Oid.regoper:
-    case Oid.regoperator:
-    case Oid.regclass:
-    case Oid.regtype:
-    case Oid.regrole:
-    case Oid.regnamespace:
-    case Oid.regconfig:
-    case Oid.regdictionary:
-    case Oid.numeric:
+    case Oid.varchar:
     case Oid.void:
-    case Oid.bpchar:
       return strValue;
-    case Oid._text:
-    case Oid._varchar:
-    case Oid._macaddr:
-    case Oid._cidr:
-    case Oid._inet:
-    case Oid._bpchar:
-    case Oid._uuid:
+    case Oid.bpchar_array:
+    case Oid.char_array:
+    case Oid.cidr_array:
+    case Oid.inet_array:
+    case Oid.macaddr_array:
+    case Oid.name_array:
+    case Oid.numeric_array:
+    case Oid.oid_array:
+    case Oid.regclass_array:
+    case Oid.regconfig_array:
+    case Oid.regdictionary_array:
+    case Oid.regnamespace_array:
+    case Oid.regoper_array:
+    case Oid.regoperator_array:
+    case Oid.regproc_array:
+    case Oid.regprocedure_array:
+    case Oid.regrole_array:
+    case Oid.regtype_array:
+    case Oid.text_array:
+    case Oid.time_array:
+    case Oid.timetz_array:
+    case Oid.uuid_varchar:
+    case Oid.varchar_array:
       return decodeStringArray(strValue);
     case Oid.int8:
       return BigInt(strValue);
@@ -271,8 +287,8 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.int2:
     case Oid.int4:
       return decodeBaseTenInt(strValue);
-    case Oid._int2:
-    case Oid._int4:
+    case Oid.int2_array:
+    case Oid.int4_array:
       return decodeIntArray(strValue);
     case Oid.float4:
     case Oid.float8:
