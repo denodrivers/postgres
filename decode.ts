@@ -286,9 +286,11 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return parseArray(strValue, (x) => x[0] === "t");
     case Oid.int2:
     case Oid.int4:
+    case Oid.xid:
       return decodeBaseTenInt(strValue);
     case Oid.int2_array:
     case Oid.int4_array:
+    case Oid.xid_array:
       return decodeIntArray(strValue);
     case Oid.float4:
     case Oid.float8:
