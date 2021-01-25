@@ -1,6 +1,6 @@
 import { Connection } from "./connection.ts";
 import { ConnectionOptions, createParams } from "./connection_params.ts";
-import { Query, QueryConfig, QueryResult } from "./query.ts";
+import { Query, QueryArrayResult, QueryConfig } from "./query.ts";
 
 export class Client {
   protected _connection: Connection;
@@ -20,13 +20,22 @@ export class Client {
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ): Promise<QueryResult> {
+  ): Promise<QueryArrayResult> {
     const query = new Query(text, ...args);
-    return await this._connection.query(query);
+    return await this._connection.query(query, "array");
   }
 
-  async multiQuery(queries: QueryConfig[]): Promise<QueryResult[]> {
-    const result: QueryResult[] = [];
+  async queryObject(
+    text: string | QueryConfig,
+    // deno-lint-ignore no-explicit-any
+    ...args: any[]
+  ): Promise<QueryArrayResult> {
+    const query = new Query(text, ...args);
+    return await this._connection.query(query, "object");
+  }
+
+  async multiQuery(queries: QueryConfig[]): Promise<QueryArrayResult[]> {
+    const result: QueryArrayResult[] = [];
 
     for (const query of queries) {
       result.push(await this.queryArray(query));
@@ -53,13 +62,13 @@ export class PoolClient {
     this._releaseCallback = releaseCallback;
   }
 
-  async query(
+  async queryArray(
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ): Promise<QueryResult> {
+  ): Promise<QueryArrayResult> {
     const query = new Query(text, ...args);
-    return await this._connection.query(query);
+    return await this._connection.query(query, "array");
   }
 
   async release(): Promise<void> {

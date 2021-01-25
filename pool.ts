@@ -6,7 +6,7 @@ import {
   createParams,
 } from "./connection_params.ts";
 import { DeferredStack } from "./deferred.ts";
-import { Query, QueryConfig, QueryResult } from "./query.ts";
+import { Query, QueryArrayResult, QueryConfig } from "./query.ts";
 
 export class Pool {
   private _connectionParams: ConnectionParams;
@@ -68,11 +68,11 @@ export class Pool {
     );
   }
 
-  private async _execute(query: Query): Promise<QueryResult> {
+  private async _execute(query: Query): Promise<QueryArrayResult> {
     await this.ready;
     const connection = await this._availableConnections.pop();
     try {
-      const result = await connection.query(query);
+      const result = await connection.query(query, "array");
       return result;
     } catch (error) {
       throw error;
@@ -89,11 +89,11 @@ export class Pool {
   }
 
   // TODO: can we use more specific type for args?
-  async query(
+  async queryArray(
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ): Promise<QueryResult> {
+  ): Promise<QueryArrayResult> {
     const query = new Query(text, ...args);
     return await this._execute(query);
   }

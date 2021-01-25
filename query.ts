@@ -22,7 +22,7 @@ export interface QueryConfig {
   encoder?: (arg: unknown) => EncodedArg;
 }
 
-class _QueryResult {
+class QueryResult {
   // TODO
   // This should be private for real
   public _done = false;
@@ -61,50 +61,30 @@ class _QueryResult {
   }
 }
 
-export class QueryResult extends _QueryResult {
+export class QueryArrayResult extends QueryResult {
   // deno-lint-ignore no-explicit-any
-  public rows: any[] = []; // actual results
+  public rows: any[][] = []; // actual results
 
-  // deno-lint-ignore no-explicit-any
-  private _parseDataRow(dataRow: any[]): any[] {
-    const parsedRow = [];
+  // deno-lint-ignore no-explicit-any camelcase
+  private parseRowData(row_data: any[]): any[] {
+    return row_data.map((raw_value, index) => {
+      const column = this.rowDescription.columns[index];
 
-    for (let i = 0, len = dataRow.length; i < len; i++) {
-      const column = this.rowDescription.columns[i];
-      const rawValue = dataRow[i];
-
-      if (rawValue === null) {
-        parsedRow.push(null);
-      } else {
-        parsedRow.push(decode(rawValue, column));
+      if (raw_value === null) {
+        return null;
       }
-    }
-
-    return parsedRow;
+      return decode(raw_value, column);
+    });
   }
 
   // deno-lint-ignore no-explicit-any
-  handleDataRow(dataRow: any[]): void {
+  insertRow(row: any[]): void {
     if (this._done) {
       throw new Error("New data row, after result if done.");
     }
 
-    const parsedRow = this._parseDataRow(dataRow);
+    const parsedRow = this.parseRowData(row);
     this.rows.push(parsedRow);
-  }
-
-  handleCommandComplete(commandTag: string): void {
-    const match = commandTagRegexp.exec(commandTag);
-    if (match) {
-      this.command = match[1] as CommandType;
-      if (match[3]) {
-        // COMMAND OID ROWS
-        this.rowCount = parseInt(match[3], 10);
-      } else {
-        // COMMAND ROWS
-        this.rowCount = parseInt(match[2], 10);
-      }
-    }
   }
 
   rowsOfObjects() {
@@ -120,77 +100,33 @@ export class QueryResult extends _QueryResult {
   }
 }
 
-export class ObjectQueryResult {
-  private _done = false;
-  public command!: CommandType;
-  public rowCount?: number;
-  public rowDescription!: RowDescription;
+export class QueryObjectResult extends QueryResult {
   // deno-lint-ignore no-explicit-any
-  public rows: any[] = []; // actual results
-  public warnings: WarningFields[] = [];
+  public rows: Record<string, any>[] = [];
 
-  constructor(public query: Query) {}
+  // deno-lint-ignore no-explicit-any camelcase
+  private parseRowData(row_data: any[]): Record<string, any> {
+    return row_data.reduce((row, raw_value, index) => {
+      const column = this.rowDescription.columns[index];
 
-  handleRowDescription(description: RowDescription) {
-    this.rowDescription = description;
-  }
-
-  // deno-lint-ignore no-explicit-any
-  private _parseDataRow(dataRow: any[]): any[] {
-    const parsedRow = [];
-
-    for (let i = 0, len = dataRow.length; i < len; i++) {
-      const column = this.rowDescription.columns[i];
-      const rawValue = dataRow[i];
-
-      if (rawValue === null) {
-        parsedRow.push(null);
+      if (raw_value === null) {
+        row[column.name] = null;
       } else {
-        parsedRow.push(decode(rawValue, column));
+        row[column.name] = decode(raw_value, column);
       }
-    }
 
-    return parsedRow;
+      return row;
+    }, {});
   }
 
   // deno-lint-ignore no-explicit-any
-  handleDataRow(dataRow: any[]): void {
+  insertRow(row: any[]): void {
     if (this._done) {
       throw new Error("New data row, after result if done.");
     }
 
-    const parsedRow = this._parseDataRow(dataRow);
+    const parsedRow = this.parseRowData(row);
     this.rows.push(parsedRow);
-  }
-
-  handleCommandComplete(commandTag: string): void {
-    const match = commandTagRegexp.exec(commandTag);
-    if (match) {
-      this.command = match[1] as CommandType;
-      if (match[3]) {
-        // COMMAND OID ROWS
-        this.rowCount = parseInt(match[3], 10);
-      } else {
-        // COMMAND ROWS
-        this.rowCount = parseInt(match[2], 10);
-      }
-    }
-  }
-
-  rowsOfObjects() {
-    return this.rows.map((row) => {
-      // deno-lint-ignore no-explicit-any
-      const rv: { [key: string]: any } = {};
-      this.rowDescription.columns.forEach((column, index) => {
-        rv[column.name] = row[index];
-      });
-
-      return rv;
-    });
-  }
-
-  done() {
-    this._done = true;
   }
 }
 

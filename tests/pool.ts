@@ -14,7 +14,7 @@ function testPool(
     const POOL = new Pool(TEST_CONNECTION_PARAMS, 10, lazy);
     try {
       for (const q of setupQueries || DEFAULT_SETUP) {
-        await POOL.query(q);
+        await POOL.queryArray(q);
       }
       await t(POOL);
     } finally {
@@ -26,12 +26,12 @@ function testPool(
 }
 
 testPool(async function simpleQuery(POOL) {
-  const result = await POOL.query("SELECT * FROM ids;");
+  const result = await POOL.queryArray("SELECT * FROM ids;");
   assertEquals(result.rows.length, 2);
 });
 
 testPool(async function parametrizedQuery(POOL) {
-  const result = await POOL.query("SELECT * FROM ids WHERE id < $1;", 2);
+  const result = await POOL.queryArray("SELECT * FROM ids WHERE id < $1;", 2);
   assertEquals(result.rows.length, 1);
 
   const objectRows = result.rowsOfObjects();
@@ -42,21 +42,21 @@ testPool(async function parametrizedQuery(POOL) {
 });
 
 testPool(async function nativeType(POOL) {
-  const result = await POOL.query("SELECT * FROM timestamps;");
+  const result = await POOL.queryArray("SELECT * FROM timestamps;");
   const row = result.rows[0];
 
   const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
 
   assertEquals(row[0].toUTCString(), new Date(expectedDate).toUTCString());
 
-  await POOL.query("INSERT INTO timestamps(dt) values($1);", new Date());
+  await POOL.queryArray("INSERT INTO timestamps(dt) values($1);", new Date());
 });
 
 testPool(
   async function lazyPool(POOL) {
-    await POOL.query("SELECT 1;");
+    await POOL.queryArray("SELECT 1;");
     assertEquals(POOL.available, 1);
-    const p = POOL.query("SELECT pg_sleep(0.1) is null, -1 AS id;");
+    const p = POOL.queryArray("SELECT pg_sleep(0.1) is null, -1 AS id;");
     await delay(1);
     assertEquals(POOL.available, 0);
     assertEquals(POOL.size, 1);
@@ -64,7 +64,7 @@ testPool(
     assertEquals(POOL.available, 1);
 
     const qsThunks = [...Array(25)].map((_, i) =>
-      POOL.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
+      POOL.queryArray("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
     );
     const qsPromises = Promise.all(qsThunks);
     await delay(1);
@@ -87,14 +87,14 @@ testPool(
 testPool(async function returnedConnectionOnErrorOccurs(POOL) {
   assertEquals(POOL.available, 10);
   await assertThrowsAsync(async () => {
-    await POOL.query("SELECT * FROM notexists");
+    await POOL.queryArray("SELECT * FROM notexists");
   });
   assertEquals(POOL.available, 10);
 });
 
 testPool(async function manyQueries(POOL) {
   assertEquals(POOL.available, 10);
-  const p = POOL.query("SELECT pg_sleep(0.1) is null, -1 AS id;");
+  const p = POOL.queryArray("SELECT pg_sleep(0.1) is null, -1 AS id;");
   await delay(1);
   assertEquals(POOL.available, 9);
   assertEquals(POOL.size, 10);
@@ -102,7 +102,7 @@ testPool(async function manyQueries(POOL) {
   assertEquals(POOL.available, 10);
 
   const qsThunks = [...Array(25)].map((_, i) =>
-    POOL.query("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
+    POOL.queryArray("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
   );
   const qsPromises = Promise.all(qsThunks);
   await delay(1);
@@ -123,12 +123,15 @@ testPool(async function transaction(POOL) {
   assertEquals(POOL.available, 9);
 
   try {
-    await client.query("BEGIN");
-    await client.query("INSERT INTO timestamps(dt) values($1);", new Date());
-    await client.query("INSERT INTO ids(id) VALUES(3);");
-    await client.query("COMMIT");
+    await client.queryArray("BEGIN");
+    await client.queryArray(
+      "INSERT INTO timestamps(dt) values($1);",
+      new Date(),
+    );
+    await client.queryArray("INSERT INTO ids(id) VALUES(3);");
+    await client.queryArray("COMMIT");
   } catch (e) {
-    await client.query("ROLLBACK");
+    await client.queryArray("ROLLBACK");
     errored = true;
     throw e;
   } finally {

@@ -3,7 +3,7 @@ import { assert, assertEquals } from "../test_deps.ts";
 import { DEFAULT_SETUP } from "./constants.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
-import type { QueryResult } from "../query.ts";
+import type { QueryArrayResult } from "../query.ts";
 
 const CLIENT = new Client(TEST_CONNECTION_PARAMS);
 
@@ -161,7 +161,7 @@ testClient(async function multiQueryWithManyQueryTypeArray() {
 });
 
 testClient(async function resultMetadata() {
-  let result: QueryResult;
+  let result: QueryArrayResult;
 
   // simple select
   result = await CLIENT.queryArray("SELECT * FROM ids WHERE id = 100");
