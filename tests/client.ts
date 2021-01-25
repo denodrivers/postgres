@@ -23,7 +23,7 @@ Deno.test("badAuthData", async function () {
     });
 });
 
-Deno.test("Startup errors are handled", async function () {
+Deno.test("startupError", async function () {
   const badConnectionData = { ...TEST_CONNECTION_PARAMS };
   badConnectionData.database += getRandomString();
   const client = new Client(badConnectionData);
