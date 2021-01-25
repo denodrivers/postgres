@@ -158,6 +158,10 @@ export class Connection {
     while (true) {
       msg = await this.readMessage();
       switch (msg.type) {
+        // Connection error (wrong database or user)
+        case "E":
+          await this._processError(msg, false);
+          break;
         // backend key data
         case "K":
           this._processBackendKeyData(msg);
@@ -434,9 +438,11 @@ export class Connection {
     await this.bufWriter.write(buffer);
   }
 
-  async _processError(msg: Message) {
+  async _processError(msg: Message, recoverable = true) {
     const error = parseError(msg);
-    await this._readReadyForQuery();
+    if (recoverable) {
+      await this._readReadyForQuery();
+    }
     throw error;
   }
 
