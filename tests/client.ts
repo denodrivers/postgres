@@ -1,13 +1,12 @@
-const { test } = Deno;
 import { Client, PostgresError } from "../mod.ts";
-import { assert, assertThrowsAsync } from "../test_deps.ts";
+import { assertThrowsAsync } from "../test_deps.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 
 function getRandomString() {
   return Math.random().toString(36).substring(7);
 }
 
-test("badAuthData", async function () {
+Deno.test("badAuthData", async function () {
   const badConnectionData = { ...TEST_CONNECTION_PARAMS };
   badConnectionData.password += getRandomString();
   const client = new Client(badConnectionData);
@@ -24,9 +23,9 @@ test("badAuthData", async function () {
     });
 });
 
-test("Startup errors are handled", async function () {
+Deno.test("Startup errors are handled", async function () {
   const badConnectionData = { ...TEST_CONNECTION_PARAMS };
-  badConnectionData.user += getRandomString();
+  badConnectionData.database += getRandomString();
   const client = new Client(badConnectionData);
 
   await assertThrowsAsync(
