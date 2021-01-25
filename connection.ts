@@ -284,7 +284,7 @@ export class Connection {
     await this.bufWriter.write(buffer);
     await this.bufWriter.flush();
 
-    const result = query.result;
+    const result = new QueryResult(query);
 
     let msg: Message;
 
@@ -501,7 +501,7 @@ export class Connection {
     await this._readParseComplete();
     await this._readBindComplete();
 
-    const result = query.result;
+    const result = new QueryResult(query);
     let msg: Message;
     msg = await this.readMessage();
 
