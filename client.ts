@@ -16,7 +16,7 @@ export class Client {
   }
 
   // TODO: can we use more specific type for args?
-  async query(
+  async queryArray(
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
@@ -29,7 +29,7 @@ export class Client {
     const result: QueryResult[] = [];
 
     for (const query of queries) {
-      result.push(await this.query(query));
+      result.push(await this.queryArray(query));
     }
 
     return result;

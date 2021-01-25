@@ -22,20 +22,48 @@ export interface QueryConfig {
   encoder?: (arg: unknown) => EncodedArg;
 }
 
-export class QueryResult {
-  private _done = false;
+class _QueryResult {
+  // TODO
+  // This should be private for real
+  public _done = false;
   public command!: CommandType;
   public rowCount?: number;
   public rowDescription!: RowDescription;
-  // deno-lint-ignore no-explicit-any
-  public rows: any[] = []; // actual results
   public warnings: WarningFields[] = [];
 
   constructor(public query: Query) {}
 
-  handleRowDescription(description: RowDescription) {
+  /**
+   * This function is required to understand the parsing
+   */
+  // TODO
+  // Probably should be in the constructor instead
+  loadColumnDescriptions(description: RowDescription) {
     this.rowDescription = description;
   }
+
+  handleCommandComplete(commandTag: string): void {
+    const match = commandTagRegexp.exec(commandTag);
+    if (match) {
+      this.command = match[1] as CommandType;
+      if (match[3]) {
+        // COMMAND OID ROWS
+        this.rowCount = parseInt(match[3], 10);
+      } else {
+        // COMMAND ROWS
+        this.rowCount = parseInt(match[2], 10);
+      }
+    }
+  }
+
+  done() {
+    this._done = true;
+  }
+}
+
+export class QueryResult extends _QueryResult {
+  // deno-lint-ignore no-explicit-any
+  public rows: any[] = []; // actual results
 
   // deno-lint-ignore no-explicit-any
   private _parseDataRow(dataRow: any[]): any[] {
@@ -89,10 +117,6 @@ export class QueryResult {
 
       return rv;
     });
-  }
-
-  done() {
-    this._done = true;
   }
 }
 

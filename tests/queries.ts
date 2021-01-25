@@ -10,12 +10,12 @@ const CLIENT = new Client(TEST_CONNECTION_PARAMS);
 const testClient = getTestClient(CLIENT, DEFAULT_SETUP);
 
 testClient(async function simpleQuery() {
-  const result = await CLIENT.query("SELECT * FROM ids;");
+  const result = await CLIENT.queryArray("SELECT * FROM ids;");
   assertEquals(result.rows.length, 2);
 });
 
 testClient(async function parametrizedQuery() {
-  const result = await CLIENT.query("SELECT * FROM ids WHERE id < $1;", 2);
+  const result = await CLIENT.queryArray("SELECT * FROM ids WHERE id < $1;", 2);
   assertEquals(result.rows.length, 1);
 
   const objectRows = result.rowsOfObjects();
@@ -26,7 +26,7 @@ testClient(async function parametrizedQuery() {
 });
 
 testClient(async function handleDebugNotice() {
-  const { rows, warnings } = await CLIENT.query(
+  const { rows, warnings } = await CLIENT.queryArray(
     "SELECT * FROM CREATE_NOTICE();",
   );
   assertEquals(rows[0][0], 1);
@@ -36,10 +36,10 @@ testClient(async function handleDebugNotice() {
 // This query doesn't recreate the table and outputs
 // a notice instead
 testClient(async function handleQueryNotice() {
-  await CLIENT.query(
+  await CLIENT.queryArray(
     "CREATE TEMP TABLE NOTICE_TEST (ABC INT);",
   );
-  const { warnings } = await CLIENT.query(
+  const { warnings } = await CLIENT.queryArray(
     "CREATE TEMP TABLE IF NOT EXISTS NOTICE_TEST (ABC INT);",
   );
 
@@ -47,25 +47,25 @@ testClient(async function handleQueryNotice() {
 });
 
 testClient(async function nativeType() {
-  const result = await CLIENT.query("SELECT * FROM timestamps;");
+  const result = await CLIENT.queryArray("SELECT * FROM timestamps;");
   const row = result.rows[0];
 
   const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
 
   assertEquals(row[0].toUTCString(), new Date(expectedDate).toUTCString());
 
-  await CLIENT.query("INSERT INTO timestamps(dt) values($1);", new Date());
+  await CLIENT.queryArray("INSERT INTO timestamps(dt) values($1);", new Date());
 });
 
 testClient(async function binaryType() {
-  const result = await CLIENT.query("SELECT * from bytes;");
+  const result = await CLIENT.queryArray("SELECT * from bytes;");
   const row = result.rows[0];
 
   const expectedBytes = new Uint8Array([102, 111, 111, 0, 128, 92, 255]);
 
   assertEquals(row[0], expectedBytes);
 
-  await CLIENT.query(
+  await CLIENT.queryArray(
     "INSERT INTO bytes VALUES($1);",
     { args: expectedBytes },
   );
@@ -164,12 +164,12 @@ testClient(async function resultMetadata() {
   let result: QueryResult;
 
   // simple select
-  result = await CLIENT.query("SELECT * FROM ids WHERE id = 100");
+  result = await CLIENT.queryArray("SELECT * FROM ids WHERE id = 100");
   assertEquals(result.command, "SELECT");
   assertEquals(result.rowCount, 1);
 
   // parameterized select
-  result = await CLIENT.query(
+  result = await CLIENT.queryArray(
     "SELECT * FROM ids WHERE id IN ($1, $2)",
     200,
     300,
@@ -178,34 +178,37 @@ testClient(async function resultMetadata() {
   assertEquals(result.rowCount, 2);
 
   // simple delete
-  result = await CLIENT.query("DELETE FROM ids WHERE id IN (100, 200)");
+  result = await CLIENT.queryArray("DELETE FROM ids WHERE id IN (100, 200)");
   assertEquals(result.command, "DELETE");
   assertEquals(result.rowCount, 2);
 
   // parameterized delete
-  result = await CLIENT.query("DELETE FROM ids WHERE id = $1", 300);
+  result = await CLIENT.queryArray("DELETE FROM ids WHERE id = $1", 300);
   assertEquals(result.command, "DELETE");
   assertEquals(result.rowCount, 1);
 
   // simple insert
-  result = await CLIENT.query("INSERT INTO ids VALUES (4), (5)");
+  result = await CLIENT.queryArray("INSERT INTO ids VALUES (4), (5)");
   assertEquals(result.command, "INSERT");
   assertEquals(result.rowCount, 2);
 
   // parameterized insert
-  result = await CLIENT.query("INSERT INTO ids VALUES ($1)", 3);
+  result = await CLIENT.queryArray("INSERT INTO ids VALUES ($1)", 3);
   assertEquals(result.command, "INSERT");
   assertEquals(result.rowCount, 1);
 
   // simple update
-  result = await CLIENT.query(
+  result = await CLIENT.queryArray(
     "UPDATE ids SET id = 500 WHERE id IN (500, 600)",
   );
   assertEquals(result.command, "UPDATE");
   assertEquals(result.rowCount, 2);
 
   // parameterized update
-  result = await CLIENT.query("UPDATE ids SET id = 400 WHERE id = $1", 400);
+  result = await CLIENT.queryArray(
+    "UPDATE ids SET id = 400 WHERE id = $1",
+    400,
+  );
   assertEquals(result.command, "UPDATE");
   assertEquals(result.rowCount, 1);
 }, [
@@ -215,12 +218,12 @@ testClient(async function resultMetadata() {
 ]);
 
 testClient(async function transactionWithConcurrentQueries() {
-  const result = await CLIENT.query("BEGIN");
+  const result = await CLIENT.queryArray("BEGIN");
 
   assertEquals(result.rows.length, 0);
   const concurrentCount = 5;
   const queries = [...Array(concurrentCount)].map((_, i) => {
-    return CLIENT.query({
+    return CLIENT.queryArray({
       text: "INSERT INTO ids (id) VALUES ($1) RETURNING id;",
       args: [i],
     });

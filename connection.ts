@@ -290,10 +290,11 @@ export class Connection {
 
     msg = await this.readMessage();
 
+    // Query startup message, executed only once
     switch (msg.type) {
       // row description
       case "T":
-        result.handleRowDescription(this._processRowDescription(msg));
+        result.loadColumnDescriptions(this._processRowDescription(msg));
         break;
       // no data
       case "n":
@@ -318,6 +319,7 @@ export class Connection {
         throw new Error(`Unexpected frame: ${msg.type}`);
     }
 
+    // Handle each row returned by the query
     while (true) {
       msg = await this.readMessage();
       switch (msg.type) {
@@ -509,7 +511,7 @@ export class Connection {
       // row description
       case "T": {
         const rowDescription = this._processRowDescription(msg);
-        result.handleRowDescription(rowDescription);
+        result.loadColumnDescriptions(rowDescription);
         break;
       }
       // no data
