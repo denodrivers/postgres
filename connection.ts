@@ -41,8 +41,6 @@ import {
 } from "./query.ts";
 import type { ConnectionParams } from "./connection_params.ts";
 
-type ParseType = "array" | "object";
-
 export enum Format {
   TEXT = 0,
   BINARY = 1,
@@ -285,9 +283,9 @@ export class Connection {
 
   //TODO
   //Refactor the conditional return
-  private async _simpleQuery<T extends ParseType>(
+  private async _simpleQuery<T extends "array" | "object">(
     query: Query,
-    type: ParseType,
+    type: "array" | "object",
   ): Promise<T extends "array" ? QueryArrayResult : QueryObjectResult> {
     this.packetWriter.clear();
 
@@ -509,7 +507,7 @@ export class Connection {
 
   // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
   //  sent after error response is received in prepared statements?
-  async _preparedQuery<T extends ParseType>(
+  async _preparedQuery<T extends "array" | "object">(
     query: Query,
     type: T,
   ): Promise<T extends "array" ? QueryArrayResult : QueryObjectResult> {
@@ -583,9 +581,10 @@ export class Connection {
     return result as T extends "array" ? QueryArrayResult : QueryObjectResult;
   }
 
-  async query(query: Query, type: "array"): Promise<QueryArrayResult>;
-  async query(query: Query, type: "object"): Promise<QueryObjectResult>;
-  async query(query: Query, type: ParseType) {
+  async query<T extends "array" | "object">(
+    query: Query,
+    type: T,
+  ): Promise<T extends "array" ? QueryArrayResult : QueryObjectResult> {
     await this._queryLock.pop();
     try {
       if (query.args.length === 0) {

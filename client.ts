@@ -7,17 +7,11 @@ import {
   QueryObjectResult,
 } from "./query.ts";
 
-export class Client {
+class BaseClient {
   protected _connection: Connection;
 
-  constructor(config?: ConnectionOptions | string) {
-    const connectionParams = createParams(config);
-    this._connection = new Connection(connectionParams);
-  }
-
-  async connect(): Promise<void> {
-    await this._connection.startup();
-    await this._connection.initSQL();
+  constructor(connection: Connection) {
+    this._connection = connection;
   }
 
   // TODO: can we use more specific type for args?
@@ -37,6 +31,17 @@ export class Client {
   ): Promise<QueryObjectResult> {
     const query = new Query(text, ...args);
     return await this._connection.query(query, "object");
+  }
+}
+
+export class Client extends BaseClient {
+  constructor(config?: ConnectionOptions | string) {
+    super(new Connection(createParams(config)));
+  }
+
+  async connect(): Promise<void> {
+    await this._connection.startup();
+    await this._connection.initSQL();
   }
 
   //TODO
@@ -60,22 +65,12 @@ export class Client {
   _aexit = this.end;
 }
 
-export class PoolClient {
-  protected _connection: Connection;
+export class PoolClient extends BaseClient {
   private _releaseCallback: () => void;
 
   constructor(connection: Connection, releaseCallback: () => void) {
-    this._connection = connection;
+    super(connection);
     this._releaseCallback = releaseCallback;
-  }
-
-  async queryArray(
-    text: string | QueryConfig,
-    // deno-lint-ignore no-explicit-any
-    ...args: any[]
-  ): Promise<QueryArrayResult> {
-    const query = new Query(text, ...args);
-    return await this._connection.query(query, "array");
   }
 
   async release(): Promise<void> {

@@ -86,18 +86,6 @@ export class QueryArrayResult extends QueryResult {
     const parsedRow = this.parseRowData(row);
     this.rows.push(parsedRow);
   }
-
-  rowsOfObjects() {
-    return this.rows.map((row) => {
-      // deno-lint-ignore no-explicit-any
-      const rv: { [key: string]: any } = {};
-      this.rowDescription.columns.forEach((column, index) => {
-        rv[column.name] = row[index];
-      });
-
-      return rv;
-    });
-  }
 }
 
 export class QueryObjectResult extends QueryResult {
