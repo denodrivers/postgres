@@ -357,8 +357,8 @@ export class Connection {
         // ready for query
         case "Z":
           this._processReadyForQuery(msg);
-          // deno-lint-ignore no-explicit-any
-          return result as any;
+          return result as T extends "array" ? QueryArrayResult
+            : QueryObjectResult;
         // error response
         case "E":
           await this._processError(msg);
@@ -509,7 +509,10 @@ export class Connection {
 
   // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
   //  sent after error response is received in prepared statements?
-  async _preparedQuery(query: Query): Promise<QueryArrayResult> {
+  async _preparedQuery<T extends ParseType>(
+    query: Query,
+    type: T,
+  ): Promise<T extends "array" ? QueryArrayResult : QueryObjectResult> {
     await this._sendPrepareMessage(query);
     await this._sendBindMessage(query);
     await this._sendDescribeMessage();
@@ -521,7 +524,12 @@ export class Connection {
     await this._readParseComplete();
     await this._readBindComplete();
 
-    const result = new QueryArrayResult(query);
+    let result;
+    if (type === "array") {
+      result = new QueryArrayResult(query);
+    } else {
+      result = new QueryObjectResult(query);
+    }
     let msg: Message;
     msg = await this.readMessage();
 
@@ -572,19 +580,18 @@ export class Connection {
 
     await this._readReadyForQuery();
 
-    return result;
+    return result as T extends "array" ? QueryArrayResult : QueryObjectResult;
   }
 
-  // async query(query: Query, type: "array"): Promise<QueryArrayResult>;
-  // async query(query: Query, type: "object"): Promise<QueryObjectResult>;
-  // deno-lint-ignore no-explicit-any
-  async query(query: Query, type: ParseType): Promise<any> {
+  async query(query: Query, type: "array"): Promise<QueryArrayResult>;
+  async query(query: Query, type: "object"): Promise<QueryObjectResult>;
+  async query(query: Query, type: ParseType) {
     await this._queryLock.pop();
     try {
       if (query.args.length === 0) {
         return await this._simpleQuery(query, type);
       } else {
-        return await this._preparedQuery(query);
+        return await this._preparedQuery(query, type);
       }
     } finally {
       this._queryLock.push(undefined);

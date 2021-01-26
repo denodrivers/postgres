@@ -1,6 +1,11 @@
 import { Connection } from "./connection.ts";
 import { ConnectionOptions, createParams } from "./connection_params.ts";
-import { Query, QueryArrayResult, QueryConfig } from "./query.ts";
+import {
+  Query,
+  QueryArrayResult,
+  QueryConfig,
+  QueryObjectResult,
+} from "./query.ts";
 
 export class Client {
   protected _connection: Connection;
@@ -29,11 +34,13 @@ export class Client {
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ): Promise<QueryArrayResult> {
+  ): Promise<QueryObjectResult> {
     const query = new Query(text, ...args);
     return await this._connection.query(query, "object");
   }
 
+  //TODO
+  //Objectify
   async multiQuery(queries: QueryConfig[]): Promise<QueryArrayResult[]> {
     const result: QueryArrayResult[] = [];
 

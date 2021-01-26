@@ -15,14 +15,11 @@ testClient(async function simpleQuery() {
 });
 
 testClient(async function parametrizedQuery() {
-  const result = await CLIENT.queryArray("SELECT * FROM ids WHERE id < $1;", 2);
-  assertEquals(result.rows.length, 1);
-
-  const objectRows = result.rowsOfObjects();
-  const row = objectRows[0];
-
-  assertEquals(row.id, 1);
-  assertEquals(typeof row.id, "number");
+  const result = await CLIENT.queryObject(
+    "SELECT * FROM ids WHERE id < $1;",
+    2,
+  );
+  assertEquals(result.rows, [{ id: 1 }]);
 });
 
 testClient(async function handleDebugNotice() {
