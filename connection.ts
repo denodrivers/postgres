@@ -619,6 +619,8 @@ export class Connection {
     return new RowDescription(columnCount, columns);
   }
 
+  //TODO
+  //Research corner cases where _readDataRow can return null values
   // deno-lint-ignore no-explicit-any
   _readDataRow(msg: Message): any[] {
     const fieldCount = msg.reader.readInt16();

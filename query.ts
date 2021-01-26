@@ -28,16 +28,15 @@ class QueryResult {
   public _done = false;
   public command!: CommandType;
   public rowCount?: number;
-  public rowDescription!: RowDescription;
+  public rowDescription?: RowDescription;
   public warnings: WarningFields[] = [];
 
   constructor(public query: Query) {}
 
   /**
-   * This function is required to understand the parsing
+   * This function is required to parse each column
+   * of the results
    */
-  // TODO
-  // Probably should be in the constructor instead
   loadColumnDescriptions(description: RowDescription) {
     this.rowDescription = description;
   }
@@ -66,9 +65,16 @@ export class QueryArrayResult extends QueryResult {
   public rows: any[][] = []; // actual results
 
   // deno-lint-ignore no-explicit-any camelcase
-  private parseRowData(row_data: any[]): any[] {
+  private parseRowData(row_data: Uint8Array[]): any[] {
+    if (!this.rowDescription) {
+      throw new Error(
+        "The row descriptions required to parse the result data weren't initialized",
+      );
+    }
+
+    // Row description won't be modified after initialization
     return row_data.map((raw_value, index) => {
-      const column = this.rowDescription.columns[index];
+      const column = this.rowDescription!.columns[index];
 
       if (raw_value === null) {
         return null;
@@ -77,8 +83,7 @@ export class QueryArrayResult extends QueryResult {
     });
   }
 
-  // deno-lint-ignore no-explicit-any
-  insertRow(row: any[]): void {
+  insertRow(row: Uint8Array[]): void {
     if (this._done) {
       throw new Error("New data row, after result if done.");
     }
@@ -92,10 +97,17 @@ export class QueryObjectResult extends QueryResult {
   // deno-lint-ignore no-explicit-any
   public rows: Record<string, any>[] = [];
 
-  // deno-lint-ignore no-explicit-any camelcase
-  private parseRowData(row_data: any[]): Record<string, any> {
+  // deno-lint-ignore camelcase
+  private parseRowData(row_data: Uint8Array[]) {
+    if (!this.rowDescription) {
+      throw new Error(
+        "The row descriptions required to parse the result data weren't initialized",
+      );
+    }
+
+    // Row description won't be modified after initialization
     return row_data.reduce((row, raw_value, index) => {
-      const column = this.rowDescription.columns[index];
+      const column = this.rowDescription!.columns[index];
 
       if (raw_value === null) {
         row[column.name] = null;
@@ -104,11 +116,11 @@ export class QueryObjectResult extends QueryResult {
       }
 
       return row;
-    }, {});
+      // deno-lint-ignore no-explicit-any
+    }, {} as Record<string, any>);
   }
 
-  // deno-lint-ignore no-explicit-any
-  insertRow(row: any[]): void {
+  insertRow(row: Uint8Array[]): void {
     if (this._done) {
       throw new Error("New data row, after result if done.");
     }
@@ -122,7 +134,6 @@ export class Query {
   public text: string;
   public args: EncodedArg[];
 
-  // TODO: can we use more specific type for args?
   constructor(text: string | QueryConfig, ...args: unknown[]) {
     let config: QueryConfig;
     if (typeof text === "string") {
