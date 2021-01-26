@@ -12,7 +12,7 @@ export function getTestClient(
       try {
         await client.connect();
         for (const q of setupQueries || defSetupQueries || []) {
-          await client.query(q);
+          await client.queryArray(q);
         }
         await t();
       } finally {

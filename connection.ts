@@ -33,7 +33,12 @@ import { hashMd5Password, readUInt32BE } from "./utils.ts";
 import { PacketReader } from "./packet_reader.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { parseError, parseNotice } from "./warning.ts";
-import { Query, QueryConfig, QueryResult } from "./query.ts";
+import {
+  Query,
+  QueryArrayResult,
+  QueryConfig,
+  QueryObjectResult,
+} from "./query.ts";
 import type { ConnectionParams } from "./connection_params.ts";
 
 export enum Format {
@@ -276,7 +281,12 @@ export class Connection {
     this._processReadyForQuery(msg);
   }
 
-  private async _simpleQuery(query: Query): Promise<QueryResult> {
+  //TODO
+  //Refactor the conditional return
+  private async _simpleQuery<T extends "array" | "object">(
+    query: Query,
+    type: "array" | "object",
+  ): Promise<T extends "array" ? QueryArrayResult : QueryObjectResult> {
     this.packetWriter.clear();
 
     const buffer = this.packetWriter.addCString(query.text).flush(0x51);
@@ -284,16 +294,22 @@ export class Connection {
     await this.bufWriter.write(buffer);
     await this.bufWriter.flush();
 
-    const result = query.result;
+    let result;
+    if (type === "array") {
+      result = new QueryArrayResult(query);
+    } else {
+      result = new QueryObjectResult(query);
+    }
 
     let msg: Message;
 
     msg = await this.readMessage();
 
+    // Query startup message, executed only once
     switch (msg.type) {
       // row description
       case "T":
-        result.handleRowDescription(this._processRowDescription(msg));
+        result.loadColumnDescriptions(this._processRowDescription(msg));
         break;
       // no data
       case "n":
@@ -318,6 +334,7 @@ export class Connection {
         throw new Error(`Unexpected frame: ${msg.type}`);
     }
 
+    // Handle each row returned by the query
     while (true) {
       msg = await this.readMessage();
       switch (msg.type) {
@@ -325,7 +342,7 @@ export class Connection {
         case "D": {
           // this is actually packet read
           const foo = this._readDataRow(msg);
-          result.handleDataRow(foo);
+          result.insertRow(foo);
           break;
         }
         // command complete
@@ -338,7 +355,8 @@ export class Connection {
         // ready for query
         case "Z":
           this._processReadyForQuery(msg);
-          return result;
+          return result as T extends "array" ? QueryArrayResult
+            : QueryObjectResult;
         // error response
         case "E":
           await this._processError(msg);
@@ -367,9 +385,7 @@ export class Connection {
   async _sendBindMessage(query: Query) {
     this.packetWriter.clear();
 
-    const hasBinaryArgs = query.args.reduce((prev, curr) => {
-      return prev || curr instanceof Uint8Array;
-    }, false);
+    const hasBinaryArgs = query.args.some((arg) => arg instanceof Uint8Array);
 
     // bind statement
     this.packetWriter.clear();
@@ -489,7 +505,10 @@ export class Connection {
 
   // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
   //  sent after error response is received in prepared statements?
-  async _preparedQuery(query: Query): Promise<QueryResult> {
+  async _preparedQuery<T extends "array" | "object">(
+    query: Query,
+    type: T,
+  ): Promise<T extends "array" ? QueryArrayResult : QueryObjectResult> {
     await this._sendPrepareMessage(query);
     await this._sendBindMessage(query);
     await this._sendDescribeMessage();
@@ -501,7 +520,12 @@ export class Connection {
     await this._readParseComplete();
     await this._readBindComplete();
 
-    const result = query.result;
+    let result;
+    if (type === "array") {
+      result = new QueryArrayResult(query);
+    } else {
+      result = new QueryObjectResult(query);
+    }
     let msg: Message;
     msg = await this.readMessage();
 
@@ -509,7 +533,7 @@ export class Connection {
       // row description
       case "T": {
         const rowDescription = this._processRowDescription(msg);
-        result.handleRowDescription(rowDescription);
+        result.loadColumnDescriptions(rowDescription);
         break;
       }
       // no data
@@ -531,7 +555,7 @@ export class Connection {
         case "D": {
           // this is actually packet read
           const rawDataRow = this._readDataRow(msg);
-          result.handleDataRow(rawDataRow);
+          result.insertRow(rawDataRow);
           break;
         }
         // command complete
@@ -552,16 +576,19 @@ export class Connection {
 
     await this._readReadyForQuery();
 
-    return result;
+    return result as T extends "array" ? QueryArrayResult : QueryObjectResult;
   }
 
-  async query(query: Query): Promise<QueryResult> {
+  async query<T extends "array" | "object">(
+    query: Query,
+    type: T,
+  ): Promise<T extends "array" ? QueryArrayResult : QueryObjectResult> {
     await this._queryLock.pop();
     try {
       if (query.args.length === 0) {
-        return await this._simpleQuery(query);
+        return await this._simpleQuery(query, type);
       } else {
-        return await this._preparedQuery(query);
+        return await this._preparedQuery(query, type);
       }
     } finally {
       this._queryLock.push(undefined);
@@ -590,6 +617,8 @@ export class Connection {
     return new RowDescription(columnCount, columns);
   }
 
+  //TODO
+  //Research corner cases where _readDataRow can return null values
   // deno-lint-ignore no-explicit-any
   _readDataRow(msg: Message): any[] {
     const fieldCount = msg.reader.readInt16();
@@ -617,7 +646,7 @@ export class Connection {
   async initSQL(): Promise<void> {
     const config: QueryConfig = { text: "select 1;", args: [] };
     const query = new Query(config);
-    await this.query(query);
+    await this.query(query, "array");
   }
 
   async end(): Promise<void> {
