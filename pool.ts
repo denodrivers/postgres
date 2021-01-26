@@ -1,5 +1,5 @@
 import { PoolClient } from "./client.ts";
-import { Connection } from "./connection.ts";
+import { Connection, ResultType } from "./connection.ts";
 import {
   ConnectionOptions,
   ConnectionParams,
@@ -78,17 +78,17 @@ export class Pool {
 
   private async _execute(
     query: Query,
-    type: "array",
+    type: ResultType.ARRAY,
   ): Promise<QueryArrayResult>;
   private async _execute(
     query: Query,
-    type: "object",
+    type: ResultType.OBJECT,
   ): Promise<QueryObjectResult>;
-  private async _execute(query: Query, type: "array" | "object") {
+  private async _execute(query: Query, type: ResultType) {
     await this.ready;
     const connection = await this._availableConnections.pop();
     try {
-      return await connection.query(query, type);
+      return (await connection.query(query, type as any)) as any;
     } catch (error) {
       throw error;
     } finally {
@@ -104,18 +104,18 @@ export class Pool {
   }
 
   // TODO: can we use more specific type for args?
-  async queryArray(
+  async queryArray<T extends Array<unknown> = Array<unknown>>(
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ): Promise<QueryArrayResult> {
+  ) {
     let query;
     if (typeof text === "string") {
       query = new Query(text, ...args);
     } else {
       query = new Query(text);
     }
-    return await this._execute(query, "array");
+    return await this._execute(query, ResultType.ARRAY);
   }
 
   async queryObject(
@@ -129,7 +129,7 @@ export class Pool {
     } else {
       query = new Query(text);
     }
-    return await this._execute(query, "object");
+    return await this._execute(query, ResultType.OBJECT);
   }
 
   async end(): Promise<void> {

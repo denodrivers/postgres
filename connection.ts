@@ -41,6 +41,11 @@ import {
 } from "./query.ts";
 import type { ConnectionParams } from "./connection_params.ts";
 
+export enum ResultType {
+  ARRAY,
+  OBJECT,
+}
+
 export enum Format {
   TEXT = 0,
   BINARY = 1,
@@ -281,12 +286,15 @@ export class Connection {
     this._processReadyForQuery(msg);
   }
 
-  //TODO
-  //Refactor the conditional return
-  private async _simpleQuery<T extends "array" | "object">(
+  private async _simpleQuery(
     query: Query,
-    type: "array" | "object",
-  ): Promise<T extends "array" ? QueryArrayResult : QueryObjectResult> {
+    type: ResultType.ARRAY,
+  ): Promise<QueryArrayResult>;
+  private async _simpleQuery(
+    query: Query,
+    type: ResultType.OBJECT,
+  ): Promise<QueryObjectResult>;
+  private async _simpleQuery(query: Query, type: ResultType) {
     this.packetWriter.clear();
 
     const buffer = this.packetWriter.addCString(query.text).flush(0x51);
@@ -295,7 +303,7 @@ export class Connection {
     await this.bufWriter.flush();
 
     let result;
-    if (type === "array") {
+    if (type === ResultType.ARRAY) {
       result = new QueryArrayResult(query);
     } else {
       result = new QueryObjectResult(query);
@@ -355,8 +363,7 @@ export class Connection {
         // ready for query
         case "Z":
           this._processReadyForQuery(msg);
-          return result as T extends "array" ? QueryArrayResult
-            : QueryObjectResult;
+          return result;
         // error response
         case "E":
           await this._processError(msg);
@@ -505,10 +512,15 @@ export class Connection {
 
   // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
   //  sent after error response is received in prepared statements?
-  async _preparedQuery<T extends "array" | "object">(
+  async _preparedQuery(
     query: Query,
-    type: T,
-  ): Promise<T extends "array" ? QueryArrayResult : QueryObjectResult> {
+    type: ResultType.ARRAY,
+  ): Promise<QueryArrayResult>;
+  async _preparedQuery(
+    query: Query,
+    type: ResultType.OBJECT,
+  ): Promise<QueryObjectResult>;
+  async _preparedQuery(query: Query, type: ResultType) {
     await this._sendPrepareMessage(query);
     await this._sendBindMessage(query);
     await this._sendDescribeMessage();
@@ -521,7 +533,7 @@ export class Connection {
     await this._readBindComplete();
 
     let result;
-    if (type === "array") {
+    if (type === ResultType.ARRAY) {
       result = new QueryArrayResult(query);
     } else {
       result = new QueryObjectResult(query);
@@ -576,19 +588,21 @@ export class Connection {
 
     await this._readReadyForQuery();
 
-    return result as T extends "array" ? QueryArrayResult : QueryObjectResult;
+    return result;
   }
 
-  async query<T extends "array" | "object">(
+  async query(query: Query, type: ResultType.ARRAY): Promise<QueryArrayResult>;
+  async query(
     query: Query,
-    type: T,
-  ): Promise<T extends "array" ? QueryArrayResult : QueryObjectResult> {
+    type: ResultType.OBJECT,
+  ): Promise<QueryObjectResult>;
+  async query(query: Query, type: ResultType) {
     await this._queryLock.pop();
     try {
       if (query.args.length === 0) {
-        return await this._simpleQuery(query, type);
+        return (await this._simpleQuery(query, type as any)) as any;
       } else {
-        return await this._preparedQuery(query, type);
+        return (await this._preparedQuery(query, type as any)) as any;
       }
     } finally {
       this._queryLock.push(undefined);
@@ -646,7 +660,7 @@ export class Connection {
   async initSQL(): Promise<void> {
     const config: QueryConfig = { text: "select 1;", args: [] };
     const query = new Query(config);
-    await this.query(query, "array");
+    await this.query(query, ResultType.ARRAY);
   }
 
   async end(): Promise<void> {

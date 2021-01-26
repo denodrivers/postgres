@@ -74,9 +74,9 @@ class QueryResult {
 
 export class QueryArrayResult extends QueryResult {
   // deno-lint-ignore no-explicit-any
-  public rows: any[][] = []; // actual results
+  public rows: any[][] = [];
 
-  // deno-lint-ignore no-explicit-any camelcase
+  // deno-lint-ignore camelcase no-explicit-any
   private parseRowData(row_data: Uint8Array[]): any[] {
     if (!this.rowDescription) {
       throw new Error(

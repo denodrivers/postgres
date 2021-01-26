@@ -1,4 +1,4 @@
-import { Connection } from "./connection.ts";
+import { Connection, ResultType } from "./connection.ts";
 import { ConnectionOptions, createParams } from "./connection_params.ts";
 import {
   Query,
@@ -15,8 +15,7 @@ class BaseClient {
     this._connection = connection;
   }
 
-  // TODO: can we use more specific type for args?
-  async queryArray(
+  async queryArray<T extends Array<unknown> = Array<unknown>>(
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
@@ -27,7 +26,7 @@ class BaseClient {
     } else {
       query = new Query(text);
     }
-    return await this._connection.query(query, "array");
+    return await this._connection.query(query, ResultType.ARRAY);
   }
 
   async queryObject(
@@ -41,7 +40,7 @@ class BaseClient {
     } else {
       query = new Query(text);
     }
-    return await this._connection.query(query, "object");
+    return await this._connection.query(query, ResultType.OBJECT);
   }
 }
 
