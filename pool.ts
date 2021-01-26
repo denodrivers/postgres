@@ -119,7 +119,7 @@ export class Pool {
   }
 
   async queryObject(
-    text: string | QueryConfig,
+    text: string | QueryObjectConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
   ): Promise<QueryObjectResult> {

@@ -1,5 +1,5 @@
 import { Client } from "../mod.ts";
-import { assert, assertEquals } from "../test_deps.ts";
+import { assert, assertEquals, assertThrowsAsync } from "../test_deps.ts";
 import { DEFAULT_SETUP } from "./constants.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
@@ -20,6 +20,49 @@ testClient(async function parametrizedQuery() {
     2,
   );
   assertEquals(result.rows, [{ id: 1 }]);
+});
+
+testClient(async function objectQuery() {
+  const result = await CLIENT.queryObject(
+    "SELECT ARRAY[1, 2, 3] AS IDS, 'DATA' AS TYPE",
+  );
+
+  assertEquals(result.rows, [{ ids: [1, 2, 3], type: "DATA" }]);
+});
+
+testClient(async function aliasedObjectQuery() {
+  const result = await CLIENT.queryObject({
+    text: "SELECT ARRAY[1, 2, 3], 'DATA'",
+    fields: ["IDS", "type"],
+  });
+
+  assertEquals(result.rows, [{ ids: [1, 2, 3], type: "DATA" }]);
+});
+
+testClient(async function objectQueryThrowsOnRepeatedFields() {
+  await assertThrowsAsync(
+    async () => {
+      await CLIENT.queryObject({
+        text: "SELECT 1",
+        fields: ["FIELD_1", "FIELD_1"],
+      });
+    },
+    TypeError,
+    "The fields provided for the query must be unique",
+  );
+});
+
+testClient(async function objectQueryThrowsOnNotMatchingFields() {
+  await assertThrowsAsync(
+    async () => {
+      await CLIENT.queryObject({
+        text: "SELECT 1",
+        fields: ["FIELD_1", "FIELD_2"],
+      });
+    },
+    RangeError,
+    "The fields provided for the query don't match the ones returned as a result (1 expected, 2 received)",
+  );
 });
 
 testClient(async function handleDebugNotice() {

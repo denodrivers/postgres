@@ -35,6 +35,41 @@ testPool(async function parametrizedQuery(POOL) {
   assertEquals(result.rows, [{ id: 1 }]);
 });
 
+testPool(async function aliasedObjectQuery(POOL) {
+  const result = await POOL.queryObject({
+    text: "SELECT ARRAY[1, 2, 3], 'DATA'",
+    fields: ["IDS", "type"],
+  });
+
+  assertEquals(result.rows, [{ ids: [1, 2, 3], type: "DATA" }]);
+});
+
+testPool(async function objectQueryThrowsOnRepeatedFields(POOL) {
+  await assertThrowsAsync(
+    async () => {
+      await POOL.queryObject({
+        text: "SELECT 1",
+        fields: ["FIELD_1", "FIELD_1"],
+      });
+    },
+    TypeError,
+    "The fields provided for the query must be unique",
+  );
+});
+
+testPool(async function objectQueryThrowsOnNotMatchingFields(POOL) {
+  await assertThrowsAsync(
+    async () => {
+      await POOL.queryObject({
+        text: "SELECT 1",
+        fields: ["FIELD_1", "FIELD_2"],
+      });
+    },
+    RangeError,
+    "The fields provided for the query don't match the ones returned as a result (1 expected, 2 received)",
+  );
+});
+
 testPool(async function nativeType(POOL) {
   const result = await POOL.queryArray("SELECT * FROM timestamps;");
   const row = result.rows[0];
