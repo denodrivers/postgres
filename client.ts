@@ -44,8 +44,12 @@ export class Client extends BaseClient {
     await this._connection.initSQL();
   }
 
-  //TODO
-  //Objectify
+  /**
+   * This method executes one query after another and the returns an array-like
+   * result for each query
+   * 
+   * @deprecated Quite possibly going to be removed before 1.0
+   * */
   async multiQuery(queries: QueryConfig[]): Promise<QueryArrayResult[]> {
     const result: QueryArrayResult[] = [];
 
