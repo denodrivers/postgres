@@ -22,6 +22,18 @@ export interface QueryConfig {
   encoder?: (arg: unknown) => EncodedArg;
 }
 
+export interface QueryObjectConfig extends QueryConfig {
+  /**
+   * This parameter superseeds query column names
+   * 
+   * When specified, this names will be asigned to the results
+   * of the query in the order they were provided
+   * 
+   * Fields must be unique (case is not taken into consideration)
+   */
+  fields?: string[];
+}
+
 class QueryResult {
   // TODO
   // This should be private for real
@@ -107,14 +119,28 @@ export class QueryObjectResult extends QueryResult {
       );
     }
 
+    if (
+      this.query.fields &&
+      this.rowDescription.columns.length !== this.query.fields.length
+    ) {
+      throw new RangeError(
+        "The fields provided for the query don't match the ones returned as a result " +
+          `(${this.rowDescription.columns.length} expected, ${this.query.fields.length} received)`,
+      );
+    }
+
     // Row description won't be modified after initialization
     return row_data.reduce((row, raw_value, index) => {
       const column = this.rowDescription!.columns[index];
 
+      // Find the field name provided by the user
+      // default to database provided name
+      const name = this.query.fields?.[index] ?? column.name;
+
       if (raw_value === null) {
-        row[column.name] = null;
+        row[name] = null;
       } else {
-        row[column.name] = decode(raw_value, column);
+        row[name] = decode(raw_value, column);
       }
 
       return row;
@@ -137,13 +163,38 @@ export class QueryObjectResult extends QueryResult {
 export class Query {
   public text: string;
   public args: EncodedArg[];
+  public fields?: string[];
 
-  constructor(text: string | QueryConfig, ...args: unknown[]) {
+  constructor(config: QueryObjectConfig);
+  constructor(text: string, ...args: unknown[]);
+  //deno-lint-ignore camelcase
+  constructor(config_or_text: string | QueryObjectConfig, ...args: unknown[]) {
     let config: QueryConfig;
-    if (typeof text === "string") {
-      config = { text, args };
+    if (typeof config_or_text === "string") {
+      config = { text: config_or_text, args };
     } else {
-      config = text;
+      const {
+        fields,
+        //deno-lint-ignore camelcase
+        ...query_config
+      } = config_or_text;
+
+      config = query_config;
+
+      if (fields) {
+        //deno-lint-ignore camelcase
+        const clean_fields = fields.map((field) =>
+          field.toString().toLowerCase()
+        );
+
+        if ((new Set(clean_fields)).size !== clean_fields.length) {
+          throw new TypeError(
+            "The fields provided for the query must be unique",
+          );
+        }
+
+        this.fields = clean_fields;
+      }
     }
     this.text = config.text;
     this.args = this._prepareArgs(config);

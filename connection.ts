@@ -385,9 +385,7 @@ export class Connection {
   async _sendBindMessage(query: Query) {
     this.packetWriter.clear();
 
-    const hasBinaryArgs = query.args.reduce((prev, curr) => {
-      return prev || curr instanceof Uint8Array;
-    }, false);
+    const hasBinaryArgs = query.args.some((arg) => arg instanceof Uint8Array);
 
     // bind statement
     this.packetWriter.clear();

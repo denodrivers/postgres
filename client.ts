@@ -4,6 +4,7 @@ import {
   Query,
   QueryArrayResult,
   QueryConfig,
+  QueryObjectConfig,
   QueryObjectResult,
 } from "./query.ts";
 
@@ -20,16 +21,26 @@ class BaseClient {
     // deno-lint-ignore no-explicit-any
     ...args: any[]
   ): Promise<QueryArrayResult> {
-    const query = new Query(text, ...args);
+    let query;
+    if (typeof text === "string") {
+      query = new Query(text, ...args);
+    } else {
+      query = new Query(text);
+    }
     return await this._connection.query(query, "array");
   }
 
   async queryObject(
-    text: string | QueryConfig,
+    text: string | QueryObjectConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
   ): Promise<QueryObjectResult> {
-    const query = new Query(text, ...args);
+    let query;
+    if (typeof text === "string") {
+      query = new Query(text, ...args);
+    } else {
+      query = new Query(text);
+    }
     return await this._connection.query(query, "object");
   }
 }
