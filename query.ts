@@ -85,7 +85,9 @@ export class QueryArrayResult extends QueryResult {
 
   insertRow(row: Uint8Array[]): void {
     if (this._done) {
-      throw new Error("New data row, after result if done.");
+      throw new Error(
+        "Tried to add a new row to the result after the result is done reading",
+      );
     }
 
     const parsedRow = this.parseRowData(row);
@@ -122,7 +124,9 @@ export class QueryObjectResult extends QueryResult {
 
   insertRow(row: Uint8Array[]): void {
     if (this._done) {
-      throw new Error("New data row, after result if done.");
+      throw new Error(
+        "Tried to add a new row to the result after the result is done reading",
+      );
     }
 
     const parsedRow = this.parseRowData(row);
