@@ -1,4 +1,4 @@
-import { Connection } from "./connection.ts";
+import { Connection, ResultType } from "./connection.ts";
 import { ConnectionOptions, createParams } from "./connection_params.ts";
 import {
   Query,
@@ -15,33 +15,40 @@ class BaseClient {
     this._connection = connection;
   }
 
-  // TODO: can we use more specific type for args?
-  async queryArray(
+  async queryArray<T extends Array<unknown> = Array<unknown>>(
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ): Promise<QueryArrayResult> {
+  ): Promise<QueryArrayResult<T>> {
     let query;
     if (typeof text === "string") {
       query = new Query(text, ...args);
     } else {
       query = new Query(text);
     }
-    return await this._connection.query(query, "array");
+    return await this._connection.query(
+      query,
+      ResultType.ARRAY,
+    ) as QueryArrayResult<T>;
   }
 
-  async queryObject(
+  async queryObject<
+    T extends Record<string, unknown> = Record<string, unknown>,
+  >(
     text: string | QueryObjectConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ): Promise<QueryObjectResult> {
+  ): Promise<QueryObjectResult<T>> {
     let query;
     if (typeof text === "string") {
       query = new Query(text, ...args);
     } else {
       query = new Query(text);
     }
-    return await this._connection.query(query, "object");
+    return await this._connection.query(
+      query,
+      ResultType.OBJECT,
+    ) as QueryObjectResult<T>;
   }
 }
 
