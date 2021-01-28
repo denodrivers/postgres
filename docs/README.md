@@ -1,7 +1,9 @@
 # deno-postgres
 
-[![Build Status](https://travis-ci.com/bartlomieju/deno-postgres.svg?branch=master)](https://travis-ci.com/bartlomieju/deno-postgres)
-[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/deno-postgres/community)
+![Build Status](https://img.shields.io/github/workflow/status/denodrivers/postgres/ci?label=Build&logo=github&style=flat-square)
+[![Discord server](https://img.shields.io/discord/768918486575480863?color=blue&label=Ask%20for%20help%20here&logo=discord&style=flat-square)](https://discord.gg/7WzcWABK)
+![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=orange&label=Documentation&logo=deno&style=flat-square)
+![License](https://img.shields.io/github/license/denodrivers/postgres?color=yellow&label=License&style=flat-square)
 
 PostgreSQL driver for Deno.
 
@@ -9,25 +11,24 @@ PostgreSQL driver for Deno.
 [node-postgres](https://github.com/brianc/node-postgres) and
 [pq](https://github.com/lib/pq).
 
-## Example
-
 ```ts
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 
-async function main() {
-  const client = new Client({
-    user: "user",
-    database: "test",
-    hostname: "localhost",
-    port: 5432,
-  });
-  await client.connect();
-  const result = await client.query("SELECT * FROM people;");
-  console.log(result.rows);
-  await client.end();
-}
+const client = new Client({
+  user: "user",
+  database: "test",
+  hostname: "localhost",
+  port: 5432,
+});
+await client.connect();
 
-main();
+const result = await client.queryArray("SELECT ID, NAME FROM PEOPLE");
+console.log(result.rows); // [[1, 'Carlos'], [2, 'John'], ...]
+
+const result = await client.queryObject("SELECT ID, NAME FROM PEOPLE");
+console.log(result.rows); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+
+await client.end();
 ```
 
 ## Connection Management
@@ -41,11 +42,13 @@ const client = new Client({
 await client.connect()
 ```
 
-But for stronger management and scalability, you can use **pools**:
+## Pools
+
+For stronger management and scalability, you can use **pools**:
 
 ```typescript
-import { Pool } from "https://deno.land/x/postgres@v0.4.0/mod.ts";
-import { PoolClient } from "https://deno.land/x/postgres@v0.4.0/client.ts";
+import { Pool } from "https://deno.land/x/postgres/mod.ts";
+import { PoolClient } from "https://deno.land/x/postgres/client.ts";
 
 const POOL_CONNECTIONS = 20;
 const dbPool = new Pool({
@@ -58,13 +61,13 @@ const dbPool = new Pool({
 
 async function runQuery(query: string) {
   const client: PoolClient = await dbPool.connect();
-  const dbResult = await client.query(query);
+  const dbResult = await client.queryObject(query);
   client.release();
   return dbResult;
 }
 
-await runQuery("SELECT * FROM users;");
-await runQuery("SELECT * FROM users WHERE id = '1';");
+await runQuery("SELECT ID, NAME FROM users;"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+await runQuery("SELECT ID, NAME FROM users WHERE id = '1';"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
 ```
 
 This improves performance, as creating a whole new connection for each query can
@@ -76,12 +79,7 @@ The number of pools is up to you, but I feel a pool of 20 is good for small
 applications. Though remember this can differ based on how active your
 application is. Increase or decrease where necessary.
 
-## API
-
-`deno-postgres` follows `node-postgres` API to make transition for Node devs as
-easy as possible.
-
-### Connecting to DB
+## Connecting to DB
 
 If any of parameters is missing it is read from environmental variable.
 
@@ -105,42 +103,136 @@ await client.connect();
 await client.end();
 ```
 
-### Queries
+## Queries
 
 Simple query
 
 ```ts
-const result = await client.query("SELECT * FROM people;");
+const result = await client.queryArray("SELECT ID, NAME FROM PEOPLE");
 console.log(result.rows);
 ```
 
 Parametrized query
 
 ```ts
-const result = await client.query(
-  "SELECT * FROM people WHERE age > $1 AND age < $2;",
+const result = await client.queryArray(
+  "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
   10,
   20,
 );
 console.log(result.rows);
 
 // equivalent using QueryConfig interface
-const result = await client.query({
-  text: "SELECT * FROM people WHERE age > $1 AND age < $2;",
+const result = await client.queryArray({
+  text: "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
   args: [10, 20],
 });
 console.log(result.rows);
 ```
 
-Interface for query result
+## Generic Parameters
+
+Both the `queryArray` and `queryObject` functions have a generic implementation
+that allows users to type the result of the query
 
 ```typescript
-import { QueryResult } from "https://deno.land/x/postgres@v0.4.2/query.ts";
+const array_result = await client.queryArray<[number, string]>(
+  "SELECT ID, NAME FROM PEOPLE WHERE ID = 17",
+);
+// [number, string]
+const person = array_result.rows[0];
 
-const result: QueryResult = await client.query(...)
-if (result.rowCount > 0) {
-  console.log("Success")
-} else {
-  console.log("A new row should have been added but wasnt")
+const object_result = await client.queryObject<{ id: number; name: string }>(
+  "SELECT ID, NAME FROM PEOPLE WHERE ID = 17",
+);
+// {id: number, name: string}
+const person = object_result.rows[0];
+```
+
+## Object query
+
+The `queryObject` function allows you to return the results of the executed
+query as a set objects, allowing easy management with interface like types.
+
+```ts
+interface User {
+  id: number;
+  name: string;
 }
+
+const result = await client.queryObject<User>(
+  "SELECT ID, NAME FROM PEOPLE",
+);
+
+// User[]
+const users = result.rows;
+```
+
+However, the actual values of the query are determined by the aliases given to
+those columns inside the query, so executing something like the following will
+result in a totally different result to the one the user might expect
+
+```ts
+const result = await client.queryObject(
+  "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
+);
+
+const users = result.rows; // [{id: 1, substr: 'Ca'}, {id: 2, substr: 'Jo'}, ...]
+```
+
+To deal with this issue, it's recommended to provide a field list that maps to
+the expected properties we want in the resulting object
+
+```ts
+const result = await client.queryObject(
+  {
+    text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
+    fields: ["id", "name"],
+  },
+);
+
+const users = result.rows; // [{id: 1, name: 'Ca'}, {id: 2, name: 'Jo'}, ...]
+```
+
+Don't use TypeScript generics to map these properties, since TypeScript is for
+documentation purposes only it won't affect the final outcome of the query
+
+```ts
+interface User {
+  id: number;
+  name: string;
+}
+
+const result = await client.queryObject<User>(
+  "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
+);
+
+// Type will be User[], but actual outcome will always be
+const users = result.rows; // [{id: 1, substr: 'Ca'}, {id: 2, substr: 'Jo'}, ...]
+```
+
+- The fields will be matched in the order they were defined
+- The fields will override any defined alias in the query
+- These field properties must be unique (case insensitive), otherwise the query
+  will throw before execution
+- The fields must match the number of fields returned on the query, otherwise
+  the query will throw on execution
+
+```ts
+// This will throw because the property id is duplicated
+await client.queryObject(
+  {
+    text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
+    fields: ["id", "ID"],
+  },
+);
+
+// This will throw because the returned number of columns don't match the
+// number of defined ones in the function call
+await client.queryObject(
+  {
+    text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
+    fields: ["id", "name", "something_else"],
+  },
+);
 ```
