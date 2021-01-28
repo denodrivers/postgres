@@ -1,7 +1,7 @@
 # deno-postgres
 
-![ci](https://github.com/buildondata/deno-postgres/workflows/ci/badge.svg)
-[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/deno-postgres/community)
+![ci](https://img.shields.io/github/workflow/status/denodrivers/postgres/ci?label=Build&logo=github&style=flat-square)
+[![Discord](https://img.shields.io/discord/768918486575480863?color=blue&label=Ask%20for%20help%20here&logo=discord&style=flat-square)](https://discord.gg/7WzcWABK)
 
 PostgreSQL driver for Deno.
 
