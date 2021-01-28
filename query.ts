@@ -34,7 +34,7 @@ export interface QueryObjectConfig extends QueryConfig {
   fields?: string[];
 }
 
-class QueryResult {
+export class QueryResult {
   // TODO
   // This should be private for real
   public _done = false;
@@ -67,6 +67,10 @@ class QueryResult {
     }
   }
 
+  insertRow(_row: Uint8Array[]): void {
+    throw new Error("No implementation for insertRow is defined");
+  }
+
   done() {
     this._done = true;
   }
@@ -76,7 +80,13 @@ export class QueryArrayResult<T extends Array<unknown>> extends QueryResult {
   public rows: T[] = [];
 
   // deno-lint-ignore camelcase
-  private parseRowData(row_data: Uint8Array[]): T {
+  insertRow(row_data: Uint8Array[]) {
+    if (this._done) {
+      throw new Error(
+        "Tried to add a new row to the result after the result is done reading",
+      );
+    }
+
     if (!this.rowDescription) {
       throw new Error(
         "The row descriptions required to parse the result data weren't initialized",
@@ -84,7 +94,7 @@ export class QueryArrayResult<T extends Array<unknown>> extends QueryResult {
     }
 
     // Row description won't be modified after initialization
-    return row_data.map((raw_value, index) => {
+    const row = row_data.map((raw_value, index) => {
       const column = this.rowDescription!.columns[index];
 
       if (raw_value === null) {
@@ -92,17 +102,8 @@ export class QueryArrayResult<T extends Array<unknown>> extends QueryResult {
       }
       return decode(raw_value, column);
     }) as T;
-  }
 
-  insertRow(row: Uint8Array[]): void {
-    if (this._done) {
-      throw new Error(
-        "Tried to add a new row to the result after the result is done reading",
-      );
-    }
-
-    const parsedRow = this.parseRowData(row);
-    this.rows.push(parsedRow);
+    this.rows.push(row);
   }
 }
 
@@ -111,7 +112,13 @@ export class QueryObjectResult<T extends Record<string, unknown>>
   public rows: T[] = [];
 
   // deno-lint-ignore camelcase
-  private parseRowData(row_data: Uint8Array[]) {
+  insertRow(row_data: Uint8Array[]) {
+    if (this._done) {
+      throw new Error(
+        "Tried to add a new row to the result after the result is done reading",
+      );
+    }
+
     if (!this.rowDescription) {
       throw new Error(
         "The row descriptions required to parse the result data weren't initialized",
@@ -129,7 +136,7 @@ export class QueryObjectResult<T extends Record<string, unknown>>
     }
 
     // Row description won't be modified after initialization
-    return row_data.reduce((row, raw_value, index) => {
+    const row = row_data.reduce((row, raw_value, index) => {
       const column = this.rowDescription!.columns[index];
 
       // Find the field name provided by the user
@@ -144,17 +151,8 @@ export class QueryObjectResult<T extends Record<string, unknown>>
 
       return row;
     }, {} as Record<string, unknown>) as T;
-  }
 
-  insertRow(row: Uint8Array[]): void {
-    if (this._done) {
-      throw new Error(
-        "Tried to add a new row to the result after the result is done reading",
-      );
-    }
-
-    const parsedRow = this.parseRowData(row);
-    this.rows.push(parsedRow);
+    this.rows.push(row);
   }
 }
 

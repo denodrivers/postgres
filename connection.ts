@@ -38,6 +38,7 @@ import {
   QueryArrayResult,
   QueryConfig,
   QueryObjectResult,
+  QueryResult,
 } from "./query.ts";
 import type { ConnectionParams } from "./connection_params.ts";
 
@@ -286,15 +287,7 @@ export class Connection {
     this._processReadyForQuery(msg);
   }
 
-  private async _simpleQuery<T extends unknown[]>(
-    query: Query,
-    type: ResultType.ARRAY,
-  ): Promise<QueryArrayResult<T>>;
-  private async _simpleQuery<T extends Record<string, unknown>>(
-    query: Query,
-    type: ResultType.OBJECT,
-  ): Promise<QueryObjectResult<T>>;
-  private async _simpleQuery(query: Query, type: ResultType) {
+  private async _simpleQuery(query: Query, type: ResultType): Promise<QueryResult> {
     this.packetWriter.clear();
 
     const buffer = this.packetWriter.addCString(query.text).flush(0x51);
@@ -512,15 +505,7 @@ export class Connection {
 
   // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
   //  sent after error response is received in prepared statements?
-  async _preparedQuery<T extends unknown[]>(
-    query: Query,
-    type: ResultType.ARRAY,
-  ): Promise<QueryArrayResult<T>>;
-  async _preparedQuery<T extends Record<string, unknown>>(
-    query: Query,
-    type: ResultType.OBJECT,
-  ): Promise<QueryObjectResult<T>>;
-  async _preparedQuery(query: Query, type: ResultType) {
+  async _preparedQuery(query: Query, type: ResultType): Promise<QueryResult> {
     await this._sendPrepareMessage(query);
     await this._sendBindMessage(query);
     await this._sendDescribeMessage();
@@ -591,21 +576,13 @@ export class Connection {
     return result;
   }
 
-  async query<T extends unknown[]>(
-    query: Query,
-    type: ResultType.ARRAY,
-  ): Promise<QueryArrayResult<T>>;
-  async query<T extends Record<string, unknown>>(
-    query: Query,
-    type: ResultType.OBJECT,
-  ): Promise<QueryObjectResult<T>>;
-  async query(query: Query, type: ResultType) {
+  async query(query: Query, type: ResultType): Promise<QueryResult> {
     await this._queryLock.pop();
     try {
       if (query.args.length === 0) {
-        return (await this._simpleQuery(query, type as any)) as any;
+        return await this._simpleQuery(query, type);
       } else {
-        return (await this._preparedQuery(query, type as any)) as any;
+        return await this._preparedQuery(query, type);
       }
     } finally {
       this._queryLock.push(undefined);

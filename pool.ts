@@ -12,6 +12,7 @@ import {
   QueryConfig,
   QueryObjectConfig,
   QueryObjectResult,
+  QueryResult,
 } from "./query.ts";
 
 // TODO
@@ -76,19 +77,11 @@ export class Pool {
     );
   }
 
-  private async _execute<T extends unknown[]>(
-    query: Query,
-    type: ResultType.ARRAY,
-  ): Promise<QueryArrayResult<T>>;
-  private async _execute<T extends Record<string, unknown>>(
-    query: Query,
-    type: ResultType.OBJECT,
-  ): Promise<QueryObjectResult<T>>;
-  private async _execute(query: Query, type: ResultType) {
+  private async _execute(query: Query, type: ResultType): Promise<QueryResult>{
     await this.ready;
     const connection = await this._availableConnections.pop();
     try {
-      return (await connection.query(query, type as any)) as any;
+      return await connection.query(query, type);
     } catch (error) {
       throw error;
     } finally {
@@ -103,7 +96,6 @@ export class Pool {
     return new PoolClient(connection, release);
   }
 
-  // TODO: can we use more specific type for args?
   async queryArray<T extends Array<unknown> = Array<unknown>>(
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
@@ -115,7 +107,7 @@ export class Pool {
     } else {
       query = new Query(text);
     }
-    return await this._execute<T>(query, ResultType.ARRAY);
+    return await this._execute(query, ResultType.ARRAY) as QueryArrayResult<T>;
   }
 
   async queryObject<
@@ -124,14 +116,14 @@ export class Pool {
     text: string | QueryObjectConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ): Promise<QueryObjectResult<T>> {
+  ) {
     let query;
     if (typeof text === "string") {
       query = new Query(text, ...args);
     } else {
       query = new Query(text);
     }
-    return await this._execute<T>(query, ResultType.OBJECT);
+    return await this._execute(query, ResultType.OBJECT) as QueryObjectResult<T>;
   }
 
   async end(): Promise<void> {
