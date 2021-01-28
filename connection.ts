@@ -287,7 +287,10 @@ export class Connection {
     this._processReadyForQuery(msg);
   }
 
-  private async _simpleQuery(query: Query, type: ResultType): Promise<QueryResult> {
+  private async _simpleQuery(
+    query: Query,
+    type: ResultType,
+  ): Promise<QueryResult> {
     this.packetWriter.clear();
 
     const buffer = this.packetWriter.addCString(query.text).flush(0x51);

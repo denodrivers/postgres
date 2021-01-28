@@ -19,14 +19,17 @@ class BaseClient {
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ) {
+  ): Promise<QueryArrayResult<T>> {
     let query;
     if (typeof text === "string") {
       query = new Query(text, ...args);
     } else {
       query = new Query(text);
     }
-    return await this._connection.query(query, ResultType.ARRAY) as QueryArrayResult<T>;
+    return await this._connection.query(
+      query,
+      ResultType.ARRAY,
+    ) as QueryArrayResult<T>;
   }
 
   async queryObject<
@@ -35,14 +38,17 @@ class BaseClient {
     text: string | QueryObjectConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ) {
+  ): Promise<QueryObjectResult<T>> {
     let query;
     if (typeof text === "string") {
       query = new Query(text, ...args);
     } else {
       query = new Query(text);
     }
-    return await this._connection.query(query, ResultType.OBJECT) as QueryObjectResult<T>;
+    return await this._connection.query(
+      query,
+      ResultType.OBJECT,
+    ) as QueryObjectResult<T>;
   }
 }
 

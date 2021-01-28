@@ -15,8 +15,6 @@ import {
   QueryResult,
 } from "./query.ts";
 
-// TODO
-// This whole construct might be redundant to PoolClient
 export class Pool {
   private _connectionParams: ConnectionParams;
   private _connections!: Array<Connection>;
@@ -77,7 +75,7 @@ export class Pool {
     );
   }
 
-  private async _execute(query: Query, type: ResultType): Promise<QueryResult>{
+  private async _execute(query: Query, type: ResultType): Promise<QueryResult> {
     await this.ready;
     const connection = await this._availableConnections.pop();
     try {
@@ -100,7 +98,7 @@ export class Pool {
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ) {
+  ): Promise<QueryArrayResult<T>> {
     let query;
     if (typeof text === "string") {
       query = new Query(text, ...args);
@@ -116,14 +114,16 @@ export class Pool {
     text: string | QueryObjectConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ) {
+  ): Promise<QueryObjectResult<T>> {
     let query;
     if (typeof text === "string") {
       query = new Query(text, ...args);
     } else {
       query = new Query(text);
     }
-    return await this._execute(query, ResultType.OBJECT) as QueryObjectResult<T>;
+    return await this._execute(query, ResultType.OBJECT) as QueryObjectResult<
+      T
+    >;
   }
 
   async end(): Promise<void> {
