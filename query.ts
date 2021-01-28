@@ -106,7 +106,8 @@ export class QueryArrayResult<T extends Array<unknown>> extends QueryResult {
   }
 }
 
-export class QueryObjectResult<T extends Record<string, unknown>> extends QueryResult {
+export class QueryObjectResult<T extends Record<string, unknown>>
+  extends QueryResult {
   public rows: T[] = [];
 
   // deno-lint-ignore camelcase

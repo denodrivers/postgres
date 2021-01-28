@@ -29,7 +29,9 @@ class BaseClient {
     return await this._connection.query<T>(query, ResultType.ARRAY);
   }
 
-  async queryObject<T extends Record<string, unknown> = Record<string, unknown>>(
+  async queryObject<
+    T extends Record<string, unknown> = Record<string, unknown>,
+  >(
     text: string | QueryObjectConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]

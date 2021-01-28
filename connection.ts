@@ -591,7 +591,10 @@ export class Connection {
     return result;
   }
 
-  async query<T extends unknown[]>(query: Query, type: ResultType.ARRAY): Promise<QueryArrayResult<T>>;
+  async query<T extends unknown[]>(
+    query: Query,
+    type: ResultType.ARRAY,
+  ): Promise<QueryArrayResult<T>>;
   async query<T extends Record<string, unknown>>(
     query: Query,
     type: ResultType.OBJECT,
