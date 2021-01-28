@@ -86,6 +86,9 @@ export class RowDescription {
   constructor(public columnCount: number, public columns: Column[]) {}
 }
 
+//TODO
+//Refactor properties to not be lazily initialized
+//or to handle their undefined value
 export class Connection {
   private conn!: Deno.Conn;
 
