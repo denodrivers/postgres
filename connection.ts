@@ -286,14 +286,14 @@ export class Connection {
     this._processReadyForQuery(msg);
   }
 
-  private async _simpleQuery(
+  private async _simpleQuery<T extends unknown[]>(
     query: Query,
     type: ResultType.ARRAY,
-  ): Promise<QueryArrayResult>;
-  private async _simpleQuery(
+  ): Promise<QueryArrayResult<T>>;
+  private async _simpleQuery<T extends Record<string, unknown>>(
     query: Query,
     type: ResultType.OBJECT,
-  ): Promise<QueryObjectResult>;
+  ): Promise<QueryObjectResult<T>>;
   private async _simpleQuery(query: Query, type: ResultType) {
     this.packetWriter.clear();
 
@@ -512,14 +512,14 @@ export class Connection {
 
   // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
   //  sent after error response is received in prepared statements?
-  async _preparedQuery(
+  async _preparedQuery<T extends unknown[]>(
     query: Query,
     type: ResultType.ARRAY,
-  ): Promise<QueryArrayResult>;
-  async _preparedQuery(
+  ): Promise<QueryArrayResult<T>>;
+  async _preparedQuery<T extends Record<string, unknown>>(
     query: Query,
     type: ResultType.OBJECT,
-  ): Promise<QueryObjectResult>;
+  ): Promise<QueryObjectResult<T>>;
   async _preparedQuery(query: Query, type: ResultType) {
     await this._sendPrepareMessage(query);
     await this._sendBindMessage(query);
@@ -591,11 +591,11 @@ export class Connection {
     return result;
   }
 
-  async query(query: Query, type: ResultType.ARRAY): Promise<QueryArrayResult>;
-  async query(
+  async query<T extends unknown[]>(query: Query, type: ResultType.ARRAY): Promise<QueryArrayResult<T>>;
+  async query<T extends Record<string, unknown>>(
     query: Query,
     type: ResultType.OBJECT,
-  ): Promise<QueryObjectResult>;
+  ): Promise<QueryObjectResult<T>>;
   async query(query: Query, type: ResultType) {
     await this._queryLock.pop();
     try {

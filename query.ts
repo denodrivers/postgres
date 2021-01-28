@@ -72,12 +72,11 @@ class QueryResult {
   }
 }
 
-export class QueryArrayResult extends QueryResult {
-  // deno-lint-ignore no-explicit-any
-  public rows: any[][] = [];
+export class QueryArrayResult<T extends Array<unknown>> extends QueryResult {
+  public rows: T[] = [];
 
-  // deno-lint-ignore camelcase no-explicit-any
-  private parseRowData(row_data: Uint8Array[]): any[] {
+  // deno-lint-ignore camelcase
+  private parseRowData(row_data: Uint8Array[]): T {
     if (!this.rowDescription) {
       throw new Error(
         "The row descriptions required to parse the result data weren't initialized",
@@ -92,7 +91,7 @@ export class QueryArrayResult extends QueryResult {
         return null;
       }
       return decode(raw_value, column);
-    });
+    }) as T;
   }
 
   insertRow(row: Uint8Array[]): void {
@@ -107,9 +106,8 @@ export class QueryArrayResult extends QueryResult {
   }
 }
 
-export class QueryObjectResult extends QueryResult {
-  // deno-lint-ignore no-explicit-any
-  public rows: Record<string, any>[] = [];
+export class QueryObjectResult<T extends Record<string, unknown>> extends QueryResult {
+  public rows: T[] = [];
 
   // deno-lint-ignore camelcase
   private parseRowData(row_data: Uint8Array[]) {
@@ -144,8 +142,7 @@ export class QueryObjectResult extends QueryResult {
       }
 
       return row;
-      // deno-lint-ignore no-explicit-any
-    }, {} as Record<string, any>);
+    }, {} as Record<string, unknown>) as T;
   }
 
   insertRow(row: Uint8Array[]): void {

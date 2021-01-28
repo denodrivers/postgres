@@ -71,7 +71,7 @@ testPool(async function objectQueryThrowsOnNotMatchingFields(POOL) {
 });
 
 testPool(async function nativeType(POOL) {
-  const result = await POOL.queryArray("SELECT * FROM timestamps;");
+  const result = await POOL.queryArray<[Date]>("SELECT * FROM timestamps;");
   const row = result.rows[0];
 
   const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);

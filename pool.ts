@@ -76,14 +76,14 @@ export class Pool {
     );
   }
 
-  private async _execute(
+  private async _execute<T extends unknown[]>(
     query: Query,
     type: ResultType.ARRAY,
-  ): Promise<QueryArrayResult>;
-  private async _execute(
+  ): Promise<QueryArrayResult<T>>;
+  private async _execute<T extends Record<string, unknown>>(
     query: Query,
     type: ResultType.OBJECT,
-  ): Promise<QueryObjectResult>;
+  ): Promise<QueryObjectResult<T>>;
   private async _execute(query: Query, type: ResultType) {
     await this.ready;
     const connection = await this._availableConnections.pop();
@@ -115,21 +115,21 @@ export class Pool {
     } else {
       query = new Query(text);
     }
-    return await this._execute(query, ResultType.ARRAY);
+    return await this._execute<T>(query, ResultType.ARRAY);
   }
 
-  async queryObject(
+  async queryObject<T extends Record<string, unknown> = Record<string, unknown>>(
     text: string | QueryObjectConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
-  ): Promise<QueryObjectResult> {
+  ): Promise<QueryObjectResult<T>> {
     let query;
     if (typeof text === "string") {
       query = new Query(text, ...args);
     } else {
       query = new Query(text);
     }
-    return await this._execute(query, ResultType.OBJECT);
+    return await this._execute<T>(query, ResultType.OBJECT);
   }
 
   async end(): Promise<void> {

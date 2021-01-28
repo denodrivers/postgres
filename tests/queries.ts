@@ -87,7 +87,7 @@ testClient(async function handleQueryNotice() {
 });
 
 testClient(async function nativeType() {
-  const result = await CLIENT.queryArray("SELECT * FROM timestamps;");
+  const result = await CLIENT.queryArray<[Date]>("SELECT * FROM timestamps;");
   const row = result.rows[0];
 
   const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
@@ -112,7 +112,7 @@ testClient(async function binaryType() {
 });
 
 testClient(async function resultMetadata() {
-  let result: QueryArrayResult;
+  let result;
 
   // simple select
   result = await CLIENT.queryArray("SELECT * FROM ids WHERE id = 100");
