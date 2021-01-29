@@ -16,11 +16,11 @@ const client = new Client({
 });
 await client.connect();
 
-const result = await client.queryArray("SELECT ID, NAME FROM PEOPLE");
-console.log(result.rows); // [[1, 'Carlos'], [2, 'John'], ...]
+const array_result = await client.queryArray("SELECT ID, NAME FROM PEOPLE");
+console.log(array_result.rows); // [[1, 'Carlos'], [2, 'John'], ...]
 
-const result = await client.queryObject("SELECT ID, NAME FROM PEOPLE");
-console.log(result.rows); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+const object_result = await client.queryObject("SELECT ID, NAME FROM PEOPLE");
+console.log(object_result.rows); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
 
 await client.end();
 ```
@@ -75,24 +75,48 @@ application is. Increase or decrease where necessary.
 
 ## Connecting to DB
 
-If any of parameters is missing it is read from environmental variable.
-
 ```ts
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 
 let config;
 
 config = {
+  applicationName: "my_custom_app",
+  database: "test",
   hostname: "localhost",
+  password: "password",
   port: 5432,
   user: "user",
-  database: "test",
-  applicationName: "my_custom_app",
 };
-// alternatively
-config = "postgres://user@localhost:5432/test?application_name=my_custom_app";
+
+// Alternatively you can use a connection string
+config =
+  "postgres://user:password@localhost:5432/test?application_name=my_custom_app";
 
 const client = new Client(config);
+await client.connect();
+await client.end();
+```
+
+The values required to connect to the database can be read directly from
+environmental variables, given the case that the user doesn't provide them while
+initializing the client. The only requirement for this variables to be read is
+for Deno to be run with `--allow-env` permissions
+
+The env variables that the client will recognize are the following
+
+- PGAPPNAME - Application name
+- PGDATABASE - Database
+- PGHOST - Host
+- PGPASSWORD - Password
+- PGPORT - Port
+- PGUSER - Username
+
+```ts
+// PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env database.js
+import { Client } from "https://deno.land/x/postgres/mod.ts";
+
+const client = new Client();
 await client.connect();
 await client.end();
 ```
