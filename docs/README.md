@@ -5,12 +5,6 @@
 ![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=orange&label=Documentation&logo=deno&style=flat-square)
 ![License](https://img.shields.io/github/license/denodrivers/postgres?color=yellow&label=License&style=flat-square)
 
-PostgreSQL driver for Deno.
-
-`deno-postgres` is being developed based on excellent work of
-[node-postgres](https://github.com/brianc/node-postgres) and
-[pq](https://github.com/lib/pq).
-
 ```ts
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 
