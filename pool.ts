@@ -6,14 +6,7 @@ import {
   createParams,
 } from "./connection_params.ts";
 import { DeferredStack } from "./deferred.ts";
-import {
-  Query,
-  QueryArrayResult,
-  QueryConfig,
-  QueryObjectConfig,
-  QueryObjectResult,
-  QueryResult,
-} from "./query.ts";
+import { Query, QueryResult } from "./query.ts";
 
 export class Pool extends QueryClient {
   private _connectionParams: ConnectionParams;
