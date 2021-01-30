@@ -104,14 +104,7 @@ environmental variables, given the case that the user doesn't provide them while
 initializing the client. The only requirement for this variables to be read is
 for Deno to be run with `--allow-env` permissions
 
-The env variables that the client will recognize are the following
-
-- PGAPPNAME - Application name
-- PGDATABASE - Database
-- PGHOST - Host
-- PGPASSWORD - Password
-- PGPORT - Port
-- PGUSER - Username
+The env variables that the client will recognize are the same as `libpq` and their documentation is available here https://www.postgresql.org/docs/current/libpq-envars.html
 
 ```ts
 // PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env database.js
