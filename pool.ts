@@ -106,8 +106,4 @@ export class Pool extends QueryClient {
       await conn.end();
     }
   }
-
-  // Support `using` module
-  _aenter = () => {};
-  _aexit = this.end;
 }

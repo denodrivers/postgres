@@ -62,10 +62,10 @@ export class QueryClient {
 
 export class Client extends QueryClient {
   protected _connection: Connection;
-  
+
   constructor(config?: ConnectionOptions | string) {
     super();
-    this._connection = new Connection(createParams(config))
+    this._connection = new Connection(createParams(config));
   }
 
   _executeQuery(query: Query, result: ResultType): Promise<QueryResult> {
@@ -80,10 +80,6 @@ export class Client extends QueryClient {
   async end(): Promise<void> {
     await this._connection.end();
   }
-
-  // Support `using` module
-  _aenter = this.connect;
-  _aexit = this.end;
 }
 
 export class PoolClient extends QueryClient {
