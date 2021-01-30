@@ -17,14 +17,14 @@ export type ConnectionString = string;
  * 
  * It will throw if no env permission was provided on startup
  */
-function getPgEnv(): ConnectionOptions {
+function getPgEnv() {
   return {
+    applicationName: Deno.env.get("PGAPPNAME"),
     database: Deno.env.get("PGDATABASE"),
     hostname: Deno.env.get("PGHOST"),
+    password: Deno.env.get("PGPASSWORD"),
     port: Deno.env.get("PGPORT"),
     user: Deno.env.get("PGUSER"),
-    password: Deno.env.get("PGPASSWORD"),
-    applicationName: Deno.env.get("PGAPPNAME"),
   };
 }
 
@@ -40,11 +40,11 @@ export class ConnectionParamsError extends Error {
 
 export interface ConnectionOptions {
   applicationName?: string;
-  database?: string;
+  database: string;
   hostname?: string;
   password?: string;
   port?: string | number;
-  user?: string;
+  user: string;
 }
 
 export interface ConnectionParams {
@@ -72,7 +72,7 @@ function formatMissingParams(missingParams: string[]) {
  * telling the user to pass env permissions in order to read environmental variables
  */
 function assertRequiredOptions(
-  options: ConnectionOptions,
+  options: Record<string, string | undefined | null>,
   requiredKeys: (keyof ConnectionOptions)[],
   // deno-lint-ignore camelcase
   has_env_access: boolean,
@@ -122,13 +122,13 @@ const DEFAULT_OPTIONS = {
 };
 
 export function createParams(
-  params: string | ConnectionOptions = {},
+  params?: string | ConnectionOptions,
 ): ConnectionParams {
   if (typeof params === "string") {
     params = parseOptionsFromDsn(params);
   }
 
-  let pgEnv: ConnectionOptions = {};
+  let pgEnv: Record<string, string | undefined> = {};
   // deno-lint-ignore camelcase
   let has_env_access = true;
   try {
@@ -142,7 +142,7 @@ export function createParams(
   }
 
   let port: string;
-  if (params.port) {
+  if (params?.port) {
     port = String(params.port);
   } else if (pgEnv.port) {
     port = String(pgEnv.port);
@@ -154,13 +154,13 @@ export function createParams(
   // Perhaps username should be taken from the PC user as a default?
   // deno-lint-ignore camelcase
   const connection_options = {
-    applicationName: params.applicationName ?? pgEnv.applicationName ??
+    applicationName: params?.applicationName ?? pgEnv.applicationName ??
       DEFAULT_OPTIONS.applicationName,
-    database: params.database ?? pgEnv.database,
-    hostname: params.hostname ?? pgEnv.hostname ?? DEFAULT_OPTIONS.hostname,
-    password: params.password ?? pgEnv.password,
+    database: params?.database ?? pgEnv.database,
+    hostname: params?.hostname ?? pgEnv.hostname ?? DEFAULT_OPTIONS.hostname,
+    password: params?.password ?? pgEnv.password,
     port,
-    user: params.user ?? pgEnv.user,
+    user: params?.user ?? pgEnv.user,
   };
 
   assertRequiredOptions(
