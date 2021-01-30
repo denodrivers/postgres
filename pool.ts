@@ -3,6 +3,7 @@ import { Connection, ResultType } from "./connection.ts";
 import {
   ConnectionOptions,
   ConnectionParams,
+  ConnectionString,
   createParams,
 } from "./connection_params.ts";
 import { DeferredStack } from "./deferred.ts";
@@ -17,7 +18,7 @@ export class Pool extends QueryClient {
   private _lazy: boolean;
 
   constructor(
-    connectionParams: ConnectionOptions,
+    connectionParams: ConnectionOptions | ConnectionString | undefined,
     maxSize: number,
     lazy?: boolean,
   ) {

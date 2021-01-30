@@ -3,7 +3,6 @@ import { assert, assertEquals, assertThrowsAsync } from "../test_deps.ts";
 import { DEFAULT_SETUP } from "./constants.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
-import type { QueryArrayResult } from "../query.ts";
 
 const CLIENT = new Client(TEST_CONNECTION_PARAMS);
 

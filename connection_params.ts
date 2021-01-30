@@ -1,25 +1,31 @@
 import { parseDsn } from "./utils.ts";
 
-function getPgEnv(): ConnectionOptions {
-  try {
-    const env = Deno.env;
-    const port = env.get("PGPORT");
-    return {
-      database: env.get("PGDATABASE"),
-      hostname: env.get("PGHOST"),
-      port: port ? parseInt(port, 10) : undefined,
-      user: env.get("PGUSER"),
-      password: env.get("PGPASSWORD"),
-      applicationName: env.get("PGAPPNAME"),
-    };
-  } catch (e) {
-    // PermissionDenied (--allow-env not passed)
-    return {};
-  }
-}
+/**
+ * The connection string must match the following URI structure
+ * 
+ * ```ts
+ * const connection = "postgres://user:password@hostname:port/database?application_name=application_name";
+ * ```
+ * 
+ * Password, port and application name are optional parameters
+ */
+export type ConnectionString = string;
 
-function isDefined<T>(value: T): value is NonNullable<T> {
-  return value !== undefined && value !== null;
+/**
+ * This function retrieves the connection options from the environmental variables
+ * as they are, without any extra parsing
+ * 
+ * It will throw if no env permission was provided on startup
+ */
+function getPgEnv(): ConnectionOptions {
+  return {
+    database: Deno.env.get("PGDATABASE"),
+    hostname: Deno.env.get("PGHOST"),
+    port: Deno.env.get("PGPORT"),
+    user: Deno.env.get("PGUSER"),
+    password: Deno.env.get("PGPASSWORD"),
+    applicationName: Deno.env.get("PGAPPNAME"),
+  };
 }
 
 export class ConnectionParamsError extends Error {
@@ -30,82 +36,24 @@ export class ConnectionParamsError extends Error {
 }
 
 // TODO
-// Database and user properties shouldn't be optional
+// Support other params
+
 export interface ConnectionOptions {
+  applicationName?: string;
   database?: string;
   hostname?: string;
-  port?: number;
-  user?: string;
   password?: string;
-  applicationName?: string;
+  port?: string | number;
+  user?: string;
 }
 
 export interface ConnectionParams {
+  applicationName: string;
   database: string;
   hostname: string;
+  password?: string;
   port: number;
   user: string;
-  password?: string;
-  applicationName: string;
-  // TODO: support other params
-}
-
-function select<T extends keyof ConnectionOptions>(
-  sources: ConnectionOptions[],
-  key: T,
-): ConnectionOptions[T] {
-  return sources.map((s) => s[key]).find(isDefined);
-}
-
-function selectRequired<T extends keyof ConnectionOptions>(
-  sources: ConnectionOptions[],
-  key: T,
-): NonNullable<ConnectionOptions[T]> {
-  const result = select(sources, key);
-
-  if (!isDefined(result)) {
-    throw new ConnectionParamsError(`Required parameter ${key} not provided`);
-  }
-
-  return result;
-}
-
-function assertRequiredOptions(
-  sources: ConnectionOptions[],
-  requiredKeys: (keyof ConnectionOptions)[],
-) {
-  const missingParams: (keyof ConnectionOptions)[] = [];
-  for (const key of requiredKeys) {
-    if (!isDefined(select(sources, key))) {
-      missingParams.push(key);
-    }
-  }
-
-  if (missingParams.length) {
-    // deno-lint-ignore camelcase
-    const missing_params_message = formatMissingParams(missingParams);
-
-    // deno-lint-ignore camelcase
-    let permission_error_thrown = false;
-    try {
-      Deno.env.toObject();
-    } catch (e) {
-      if (e instanceof Deno.errors.PermissionDenied) {
-        permission_error_thrown = true;
-      } else {
-        throw e;
-      }
-    }
-
-    if (permission_error_thrown) {
-      throw new ConnectionParamsError(
-        missing_params_message +
-          "\nConnection parameters can be read from environment only if Deno is run with env permission",
-      );
-    } else {
-      throw new ConnectionParamsError(missing_params_message);
-    }
-  }
 }
 
 function formatMissingParams(missingParams: string[]) {
@@ -116,54 +64,126 @@ function formatMissingParams(missingParams: string[]) {
   }`;
 }
 
-const DEFAULT_OPTIONS: ConnectionOptions = {
-  hostname: "127.0.0.1",
-  port: 5432,
-  applicationName: "deno_postgres",
-};
+/**
+ * This validates the options passed are defined and have a value other than null
+ * or empty string, it throws a connection error otherwise
+ * 
+ * @param has_env_access This parameter will change the error message if set to true,
+ * telling the user to pass env permissions in order to read environmental variables
+ */
+function assertRequiredOptions(
+  options: ConnectionOptions,
+  requiredKeys: (keyof ConnectionOptions)[],
+  // deno-lint-ignore camelcase
+  has_env_access: boolean,
+) {
+  const missingParams: (keyof ConnectionOptions)[] = [];
+  for (const key of requiredKeys) {
+    if (
+      options[key] === "" ||
+      options[key] === null ||
+      options[key] === undefined
+    ) {
+      missingParams.push(key);
+    }
+  }
+
+  if (missingParams.length) {
+    // deno-lint-ignore camelcase
+    let missing_params_message = formatMissingParams(missingParams);
+    if (!has_env_access) {
+      missing_params_message +=
+        "\nConnection parameters can be read from environment variables only if Deno is run with env permission";
+    }
+
+    throw new ConnectionParamsError(missing_params_message);
+  }
+}
 
 function parseOptionsFromDsn(connString: string): ConnectionOptions {
   const dsn = parseDsn(connString);
 
   if (dsn.driver !== "postgres") {
-    throw new Error(`Supplied DSN has invalid driver: ${dsn.driver}.`);
+    throw new ConnectionParamsError(
+      `Supplied DSN has invalid driver: ${dsn.driver}.`,
+    );
   }
 
   return {
     ...dsn,
-    port: dsn.port ? parseInt(dsn.port, 10) : undefined,
     applicationName: dsn.params.application_name,
   };
 }
 
+const DEFAULT_OPTIONS = {
+  hostname: "127.0.0.1",
+  port: "5432",
+  applicationName: "deno_postgres",
+};
+
 export function createParams(
-  config: string | ConnectionOptions = {},
+  params: string | ConnectionOptions = {},
 ): ConnectionParams {
-  if (typeof config === "string") {
-    const dsn = parseOptionsFromDsn(config);
-    return createParams(dsn);
+  if (typeof params === "string") {
+    params = parseOptionsFromDsn(params);
   }
 
-  const pgEnv = getPgEnv();
+  let pgEnv: ConnectionOptions = {};
+  // deno-lint-ignore camelcase
+  let has_env_access = true;
+  try {
+    pgEnv = getPgEnv();
+  } catch (e) {
+    if (e instanceof Deno.errors.PermissionDenied) {
+      has_env_access = false;
+    } else {
+      throw e;
+    }
+  }
 
-  const sources = [config, pgEnv, DEFAULT_OPTIONS];
-  assertRequiredOptions(
-    sources,
-    ["database", "hostname", "port", "user", "applicationName"],
-  );
+  let port: string;
+  if (params.port) {
+    port = String(params.port);
+  } else if (pgEnv.port) {
+    port = String(pgEnv.port);
+  } else {
+    port = DEFAULT_OPTIONS.port;
+  }
 
-  const params = {
-    database: selectRequired(sources, "database"),
-    hostname: selectRequired(sources, "hostname"),
-    port: selectRequired(sources, "port"),
-    applicationName: selectRequired(sources, "applicationName"),
-    user: selectRequired(sources, "user"),
-    password: select(sources, "password"),
+  // TODO
+  // Perhaps username should be taken from the PC user as a default?
+  // deno-lint-ignore camelcase
+  const connection_options = {
+    applicationName: params.applicationName ?? pgEnv.applicationName ??
+      DEFAULT_OPTIONS.applicationName,
+    database: params.database ?? pgEnv.database,
+    hostname: params.hostname ?? pgEnv.hostname ?? DEFAULT_OPTIONS.hostname,
+    password: params.password ?? pgEnv.password,
+    port,
+    user: params.user ?? pgEnv.user,
   };
 
-  if (isNaN(params.port)) {
-    throw new ConnectionParamsError(`Invalid port ${params.port}`);
+  assertRequiredOptions(
+    connection_options,
+    ["database", "hostname", "port", "user", "applicationName"],
+    has_env_access,
+  );
+
+  // By this point all required parameters have been checked out
+  // by the assert function
+  // deno-lint-ignore camelcase
+  const connection_parameters: ConnectionParams = {
+    ...connection_options,
+    database: connection_options.database as string,
+    port: parseInt(connection_options.port, 10),
+    user: connection_options.user as string,
+  };
+
+  if (isNaN(connection_parameters.port)) {
+    throw new ConnectionParamsError(
+      `Invalid port ${connection_parameters.port}`,
+    );
   }
 
-  return params;
+  return connection_parameters;
 }

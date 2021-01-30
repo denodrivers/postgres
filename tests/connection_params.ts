@@ -17,10 +17,10 @@ const withEnv = (env: {
   user: string;
   port: string;
 }, fn: () => void) => {
-  const PGDATABASE = Deno.env.get("PGDATABASE") || "";
-  const PGHOST = Deno.env.get("PGHOST") || "";
-  const PGPORT = Deno.env.get("PGPORT") || "";
-  const PGUSER = Deno.env.get("PGUSER") || "";
+  const PGDATABASE = Deno.env.get("PGDATABASE");
+  const PGHOST = Deno.env.get("PGHOST");
+  const PGPORT = Deno.env.get("PGPORT");
+  const PGUSER = Deno.env.get("PGUSER");
 
   Deno.env.set("PGDATABASE", env.database);
   Deno.env.set("PGHOST", env.host);
@@ -33,9 +33,9 @@ const withEnv = (env: {
   PGDATABASE
     ? Deno.env.set("PGDATABASE", PGDATABASE)
     : Deno.env.delete("PGDATABASE");
-  PGDATABASE ? Deno.env.set("PGHOST", PGHOST) : Deno.env.delete("PGHOST");
-  PGDATABASE ? Deno.env.set("PGPORT", PGPORT) : Deno.env.delete("PGPORT");
-  PGDATABASE ? Deno.env.set("PGUSER", PGUSER) : Deno.env.delete("PGUSER");
+  PGHOST ? Deno.env.set("PGHOST", PGHOST) : Deno.env.delete("PGHOST");
+  PGPORT ? Deno.env.set("PGPORT", PGPORT) : Deno.env.delete("PGPORT");
+  PGUSER ? Deno.env.set("PGUSER", PGUSER) : Deno.env.delete("PGUSER");
 };
 
 function withNotAllowedEnv(fn: () => void) {
