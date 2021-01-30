@@ -1,4 +1,4 @@
-import { PoolClient } from "./client.ts";
+import { PoolClient, QueryClient } from "./client.ts";
 import { Connection, ResultType } from "./connection.ts";
 import {
   ConnectionOptions,
@@ -15,7 +15,7 @@ import {
   QueryResult,
 } from "./query.ts";
 
-export class Pool {
+export class Pool extends QueryClient {
   private _connectionParams: ConnectionParams;
   private _connections!: Array<Connection>;
   private _availableConnections!: DeferredStack<Connection>;
@@ -28,10 +28,15 @@ export class Pool {
     maxSize: number,
     lazy?: boolean,
   ) {
+    super();
     this._connectionParams = createParams(connectionParams);
     this._maxSize = maxSize;
     this._lazy = !!lazy;
     this.ready = this._startup();
+  }
+
+  _executeQuery(query: Query, result: ResultType): Promise<QueryResult> {
+    return this._execute(query, result);
   }
 
   private async _createConnection(): Promise<Connection> {
@@ -92,38 +97,6 @@ export class Pool {
     const connection = await this._availableConnections.pop();
     const release = () => this._availableConnections.push(connection);
     return new PoolClient(connection, release);
-  }
-
-  async queryArray<T extends Array<unknown> = Array<unknown>>(
-    text: string | QueryConfig,
-    // deno-lint-ignore no-explicit-any
-    ...args: any[]
-  ): Promise<QueryArrayResult<T>> {
-    let query;
-    if (typeof text === "string") {
-      query = new Query(text, ...args);
-    } else {
-      query = new Query(text);
-    }
-    return await this._execute(query, ResultType.ARRAY) as QueryArrayResult<T>;
-  }
-
-  async queryObject<
-    T extends Record<string, unknown> = Record<string, unknown>,
-  >(
-    text: string | QueryObjectConfig,
-    // deno-lint-ignore no-explicit-any
-    ...args: any[]
-  ): Promise<QueryObjectResult<T>> {
-    let query;
-    if (typeof text === "string") {
-      query = new Query(text, ...args);
-    } else {
-      query = new Query(text);
-    }
-    return await this._execute(query, ResultType.OBJECT) as QueryObjectResult<
-      T
-    >;
   }
 
   async end(): Promise<void> {

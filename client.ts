@@ -6,16 +6,23 @@ import {
   QueryConfig,
   QueryObjectConfig,
   QueryObjectResult,
+  QueryResult,
 } from "./query.ts";
 
-class BaseClient {
-  protected _connection: Connection;
-
-  constructor(connection: Connection) {
-    this._connection = connection;
+export class QueryClient {
+  /**
+   * This function is meant to be replaced when being extended
+   * 
+   * It's sole purpose is to be a common interface implementations can use
+   * regardless of their internal structure
+   */
+  _executeQuery(_query: Query, _result: ResultType): Promise<QueryResult> {
+    throw new Error(
+      `"${this._executeQuery.name}" hasn't been implemented for class "${this.constructor.name}"`,
+    );
   }
 
-  async queryArray<T extends Array<unknown> = Array<unknown>>(
+  queryArray<T extends Array<unknown> = Array<unknown>>(
     text: string | QueryConfig,
     // deno-lint-ignore no-explicit-any
     ...args: any[]
@@ -26,13 +33,14 @@ class BaseClient {
     } else {
       query = new Query(text);
     }
-    return await this._connection.query(
+
+    return this._executeQuery(
       query,
       ResultType.ARRAY,
-    ) as QueryArrayResult<T>;
+    ) as Promise<QueryArrayResult<T>>;
   }
 
-  async queryObject<
+  queryObject<
     T extends Record<string, unknown> = Record<string, unknown>,
   >(
     text: string | QueryObjectConfig,
@@ -45,10 +53,23 @@ class BaseClient {
     } else {
       query = new Query(text);
     }
-    return await this._connection.query(
+    return this._executeQuery(
       query,
       ResultType.OBJECT,
-    ) as QueryObjectResult<T>;
+    ) as Promise<QueryObjectResult<T>>;
+  }
+}
+
+class BaseClient extends QueryClient {
+  protected _connection: Connection;
+
+  constructor(connection: Connection) {
+    super();
+    this._connection = connection;
+  }
+
+  _executeQuery(query: Query, result: ResultType): Promise<QueryResult> {
+    return this._connection.query(query, result);
   }
 }
 
