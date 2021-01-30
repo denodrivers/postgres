@@ -29,6 +29,8 @@ export class ConnectionParamsError extends Error {
   }
 }
 
+// TODO
+// Database and user properties shouldn't be optional
 export interface ConnectionOptions {
   database?: string;
   hostname?: string;

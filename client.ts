@@ -58,15 +58,23 @@ export class QueryClient {
    * ); // Array<[number, string]>
    * ```
    */
+  queryArray<T extends Array<unknown>>(
+    query: string,
+    ...args: QueryArguments
+  ): Promise<QueryArrayResult<T>>;
+  queryArray<T extends Array<unknown>>(
+    config: QueryConfig,
+  ): Promise<QueryArrayResult<T>>;
   queryArray<T extends Array<unknown> = Array<unknown>>(
-    text: string | QueryConfig,
+    // deno-lint-ignore camelcase
+    query_or_config: string | QueryConfig,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>> {
     let query;
-    if (typeof text === "string") {
-      query = new Query(text, ...args);
+    if (typeof query_or_config === "string") {
+      query = new Query(query_or_config, ...args);
     } else {
-      query = new Query(text);
+      query = new Query(query_or_config);
     }
 
     return this._executeQuery(
@@ -107,18 +115,27 @@ export class QueryClient {
    * console.log(rows); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
    * ```
    */
+  queryObject<T extends Record<string, unknown>>(
+    query: string,
+    ...args: QueryArguments
+  ): Promise<QueryObjectResult<T>>;
+  queryObject<T extends Record<string, unknown>>(
+    config: QueryObjectConfig,
+  ): Promise<QueryObjectResult<T>>;
   queryObject<
     T extends Record<string, unknown> = Record<string, unknown>,
   >(
-    text: string | QueryObjectConfig,
+    // deno-lint-ignore camelcase
+    query_or_config: string | QueryObjectConfig,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>> {
     let query;
-    if (typeof text === "string") {
-      query = new Query(text, ...args);
+    if (typeof query_or_config === "string") {
+      query = new Query(query_or_config, ...args);
     } else {
-      query = new Query(text);
+      query = new Query(query_or_config);
     }
+
     return this._executeQuery(
       query,
       ResultType.OBJECT,
