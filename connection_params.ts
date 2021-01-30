@@ -1,5 +1,16 @@
 import { parseDsn } from "./utils.ts";
 
+/**
+ * The connection string must match the following URI structure
+ * 
+ * ```ts
+ * const connection = "postgres://user:password@hostname:port/database?application_name=application_name";
+ * ```
+ * 
+ * Password, port and application name are optional parameters
+ */
+export type ConnectionString = string;
+
 function getPgEnv(): ConnectionOptions {
   try {
     const env = Deno.env;

@@ -1,5 +1,9 @@
 import { Connection, ResultType } from "./connection.ts";
-import { ConnectionOptions, createParams } from "./connection_params.ts";
+import {
+  ConnectionOptions,
+  ConnectionString,
+  createParams,
+} from "./connection_params.ts";
 import {
   Query,
   QueryArrayResult,
@@ -146,7 +150,7 @@ export class QueryClient {
 export class Client extends QueryClient {
   protected _connection: Connection;
 
-  constructor(config?: ConnectionOptions | string) {
+  constructor(config?: ConnectionOptions | ConnectionString) {
     super();
     this._connection = new Connection(createParams(config));
   }
