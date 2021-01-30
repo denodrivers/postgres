@@ -90,16 +90,13 @@ function assertRequiredOptions(
 
   if (missingParams.length) {
     // deno-lint-ignore camelcase
-    const missing_params_message = formatMissingParams(missingParams);
-
-    if (has_env_access) {
-      throw new ConnectionParamsError(
-        missing_params_message +
-          "\nConnection parameters can be read from environment variables only if Deno is run with env permission",
-      );
-    } else {
-      throw new ConnectionParamsError(missing_params_message);
+    let missing_params_message = formatMissingParams(missingParams);
+    if (!has_env_access) {
+      missing_params_message +=
+        "\nConnection parameters can be read from environment variables only if Deno is run with env permission";
     }
+
+    throw new ConnectionParamsError(missing_params_message);
   }
 }
 
