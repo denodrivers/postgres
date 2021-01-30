@@ -163,16 +163,11 @@ export function createParams(
     user: params.user ?? pgEnv.user,
   };
 
-  try {
-    assertRequiredOptions(
-      connection_options,
-      ["database", "hostname", "port", "user", "applicationName"],
-      has_env_access,
-    );
-  } catch (e) {
-    console.log({ pgEnv, connection_options });
-    throw e;
-  }
+  assertRequiredOptions(
+    connection_options,
+    ["database", "hostname", "port", "user", "applicationName"],
+    has_env_access,
+  );
 
   // By this point all required parameters have been checked out
   // by the assert function
