@@ -60,22 +60,16 @@ export class QueryClient {
   }
 }
 
-class BaseClient extends QueryClient {
+export class Client extends QueryClient {
   protected _connection: Connection;
-
-  constructor(connection: Connection) {
+  
+  constructor(config?: ConnectionOptions | string) {
     super();
-    this._connection = connection;
+    this._connection = new Connection(createParams(config))
   }
 
   _executeQuery(query: Query, result: ResultType): Promise<QueryResult> {
     return this._connection.query(query, result);
-  }
-}
-
-export class Client extends BaseClient {
-  constructor(config?: ConnectionOptions | string) {
-    super(new Connection(createParams(config)));
   }
 
   async connect(): Promise<void> {
@@ -92,12 +86,18 @@ export class Client extends BaseClient {
   _aexit = this.end;
 }
 
-export class PoolClient extends BaseClient {
+export class PoolClient extends QueryClient {
+  protected _connection: Connection;
   private _releaseCallback: () => void;
 
   constructor(connection: Connection, releaseCallback: () => void) {
-    super(connection);
+    super();
+    this._connection = connection;
     this._releaseCallback = releaseCallback;
+  }
+
+  _executeQuery(query: Query, result: ResultType): Promise<QueryResult> {
+    return this._connection.query(query, result);
   }
 
   async release(): Promise<void> {
