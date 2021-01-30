@@ -1,4 +1,4 @@
-import { PoolClient } from "./client.ts";
+import { PoolClient, QueryClient } from "./client.ts";
 import { Connection, ResultType } from "./connection.ts";
 import {
   ConnectionOptions,
@@ -6,16 +6,9 @@ import {
   createParams,
 } from "./connection_params.ts";
 import { DeferredStack } from "./deferred.ts";
-import {
-  Query,
-  QueryArrayResult,
-  QueryConfig,
-  QueryObjectConfig,
-  QueryObjectResult,
-  QueryResult,
-} from "./query.ts";
+import { Query, QueryResult } from "./query.ts";
 
-export class Pool {
+export class Pool extends QueryClient {
   private _connectionParams: ConnectionParams;
   private _connections!: Array<Connection>;
   private _availableConnections!: DeferredStack<Connection>;
@@ -28,10 +21,15 @@ export class Pool {
     maxSize: number,
     lazy?: boolean,
   ) {
+    super();
     this._connectionParams = createParams(connectionParams);
     this._maxSize = maxSize;
     this._lazy = !!lazy;
     this.ready = this._startup();
+  }
+
+  _executeQuery(query: Query, result: ResultType): Promise<QueryResult> {
+    return this._execute(query, result);
   }
 
   private async _createConnection(): Promise<Connection> {
@@ -94,38 +92,6 @@ export class Pool {
     return new PoolClient(connection, release);
   }
 
-  async queryArray<T extends Array<unknown> = Array<unknown>>(
-    text: string | QueryConfig,
-    // deno-lint-ignore no-explicit-any
-    ...args: any[]
-  ): Promise<QueryArrayResult<T>> {
-    let query;
-    if (typeof text === "string") {
-      query = new Query(text, ...args);
-    } else {
-      query = new Query(text);
-    }
-    return await this._execute(query, ResultType.ARRAY) as QueryArrayResult<T>;
-  }
-
-  async queryObject<
-    T extends Record<string, unknown> = Record<string, unknown>,
-  >(
-    text: string | QueryObjectConfig,
-    // deno-lint-ignore no-explicit-any
-    ...args: any[]
-  ): Promise<QueryObjectResult<T>> {
-    let query;
-    if (typeof text === "string") {
-      query = new Query(text, ...args);
-    } else {
-      query = new Query(text);
-    }
-    return await this._execute(query, ResultType.OBJECT) as QueryObjectResult<
-      T
-    >;
-  }
-
   async end(): Promise<void> {
     await this.ready;
     while (this.available > 0) {
@@ -133,8 +99,4 @@ export class Pool {
       await conn.end();
     }
   }
-
-  // Support `using` module
-  _aenter = () => {};
-  _aexit = this.end;
 }
