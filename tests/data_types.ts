@@ -545,10 +545,11 @@ testClient(async function timeArray() {
 testClient(async function timestamp() {
   const timestamp = "1999-01-08 04:05:06";
   const result = await CLIENT.queryArray<[Timestamp]>(
-    `SELECT '${timestamp}'::TIMESTAMP`,
+    `SELECT $1::TIMESTAMP, 'INFINITY'::TIMESTAMP`,
+    timestamp,
   );
 
-  assertEquals(result.rows[0][0], new Date(timestamp));
+  assertEquals(result.rows[0], [new Date(timestamp), Infinity]);
 });
 
 testClient(async function timestampArray() {
@@ -558,7 +559,8 @@ testClient(async function timestampArray() {
   ];
 
   const result = await CLIENT.queryArray<[[Timestamp, Timestamp]]>(
-    `SELECT ARRAY['${timestamps[0]}'::TIMESTAMP, '${timestamps[1]}']`,
+    `SELECT ARRAY[$1::TIMESTAMP, $2]`,
+    ...timestamps,
   );
 
   assertEquals(result.rows[0][0], timestamps.map((x) => new Date(x)));
