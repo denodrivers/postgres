@@ -8,7 +8,15 @@ import {
 import { Client } from "../mod.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
-import { Float4, Float8, Line, Point, TID, Timestamp } from "../query/types.ts";
+import {
+  Float4,
+  Float8,
+  Line,
+  LineSegment,
+  Point,
+  TID,
+  Timestamp,
+} from "../query/types.ts";
 
 const SETUP = [
   "DROP TABLE IF EXISTS data_types;",
@@ -725,6 +733,34 @@ testClient(async function lineArray() {
       a: "-0.49",
       b: "-1",
       c: "21.09",
+    },
+  ]);
+});
+
+testClient(async function lineSegment() {
+  const result = await CLIENT.queryArray<[LineSegment]>(
+    "SELECT '[(1, 2), (3, 4)]'::LSEG",
+  );
+
+  assertEquals(result.rows[0][0], {
+    a: { x: "1", y: "2" },
+    b: { x: "3", y: "4" },
+  });
+});
+
+testClient(async function lineSegmentArray() {
+  const result = await CLIENT.queryArray<[[LineSegment, LineSegment]]>(
+    "SELECT ARRAY['[(1, 2), (3, 4)]'::LSEG, '41, 1, -9, 25.5']",
+  );
+
+  assertEquals(result.rows[0][0], [
+    {
+      a: { x: "1", y: "2" },
+      b: { x: "3", y: "4" },
+    },
+    {
+      a: { x: "41", y: "1" },
+      b: { x: "-9", y: "25.5" },
     },
   ]);
 });

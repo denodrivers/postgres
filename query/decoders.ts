@@ -1,5 +1,5 @@
 import { parseArray } from "./array_parser.ts";
-import { Float8, Line, Point, TID } from "./types.ts";
+import { Float8, Line, LineSegment, Point, TID } from "./types.ts";
 
 // Datetime parsing based on:
 // https://github.com/bendrucker/postgres-date/blob/master/index.js
@@ -179,7 +179,7 @@ export function decodeJsonArray(value: string): unknown[] {
 }
 
 export function decodeLine(value: string): Line {
-  const [a, b, c] = value.slice(1).slice(0, -1).split(",");
+  const [a, b, c] = value.substring(1, value.length - 1).split(",");
 
   return {
     a: a as Float8,
@@ -192,10 +192,29 @@ export function decodeLineArray(value: string) {
   return parseArray(value, decodeLine);
 }
 
-// Ported from https://github.com/brianc/node-pg-types
-// Copyright (c) 2014 Brian M. Carlson. All rights reserved. MIT License.
+export function decodeLineSegment(value: string): LineSegment {
+  const [a, b] = value
+    .substring(1, value.length - 1)
+    .match(/\(.*?\)/g) || [];
+
+  return {
+    a: decodePoint(a),
+    b: decodePoint(b),
+  };
+}
+
+export function decodeLineSegmentArray(value: string) {
+  return parseArray(value, decodeLineSegment);
+}
+
 export function decodePoint(value: string): Point {
   const [x, y] = value.substring(1, value.length - 1).split(",");
+
+  if (Number.isNaN(parseFloat(x)) || Number.isNaN(parseFloat(y))) {
+    throw new Error(
+      `Invalid point value: "${Number.isNaN(parseFloat(x)) ? x : y}"`,
+    );
+  }
 
   return {
     x: x as Float8,
