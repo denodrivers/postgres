@@ -9,6 +9,7 @@ import { Client } from "../mod.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
 import {
+  Box,
   Float4,
   Float8,
   Line,
@@ -761,6 +762,34 @@ testClient(async function lineSegmentArray() {
     {
       a: { x: "41", y: "1" },
       b: { x: "-9", y: "25.5" },
+    },
+  ]);
+});
+
+testClient(async function box() {
+  const result = await CLIENT.queryArray<[Box]>(
+    "SELECT '((1, 2), (3, 4))'::BOX",
+  );
+
+  assertEquals(result.rows[0][0], {
+    a: { x: "3", y: "4" },
+    b: { x: "1", y: "2" },
+  });
+});
+
+testClient(async function boxArray() {
+  const result = await CLIENT.queryArray<[[Box, Box]]>(
+    "SELECT ARRAY['(1, 2), (3, 4)'::BOX, '41, 1, -9, 25.5']",
+  );
+
+  assertEquals(result.rows[0][0], [
+    {
+      a: { x: "3", y: "4" },
+      b: { x: "1", y: "2" },
+    },
+    {
+      a: { x: "41", y: "25.5" },
+      b: { x: "-9", y: "1" },
     },
   ]);
 });

@@ -1,5 +1,5 @@
 import { parseArray } from "./array_parser.ts";
-import { Float8, Line, LineSegment, Point, TID } from "./types.ts";
+import { Box, Float8, Line, LineSegment, Point, TID } from "./types.ts";
 
 // Datetime parsing based on:
 // https://github.com/bendrucker/postgres-date/blob/master/index.js
@@ -27,6 +27,19 @@ export function decodeBoolean(value: string): boolean {
 
 export function decodeBooleanArray(value: string) {
   return parseArray(value, (x) => x[0] === "t");
+}
+
+export function decodeBox(value: string): Box {
+  const [a, b] = value.match(/\(.*?\)/g) || [];
+
+  return {
+    a: decodePoint(a),
+    b: decodePoint(b),
+  };
+}
+
+export function decodeBoxArray(value: string) {
+  return parseArray(value, decodeBox);
 }
 
 export function decodeBytea(byteaStr: string): Uint8Array {

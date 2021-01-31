@@ -1,25 +1,5 @@
-// Ported from https://github.com/bendrucker/postgres-array
-// The MIT License (MIT)
-//
-// Copyright (c) Ben Drucker <bvdrucker@gmail.com> (bendrucker.me)
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
+// Based of https://github.com/bendrucker/postgres-array
+// Copyright (c) Ben Drucker <bvdrucker@gmail.com> (bendrucker.me). MIT License.
 
 /** Incorrectly parsed data types default to null */
 type ArrayResult<T> = Array<T | null | ArrayResult<T>>;
@@ -93,7 +73,23 @@ class ArrayParser<T> {
     }
   }
 
+  /**
+   * Arrays can contain items separated by semicolon (such as boxes)
+   * and commas
+   * 
+   * This checks if there is an instance of a semicolon on the top level
+   * of the array. If it were to be found, the separator will be
+   * a semicolon, otherwise it will default to a comma
+   */
+  getSeparator() {
+    if (/;(?![^(]*\))/.test(this.source.substr(1, this.source.length - 1))) {
+      return ";";
+    }
+    return ",";
+  }
+
   parse(nested = false): ArrayResult<T> {
+    const separator = this.getSeparator();
     let character, parser, quote;
     this.consumeDimensions();
     while (!this.isEof()) {
@@ -117,7 +113,7 @@ class ArrayParser<T> {
       } else if (character.value === '"' && !character.escaped) {
         if (quote) this.newEntry(true);
         quote = !quote;
-      } else if (character.value === "," && !quote) {
+      } else if (character.value === separator && !quote) {
         this.newEntry();
       } else {
         this.record(character.value);
