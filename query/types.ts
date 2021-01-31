@@ -25,6 +25,14 @@ export interface Line {
   c: Float8;
 }
 
+/**
+ * https://www.postgresql.org/docs/13/datatype-geometric.html#DATATYPE-LSEG
+ */
+export interface LineSegment {
+  a: Point;
+  b: Point;
+}
+
 /**  
  * https://www.postgresql.org/docs/13/datatype-geometric.html#id-1.5.7.16.5
  */

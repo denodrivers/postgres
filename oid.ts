@@ -42,8 +42,7 @@ export const Oid = {
   // deno-lint-ignore camelcase
   _index_am_handler: 325,
   point: 600,
-  // deno-lint-ignore camelcase
-  _lseg_0: 601,
+  lseg: 601,
   // deno-lint-ignore camelcase
   _path_0: 602,
   // deno-lint-ignore camelcase
@@ -112,7 +111,7 @@ export const Oid = {
   // deno-lint-ignore camelcase
   point_array: 1017,
   // deno-lint-ignore camelcase
-  _lseg_1: 1018,
+  lseg_array: 1018,
   // deno-lint-ignore camelcase
   _path_1: 1019,
   // deno-lint-ignore camelcase
