@@ -2,7 +2,7 @@ import { assertEquals, decodeBase64, encodeBase64 } from "../test_deps.ts";
 import { Client } from "../mod.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
-import { Float4, Float8, Point, TID } from "../query/types.ts";
+import { Float4, Float8, Point, TID, Timestamp } from "../query/types.ts";
 
 const SETUP = [
   "DROP TABLE IF EXISTS data_types;",
@@ -540,6 +540,28 @@ testClient(async function timeArray() {
   const result = await CLIENT.queryArray("SELECT ARRAY['01:01:01'::TIME]");
 
   assertEquals(result.rows[0][0], ["01:01:01"]);
+});
+
+testClient(async function timestamp() {
+  const timestamp = "1999-01-08 04:05:06";
+  const result = await CLIENT.queryArray<[Timestamp]>(
+    `SELECT '${timestamp}'::TIMESTAMP`,
+  );
+
+  assertEquals(result.rows[0][0], new Date(timestamp));
+});
+
+testClient(async function timestampArray() {
+  const timestamps = [
+    "2011-10-05T14:48:00.00",
+    new Date().toISOString().slice(0, -1),
+  ];
+
+  const result = await CLIENT.queryArray<[[Timestamp, Timestamp]]>(
+    `SELECT ARRAY['${timestamps[0]}'::TIMESTAMP, '${timestamps[1]}']`,
+  );
+
+  assertEquals(result.rows[0][0], timestamps.map((x) => new Date(x)));
 });
 
 const timezone = new Date().toTimeString().slice(12, 17);

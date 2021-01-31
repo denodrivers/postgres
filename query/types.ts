@@ -28,3 +28,11 @@ export interface Point {
  * https://www.postgresql.org/docs/13/datatype-oid.html
  */
 export type TID = [BigInt, BigInt];
+
+/**
+ * Additional to containing normal dates, they can contain 'Infinity'
+ * values, so handle them with care
+ * 
+ * https://www.postgresql.org/docs/13/datatype-datetime.html
+ */
+export type Timestamp = Date | number;
