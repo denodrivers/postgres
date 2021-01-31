@@ -10,6 +10,7 @@ import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
 import {
   Box,
+  Circle,
   Float4,
   Float8,
   Line,
@@ -866,4 +867,26 @@ testClient(async function polygonArray() {
   );
 
   assertEquals(selectRes.rows[0][0][0], points);
+});
+
+testClient(async function circle() {
+  const point = generateRandomPoint();
+  const radius = String(generateRandomNumber(100));
+
+  const { rows } = await CLIENT.queryArray<[Circle]>(
+    `SELECT '<(${point.x},${point.y}), ${radius}>'::CIRCLE`,
+  );
+
+  assertEquals(rows[0][0], { point, radius });
+});
+
+testClient(async function circleArray() {
+  const point = generateRandomPoint();
+  const radius = String(generateRandomNumber(100));
+
+  const { rows } = await CLIENT.queryArray<[[Circle]]>(
+    `SELECT ARRAY['<(${point.x},${point.y}), ${radius}>'::CIRCLE]`,
+  );
+
+  assertEquals(rows[0][0][0], { point, radius });
 });
