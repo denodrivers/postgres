@@ -716,15 +716,15 @@ testClient(async function line() {
 
 testClient(async function lineArray() {
   const result = await CLIENT.queryArray<[[Line, Line]]>(
-    "SELECT ARRAY['[(1, 2), (3, 4)]'::LINE, '48, 1, -9, 25.5']",
+    "SELECT ARRAY['[(1, 2), (3, 4)]'::LINE, '41, 1, -9, 25.5']",
   );
 
   assertEquals(result.rows[0][0], [
     { a: "1", b: "-1", c: "1" },
     {
-      a: "-0.429824561403509",
+      a: "-0.49",
       b: "-1",
-      c: "21.6315789473684",
+      c: "21.09",
     },
   ]);
 });
