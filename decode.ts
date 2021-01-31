@@ -9,6 +9,7 @@ import {
   decodeByteaArray,
   decodeDate,
   decodeDatetime,
+  decodeDatetimeArray,
   decodeInt,
   decodeIntArray,
   decodeJson,
@@ -120,9 +121,12 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeTid(strValue);
     case Oid.tid_array:
       return decodeTidArray(strValue);
-    case Oid.timestamptz:
     case Oid.timestamp:
+    case Oid.timestamptz:
       return decodeDatetime(strValue);
+    case Oid.timestamp_array:
+    case Oid.timestamptz_array:
+      return decodeDatetimeArray(strValue);
     default:
       throw new Error(`Don't know how to parse column type: ${typeOid}`);
   }

@@ -145,12 +145,14 @@ export const Oid = {
   date: 1082,
   time: 1083,
   timestamp: 1114,
-  _timestamp: 1115,
+  // deno-lint-ignore camelcase
+  timestamp_array: 1115,
   _date: 1182,
   // deno-lint-ignore camelcase
   time_array: 1183,
   timestamptz: 1184,
-  _timestamptz: 1185,
+  // deno-lint-ignore camelcase
+  timestamptz_array: 1185,
   // deno-lint-ignore camelcase
   _interval_0: 1186,
   // deno-lint-ignore camelcase

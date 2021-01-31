@@ -3,6 +3,7 @@ import { Float8, Point, TID } from "./types.ts";
 
 // Datetime parsing based on:
 // https://github.com/bendrucker/postgres-date/blob/master/index.js
+// Copyright (c) Ben Drucker <bvdrucker@gmail.com> (bendrucker.me). MIT License.
 const BACKSLASH_BYTE_VALUE = 92;
 const BC_RE = /BC$/;
 const DATE_RE = /^(\d{1,})-(\d{2})-(\d{2})$/;
@@ -79,11 +80,11 @@ function decodeByteaHex(byteaStr: string): Uint8Array {
   return bytes;
 }
 
-export function decodeDate(dateStr: string): null | Date {
+export function decodeDate(dateStr: string): Date {
   const matches = DATE_RE.exec(dateStr);
 
   if (!matches) {
-    return null;
+    throw new Error(`"${dateStr}" could not be parsed to date`);
   }
 
   const year = parseInt(matches[1], 10);
@@ -99,7 +100,7 @@ export function decodeDate(dateStr: string): null | Date {
   return date;
 }
 
-export function decodeDatetime(dateStr: string): null | number | Date {
+export function decodeDatetime(dateStr: string): number | Date {
   /**
    * Postgres uses ISO 8601 style date output by default:
    * 1997-12-17 07:37:16-08
@@ -149,6 +150,10 @@ export function decodeDatetime(dateStr: string): null | number | Date {
   // would set it as 19XX
   date.setUTCFullYear(year);
   return date;
+}
+
+export function decodeDatetimeArray(value: string) {
+  return parseArray(value, decodeDatetime);
 }
 
 export function decodeInt(value: string): number {
