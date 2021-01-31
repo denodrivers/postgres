@@ -12,4 +12,4 @@ export {
 export {
   format as formatDate,
   parse as parseDate,
-} from "https://deno.land/std@0.85.0/datetime/mod.ts";
+} from "https://deno.land/std@0.84.0/datetime/mod.ts";

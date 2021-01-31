@@ -9,6 +9,7 @@ import { Client } from "../mod.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
 import {
+  Box,
   Float4,
   Float8,
   Line,
@@ -766,7 +767,7 @@ testClient(async function lineSegmentArray() {
 });
 
 testClient(async function box() {
-  const result = await CLIENT.queryArray<[LineSegment]>(
+  const result = await CLIENT.queryArray<[Box]>(
     "SELECT '((1, 2), (3, 4))'::BOX",
   );
 
@@ -777,7 +778,7 @@ testClient(async function box() {
 });
 
 testClient(async function boxArray() {
-  const result = await CLIENT.queryArray<[[LineSegment, LineSegment]]>(
+  const result = await CLIENT.queryArray<[[Box, Box]]>(
     "SELECT ARRAY['(1, 2), (3, 4)'::BOX, '41, 1, -9, 25.5']",
   );
 
