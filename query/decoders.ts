@@ -80,7 +80,15 @@ function decodeByteaHex(byteaStr: string): Uint8Array {
   return bytes;
 }
 
-export function decodeDate(dateStr: string): Date {
+export function decodeDate(dateStr: string): Date | number {
+  // there are special `infinity` and `-infinity`
+  // cases representing out-of-range dates
+  if (dateStr === "infinity") {
+    return Number(Infinity);
+  } else if (dateStr === "-infinity") {
+    return Number(-Infinity);
+  }
+
   const matches = DATE_RE.exec(dateStr);
 
   if (!matches) {
@@ -100,19 +108,15 @@ export function decodeDate(dateStr: string): Date {
   return date;
 }
 
+export function decodeDateArray(value: string) {
+  return parseArray(value, decodeDate);
+}
+
 export function decodeDatetime(dateStr: string): number | Date {
   /**
    * Postgres uses ISO 8601 style date output by default:
    * 1997-12-17 07:37:16-08
    */
-
-  // there are special `infinity` and `-infinity`
-  // cases representing out-of-range dates
-  if (dateStr === "infinity") {
-    return Number(Infinity);
-  } else if (dateStr === "-infinity") {
-    return Number(-Infinity);
-  }
 
   const matches = DATETIME_RE.exec(dateStr);
 

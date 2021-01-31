@@ -1,4 +1,10 @@
-import { assertEquals, decodeBase64, encodeBase64 } from "../test_deps.ts";
+import {
+  assertEquals,
+  decodeBase64,
+  encodeBase64,
+  formatDate,
+  parseDate,
+} from "../test_deps.ts";
 import { Client } from "../mod.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
@@ -673,4 +679,29 @@ testClient(async function tidArray() {
   );
 
   assertEquals(result.rows[0][0], [[4681n, 1869n], [0n, 17476n]]);
+});
+
+testClient(async function date() {
+  const date = "2020-01-01";
+
+  const result = await CLIENT.queryArray<[Timestamp, Timestamp]>(
+    "SELECT $1::DATE, 'Infinity'::Date",
+    date,
+  );
+
+  assertEquals(result.rows[0], [parseDate(date, "yyyy-MM-dd"), Infinity]);
+});
+
+testClient(async function dateArray() {
+  const dates = ["2020-01-01", formatDate(new Date(), "yyyy-MM-dd")];
+
+  const result = await CLIENT.queryArray<[Timestamp, Timestamp]>(
+    "SELECT ARRAY[$1::DATE, $2]",
+    ...dates,
+  );
+
+  assertEquals(
+    result.rows[0][0],
+    dates.map((date) => parseDate(date, "yyyy-MM-dd")),
+  );
 });
