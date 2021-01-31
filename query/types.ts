@@ -23,3 +23,8 @@ export interface Point {
   x: Float8;
   y: Float8;
 }
+
+/**
+ * https://www.postgresql.org/docs/13/datatype-oid.html
+ */
+export type TID = [BigInt, BigInt];

@@ -2,7 +2,7 @@ import { assertEquals, decodeBase64, encodeBase64 } from "../test_deps.ts";
 import { Client } from "../mod.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
-import { Float4, Float8, Point } from "../query/types.ts";
+import { Float4, Float8, Point, TID } from "../query/types.ts";
 
 const SETUP = [
   "DROP TABLE IF EXISTS data_types;",
@@ -606,4 +606,20 @@ testClient(async function float8Array() {
   );
 
   assertEquals(result.rows[0][0], ["12.25", "4789"]);
+});
+
+testClient(async function tid() {
+  const result = await CLIENT.queryArray<[TID, TID]>(
+    "SELECT '(1, 19)'::TID, '(23, 17)'::TID",
+  );
+
+  assertEquals(result.rows[0], [[1n, 19n], [23n, 17n]]);
+});
+
+testClient(async function tidArray() {
+  const result = await CLIENT.queryArray<[[TID, TID]]>(
+    "SELECT ARRAY['(4681, 1869)'::TID, '(0, 17476)']",
+  );
+
+  assertEquals(result.rows[0][0], [[4681n, 1869n], [0n, 17476n]]);
 });
