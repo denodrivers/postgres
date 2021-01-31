@@ -2,7 +2,7 @@ import { assertEquals, decodeBase64, encodeBase64 } from "../test_deps.ts";
 import { Client } from "../mod.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
-import { Float4, Float8 } from "../query/types.ts";
+import { Float4, Float8, Point } from "../query/types.ts";
 
 const SETUP = [
   "DROP TABLE IF EXISTS data_types;",
@@ -505,10 +505,10 @@ testClient(async function byteaArray() {
 });
 
 testClient(async function point() {
-  const selectRes = await CLIENT.queryArray(
-    "SELECT point(1, 2)",
+  const selectRes = await CLIENT.queryArray<[Point]>(
+    "SELECT point(1, 2.5)",
   );
-  assertEquals(selectRes.rows, [[{ x: 1, y: 2 }]]);
+  assertEquals(selectRes.rows, [[{ x: "1", y: "2.5" }]]);
 });
 
 testClient(async function pointArray() {
@@ -516,23 +516,16 @@ testClient(async function pointArray() {
     `SELECT '{"(1, 2)","(3.5, 4.1)"}'::point[]`,
   );
   assertEquals(result1.rows, [
-    [[{ x: 1, y: 2 }, { x: 3.5, y: 4.1 }]],
+    [[{ x: "1", y: "2" }, { x: "3.5", y: "4.1" }]],
   ]);
 
   const result2 = await CLIENT.queryArray(
-    `SELECT array[ point(1,2), point(3.5, 4.1) ]`,
-  );
-  assertEquals(result2.rows, [
-    [[{ x: 1, y: 2 }, { x: 3.5, y: 4.1 }]],
-  ]);
-
-  const result3 = await CLIENT.queryArray(
     `SELECT array[ array[ point(1,2), point(3.5, 4.1) ], array[ point(25, 50), point(-10, -17.5) ] ]`,
   );
-  assertEquals(result3.rows[0], [
+  assertEquals(result2.rows[0], [
     [
-      [{ x: 1, y: 2 }, { x: 3.5, y: 4.1 }],
-      [{ x: 25, y: 50 }, { x: -10, y: -17.5 }],
+      [{ x: "1", y: "2" }, { x: "3.5", y: "4.1" }],
+      [{ x: "25", y: "50" }, { x: "-10", y: "-17.5" }],
     ],
   ]);
 });

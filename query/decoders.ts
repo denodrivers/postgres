@@ -1,5 +1,5 @@
 import { parseArray } from "./array_parser.ts";
-import { Point } from "./types.ts";
+import { Float8, Point } from "./types.ts";
 
 // Datetime parsing based on:
 // https://github.com/bendrucker/postgres-date/blob/master/index.js
@@ -175,8 +175,8 @@ export function decodePoint(value: string): Point {
   const [x, y] = value.substring(1, value.length - 1).split(",");
 
   return {
-    x: parseFloat(x),
-    y: parseFloat(y),
+    x: x as Float8,
+    y: y as Float8,
   };
 }
 

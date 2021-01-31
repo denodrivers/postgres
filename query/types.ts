@@ -20,6 +20,6 @@ export type Float8 = "string";
  * https://www.postgresql.org/docs/13/datatype-geometric.html#id-1.5.7.16.5
  */
 export interface Point {
-  x: number;
-  y: number;
+  x: Float8;
+  y: Float8;
 }
