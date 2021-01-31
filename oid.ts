@@ -50,10 +50,9 @@ export const Oid = {
   _box_0: 603,
   // deno-lint-ignore camelcase
   _polygon_0: 604,
+  line: 628,
   // deno-lint-ignore camelcase
-  _line_0: 628,
-  // deno-lint-ignore camelcase
-  _line_1: 629,
+  line_array: 629,
   cidr: 650,
   // deno-lint-ignore camelcase
   cidr_array: 651,

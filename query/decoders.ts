@@ -1,5 +1,5 @@
 import { parseArray } from "./array_parser.ts";
-import { Float8, Point, TID } from "./types.ts";
+import { Float8, Line, Point, TID } from "./types.ts";
 
 // Datetime parsing based on:
 // https://github.com/bendrucker/postgres-date/blob/master/index.js
@@ -176,6 +176,20 @@ export function decodeJson(value: string): unknown {
 
 export function decodeJsonArray(value: string): unknown[] {
   return parseArray(value, JSON.parse);
+}
+
+export function decodeLine(value: string): Line {
+  const [a, b, c] = value.slice(1).slice(0, -1).split(",");
+
+  return {
+    a: a as Float8,
+    b: b as Float8,
+    c: c as Float8,
+  };
+}
+
+export function decodeLineArray(value: string) {
+  return parseArray(value, decodeLine);
 }
 
 // Ported from https://github.com/brianc/node-pg-types

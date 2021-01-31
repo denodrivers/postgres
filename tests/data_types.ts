@@ -8,7 +8,7 @@ import {
 import { Client } from "../mod.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
-import { Float4, Float8, Point, TID, Timestamp } from "../query/types.ts";
+import { Float4, Float8, Line, Point, TID, Timestamp } from "../query/types.ts";
 
 const SETUP = [
   "DROP TABLE IF EXISTS data_types;",
@@ -704,4 +704,27 @@ testClient(async function dateArray() {
     result.rows[0][0],
     dates.map((date) => parseDate(date, "yyyy-MM-dd")),
   );
+});
+
+testClient(async function line() {
+  const result = await CLIENT.queryArray<[Line]>(
+    "SELECT '[(1, 2), (3, 4)]'::LINE",
+  );
+
+  assertEquals(result.rows[0][0], { a: "1", b: "-1", c: "1" });
+});
+
+testClient(async function lineArray() {
+  const result = await CLIENT.queryArray<[[Line, Line]]>(
+    "SELECT ARRAY['[(1, 2), (3, 4)]'::LINE, '41, 1, -9, 25.5']",
+  );
+
+  assertEquals(result.rows[0][0], [
+    { a: "1", b: "-1", c: "1" },
+    {
+      a: "-0.49",
+      b: "-1",
+      c: "21.09",
+    },
+  ]);
 });
