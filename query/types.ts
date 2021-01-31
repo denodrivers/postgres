@@ -10,8 +10,8 @@ export interface Box {
  * https://www.postgresql.org/docs/13/datatype-geometric.html#DATATYPE-CIRCLE
  */
 export interface Circle {
-  point: Point,
-  radius: Float8,
+  point: Point;
+  radius: Float8;
 }
 
 /**
