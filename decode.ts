@@ -25,6 +25,8 @@ import {
   decodePathArray,
   decodePoint,
   decodePointArray,
+  decodePolygon,
+  decodePolygonArray,
   decodeStringArray,
   decodeTid,
   decodeTidArray,
@@ -144,6 +146,10 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodePoint(strValue);
     case Oid.point_array:
       return decodePointArray(strValue);
+    case Oid.polygon:
+      return decodePolygon(strValue);
+    case Oid.polygon_array:
+      return decodePolygonArray(strValue);
     case Oid.tid:
       return decodeTid(strValue);
     case Oid.tid_array:
