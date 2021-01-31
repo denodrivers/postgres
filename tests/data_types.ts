@@ -719,9 +719,12 @@ testClient(async function lineArray() {
     "SELECT ARRAY['[(1, 2), (3, 4)]'::LINE, '48, 1, -9, 25.5']",
   );
 
-  assertEquals(result.rows[0][0], [{ a: "1", b: "-1", c: "1" }, {
-    a: "-0.429824561403509",
-    b: "-1",
-    c: "21.6315789473684",
-  }]);
+  assertEquals(result.rows[0][0], [
+    { a: "1", b: "-1", c: "1" },
+    {
+      a: "-0.429824561403509",
+      b: "-1",
+      c: "21.6315789473684",
+    },
+  ]);
 });
