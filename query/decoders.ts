@@ -179,7 +179,7 @@ export function decodeJsonArray(value: string): unknown[] {
 }
 
 export function decodeLine(value: string): Line {
-  const [a, b, c] = value.slice(1).split(",");
+  const [a, b, c] = value.slice(1).slice(0, -1).split(",");
 
   return {
     a: a as Float8,
