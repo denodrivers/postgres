@@ -16,6 +16,8 @@ import {
   decodePoint,
   decodePointArray,
   decodeStringArray,
+  decodeTid,
+  decodeTidArray,
 } from "./query/decoders.ts";
 
 const decoder = new TextDecoder();
@@ -114,6 +116,10 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodePoint(strValue);
     case Oid.point_array:
       return decodePointArray(strValue);
+    case Oid.tid:
+      return decodeTid(strValue);
+    case Oid.tid_array:
+      return decodeTidArray(strValue);
     case Oid.timestamptz:
     case Oid.timestamp:
       return decodeDatetime(strValue);

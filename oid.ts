@@ -13,8 +13,7 @@ export const Oid = {
   regproc: 24,
   text: 25,
   oid: 26,
-  // deno-lint-ignore camelcase
-  _tid_0: 27,
+  tid: 27,
   xid: 28,
   // deno-lint-ignore camelcase
   _cid_0: 29,
@@ -98,7 +97,7 @@ export const Oid = {
   // deno-lint-ignore camelcase
   text_array: 1009,
   // deno-lint-ignore camelcase
-  _tid_1: 1010,
+  tid_array: 1010,
   // deno-lint-ignore camelcase
   xid_array: 1011,
   // deno-lint-ignore camelcase

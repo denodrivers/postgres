@@ -1,5 +1,5 @@
 import { parseArray } from "./array_parser.ts";
-import { Float8, Point } from "./types.ts";
+import { Float8, Point, TID } from "./types.ts";
 
 // Datetime parsing based on:
 // https://github.com/bendrucker/postgres-date/blob/master/index.js
@@ -228,4 +228,14 @@ function decodeTimezoneOffset(dateStr: string): null | number {
   const offset = hours * 3600 + minutes * 60 + seconds;
 
   return sign * offset * 1000;
+}
+
+export function decodeTid(value: string): TID {
+  const [x, y] = value.substring(1, value.length - 1).split(",");
+
+  return [BigInt(x), BigInt(y)];
+}
+
+export function decodeTidArray(value: string) {
+  return parseArray(value, decodeTid);
 }
