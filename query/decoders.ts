@@ -1,6 +1,7 @@
 import { parseArray } from "./array_parser.ts";
 import {
   Box,
+  Circle,
   Float8,
   Line,
   LineSegment,
@@ -100,6 +101,21 @@ function decodeByteaHex(byteaStr: string): Uint8Array {
     bytes[j] = parseInt(bytesStr[i] + bytesStr[i + 1], HEX);
   }
   return bytes;
+}
+
+export function decodeCircle(value: string): Circle {
+  const [point, radius] = value.substring(1, value.length - 1).split(
+    /,(?![^(]*\))/,
+  );
+
+  return {
+    point: decodePoint(point),
+    radius: radius as Float8,
+  };
+}
+
+export function decodeCircleArray(value: string) {
+  return parseArray(value, decodeCircle);
 }
 
 export function decodeDate(dateStr: string): Date | number {

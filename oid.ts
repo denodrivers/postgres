@@ -61,10 +61,9 @@ export const Oid = {
   // deno-lint-ignore camelcase
   _tinterval_0: 704,
   _unknown: 705,
+  circle: 718,
   // deno-lint-ignore camelcase
-  _circle_0: 718,
-  // deno-lint-ignore camelcase
-  _circle_1: 719,
+  circle_array: 719,
   // deno-lint-ignore camelcase
   _money_0: 790,
   // deno-lint-ignore camelcase
