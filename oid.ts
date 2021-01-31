@@ -119,8 +119,10 @@ export const Oid = {
   _path_1: 1019,
   // deno-lint-ignore camelcase
   _box_1: 1020,
-  _float4: 1021,
-  _float8: 1022,
+  // deno-lint-ignore camelcase
+  float4_array: 1021,
+  // deno-lint-ignore camelcase
+  float8_array: 1022,
   // deno-lint-ignore camelcase
   _abstime_1: 1023,
   // deno-lint-ignore camelcase
