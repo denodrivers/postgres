@@ -1,5 +1,5 @@
 import { parseArray } from "./array_parser.ts";
-import { Box, Float8, Line, LineSegment, Point, TID } from "./types.ts";
+import { Box, Float8, Line, LineSegment, Path, Point, TID } from "./types.ts";
 
 // Datetime parsing based on:
 // https://github.com/bendrucker/postgres-date/blob/master/index.js
@@ -218,6 +218,18 @@ export function decodeLineSegment(value: string): LineSegment {
 
 export function decodeLineSegmentArray(value: string) {
   return parseArray(value, decodeLineSegment);
+}
+
+export function decodePath(value: string): Path {
+  // Split on commas that are not inside parantheses
+  // since encapsulated commas are separators for the point coordinates
+  const points = value.substring(1, value.length - 1).split(/,(?![^(]*\))/);
+
+  return points.map(decodePoint);
+}
+
+export function decodePathArray(value: string) {
+  return parseArray(value, decodePath);
 }
 
 export function decodePoint(value: string): Point {

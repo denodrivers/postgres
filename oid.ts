@@ -43,8 +43,7 @@ export const Oid = {
   _index_am_handler: 325,
   point: 600,
   lseg: 601,
-  // deno-lint-ignore camelcase
-  _path_0: 602,
+  path: 602,
   box: 603,
   // deno-lint-ignore camelcase
   _polygon_0: 604,
@@ -112,7 +111,7 @@ export const Oid = {
   // deno-lint-ignore camelcase
   lseg_array: 1018,
   // deno-lint-ignore camelcase
-  _path_1: 1019,
+  path_array: 1019,
   // deno-lint-ignore camelcase
   box_array: 1020,
   // deno-lint-ignore camelcase

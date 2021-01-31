@@ -14,6 +14,7 @@ import {
   Float8,
   Line,
   LineSegment,
+  Path,
   Point,
   TID,
   Timestamp,
@@ -27,6 +28,14 @@ const SETUP = [
      cidr_t cidr
   );`,
 ];
+
+/**
+ * This will generate a random number with a precision of 2
+ */
+// deno-lint-ignore camelcase
+function generateRandomNumber(max_value: number) {
+  return Math.round((Math.random() * max_value + Number.EPSILON) * 100) / 100;
+}
 
 const CLIENT = new Client(TEST_CONNECTION_PARAMS);
 
@@ -792,4 +801,42 @@ testClient(async function boxArray() {
       b: { x: "-9", y: "1" },
     },
   ]);
+});
+
+testClient(async function path() {
+  const points = Array.from(
+    { length: Math.floor((Math.random() + 1) * 10) },
+    () => {
+      return [
+        String(generateRandomNumber(100)),
+        String(generateRandomNumber(100)),
+      ];
+    },
+  );
+
+  const selectRes = await CLIENT.queryArray<[Path]>(
+    `SELECT '(${points.map(([x, y]) => `(${x},${y})`).join(",")})'::PATH`,
+  );
+
+  assertEquals(selectRes.rows[0][0], points.map(([x, y]) => ({ x, y })));
+});
+
+testClient(async function pathArray() {
+  const points = Array.from(
+    { length: Math.floor((Math.random() + 1) * 10) },
+    () => {
+      return [
+        String(generateRandomNumber(100)),
+        String(generateRandomNumber(100)),
+      ];
+    },
+  );
+
+  const selectRes = await CLIENT.queryArray<[[Path]]>(
+    `SELECT ARRAY['(${
+      points.map(([x, y]) => `(${x},${y})`).join(",")
+    })'::PATH]`,
+  );
+
+  assertEquals(selectRes.rows[0][0][0], points.map(([x, y]) => ({ x, y })));
 });

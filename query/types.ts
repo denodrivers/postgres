@@ -41,6 +41,11 @@ export interface LineSegment {
   b: Point;
 }
 
+/**
+ * https://www.postgresql.org/docs/13/datatype-geometric.html#id-1.5.7.16.9
+ */
+export type Path = Point[];
+
 /**  
  * https://www.postgresql.org/docs/13/datatype-geometric.html#id-1.5.7.16.5
  */

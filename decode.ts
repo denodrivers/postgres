@@ -21,6 +21,8 @@ import {
   decodeLineArray,
   decodeLineSegment,
   decodeLineSegmentArray,
+  decodePath,
+  decodePathArray,
   decodePoint,
   decodePointArray,
   decodeStringArray,
@@ -134,6 +136,10 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeLineSegment(strValue);
     case Oid.lseg_array:
       return decodeLineSegmentArray(strValue);
+    case Oid.path:
+      return decodePath(strValue);
+    case Oid.path_array:
+      return decodePathArray(strValue);
     case Oid.point:
       return decodePoint(strValue);
     case Oid.point_array:
