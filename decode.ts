@@ -5,6 +5,8 @@ import {
   decodeBigintArray,
   decodeBoolean,
   decodeBooleanArray,
+  decodeBox,
+  decodeBoxArray,
   decodeBytea,
   decodeByteaArray,
   decodeDate,
@@ -102,6 +104,10 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeBoolean(strValue);
     case Oid.bool_array:
       return decodeBooleanArray(strValue);
+    case Oid.box:
+      return decodeBox(strValue);
+    case Oid.box_array:
+      return decodeBoxArray(strValue);
     case Oid.bytea:
       return decodeBytea(strValue);
     case Oid.byte_array:
