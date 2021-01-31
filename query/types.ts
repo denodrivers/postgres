@@ -55,6 +55,11 @@ export interface Point {
 }
 
 /**
+ * https://www.postgresql.org/docs/13/datatype-geometric.html#DATATYPE-POLYGON
+ */
+export type Polygon = Point[];
+
+/**
  * https://www.postgresql.org/docs/13/datatype-oid.html
  */
 export type TID = [BigInt, BigInt];

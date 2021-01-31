@@ -16,6 +16,7 @@ import {
   LineSegment,
   Path,
   Point,
+  Polygon,
   TID,
   Timestamp,
 } from "../query/types.ts";
@@ -836,6 +837,44 @@ testClient(async function pathArray() {
     `SELECT ARRAY['(${
       points.map(([x, y]) => `(${x},${y})`).join(",")
     })'::PATH]`,
+  );
+
+  assertEquals(selectRes.rows[0][0][0], points.map(([x, y]) => ({ x, y })));
+});
+
+testClient(async function polygon() {
+  const points = Array.from(
+    { length: Math.floor((Math.random() + 1) * 10) },
+    () => {
+      return [
+        String(generateRandomNumber(100)),
+        String(generateRandomNumber(100)),
+      ];
+    },
+  );
+
+  const selectRes = await CLIENT.queryArray<[Polygon]>(
+    `SELECT '(${points.map(([x, y]) => `(${x},${y})`).join(",")})'::POLYGON`,
+  );
+
+  assertEquals(selectRes.rows[0][0], points.map(([x, y]) => ({ x, y })));
+});
+
+testClient(async function polygonArray() {
+  const points = Array.from(
+    { length: Math.floor((Math.random() + 1) * 10) },
+    () => {
+      return [
+        String(generateRandomNumber(100)),
+        String(generateRandomNumber(100)),
+      ];
+    },
+  );
+
+  const selectRes = await CLIENT.queryArray<[[Polygon]]>(
+    `SELECT ARRAY['(${
+      points.map(([x, y]) => `(${x},${y})`).join(",")
+    })'::POLYGON]`,
   );
 
   assertEquals(selectRes.rows[0][0][0], points.map(([x, y]) => ({ x, y })));
