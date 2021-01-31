@@ -2,6 +2,7 @@ import { assertEquals, decodeBase64, encodeBase64 } from "../test_deps.ts";
 import { Client } from "../mod.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 import { getTestClient } from "./helpers.ts";
+import { Float4, Float8 } from "../query/types.ts";
 
 const SETUP = [
   "DROP TABLE IF EXISTS data_types;",
@@ -580,4 +581,36 @@ testClient(async function xidArray() {
   );
 
   assertEquals(result.rows[0][0], [12, 4789]);
+});
+
+testClient(async function float4() {
+  const result = await CLIENT.queryArray<[Float4, Float4]>(
+    "SELECT '1'::FLOAT4, '17.89'::FLOAT4",
+  );
+
+  assertEquals(result.rows[0], ["1", "17.89"]);
+});
+
+testClient(async function float4Array() {
+  const result = await CLIENT.queryArray<[[Float4, Float4]]>(
+    "SELECT ARRAY['12.25'::FLOAT4, '4789']",
+  );
+
+  assertEquals(result.rows[0][0], ["12.25", "4789"]);
+});
+
+testClient(async function float8() {
+  const result = await CLIENT.queryArray<[Float8, Float8]>(
+    "SELECT '1'::FLOAT8, '17.89'::FLOAT8",
+  );
+
+  assertEquals(result.rows[0], ["1", "17.89"]);
+});
+
+testClient(async function float8Array() {
+  const result = await CLIENT.queryArray<[[Float8, Float8]]>(
+    "SELECT ARRAY['12.25'::FLOAT8, '4789']",
+  );
+
+  assertEquals(result.rows[0][0], ["12.25", "4789"]);
 });

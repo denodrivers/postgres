@@ -32,6 +32,8 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.bpchar:
     case Oid.char:
     case Oid.cidr:
+    case Oid.float4:
+    case Oid.float8:
     case Oid.inet:
     case Oid.macaddr:
     case Oid.name:
@@ -57,6 +59,8 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.bpchar_array:
     case Oid.char_array:
     case Oid.cidr_array:
+    case Oid.float4_array:
+    case Oid.float8_array:
     case Oid.inet_array:
     case Oid.macaddr_array:
     case Oid.name_array:
@@ -90,33 +94,29 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeBoolean(strValue);
     case Oid.bool_array:
       return decodeBooleanArray(strValue);
+    case Oid.bytea:
+      return decodeBytea(strValue);
+    case Oid.byte_array:
+      return decodeByteaArray(strValue);
+    case Oid.date:
+      return decodeDate(strValue);
     case Oid.int8:
       return decodeBigint(strValue);
     case Oid.int8_array:
       return decodeBigintArray(strValue);
-    case Oid.float4:
-    case Oid.float8:
-      return parseFloat(strValue);
-    case Oid.timestamptz:
-    case Oid.timestamp:
-      return decodeDatetime(strValue);
-    case Oid.date:
-      return decodeDate(strValue);
     case Oid.json:
     case Oid.jsonb:
-      return JSON.parse(strValue);
-    case Oid.json_array:
       return decodeJson(strValue);
+    case Oid.json_array:
     case Oid.jsonb_array:
       return decodeJsonArray(strValue);
     case Oid.point:
       return decodePoint(strValue);
     case Oid.point_array:
       return decodePointArray(strValue);
-    case Oid.bytea:
-      return decodeBytea(strValue);
-    case Oid.byte_array:
-      return decodeByteaArray(strValue);
+    case Oid.timestamptz:
+    case Oid.timestamp:
+      return decodeDatetime(strValue);
     default:
       throw new Error(`Don't know how to parse column type: ${typeOid}`);
   }
