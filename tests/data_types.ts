@@ -890,3 +890,17 @@ testClient(async function circleArray() {
 
   assertEquals(rows[0][0][0], { point, radius });
 });
+
+testClient(async function unhandledType() {
+  const { rows: exists } = await CLIENT.queryArray(
+    "SELECT EXISTS (SELECT TRUE FROM PG_TYPE WHERE UPPER(TYPNAME) = 'DIRECTION')",
+  );
+  if (exists[0][0]) {
+    await CLIENT.queryArray("DROP TYPE DIRECTION;");
+  }
+  await CLIENT.queryArray("CREATE TYPE DIRECTION AS ENUM ( 'LEFT', 'RIGHT' )");
+  const { rows: result } = await CLIENT.queryArray("SELECT 'LEFT'::DIRECTION;");
+  await CLIENT.queryArray("DROP TYPE DIRECTION;");
+
+  assertEquals(result[0][0], "LEFT");
+});
