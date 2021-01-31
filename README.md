@@ -27,11 +27,15 @@ const client = new Client({
 });
 await client.connect();
 
-const result = await client.queryArray("SELECT ID, NAME FROM PEOPLE");
-console.log(result.rows); // [[1, 'Carlos'], [2, 'John'], ...]
+{
+  const result = await client.queryArray("SELECT ID, NAME FROM PEOPLE");
+  console.log(result.rows); // [[1, 'Carlos'], [2, 'John'], ...]
+}
 
-const result = await client.queryObject("SELECT ID, NAME FROM PEOPLE");
-console.log(result.rows); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'Johnru'}, ...]
+{
+  const result = await client.queryObject("SELECT ID, NAME FROM PEOPLE");
+  console.log(result.rows); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'Johnru'}, ...]
+}
 
 await client.end();
 ```
