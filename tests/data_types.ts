@@ -566,7 +566,34 @@ testClient(async function timestampArray() {
   assertEquals(result.rows[0][0], timestamps.map((x) => new Date(x)));
 });
 
+testClient(async function timestamptz() {
+  const timestamp = "1999-01-08 04:05:06+02";
+  const result = await CLIENT.queryArray<[Timestamp]>(
+    `SELECT $1::TIMESTAMPTZ, 'INFINITY'::TIMESTAMPTZ`,
+    timestamp,
+  );
+
+  assertEquals(result.rows[0], [new Date(timestamp), Infinity]);
+});
+
 const timezone = new Date().toTimeString().slice(12, 17);
+
+testClient(async function timestamptzArray() {
+  const timestamps = [
+    "2012/04/10 10:10:30 +0000",
+    new Date().toISOString(),
+  ];
+
+  const result = await CLIENT.queryArray<[[Timestamp, Timestamp]]>(
+    `SELECT ARRAY[$1::TIMESTAMPTZ, $2]`,
+    ...timestamps,
+  );
+
+  assertEquals(result.rows[0][0], [
+    new Date(timestamps[0]),
+    new Date(timestamps[1]),
+  ]);
+});
 
 testClient(async function timetz() {
   const result = await CLIENT.queryArray<[string]>(
