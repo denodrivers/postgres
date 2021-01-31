@@ -167,7 +167,11 @@ function decodeText(value: Uint8Array, typeOid: number): any {
     case Oid.timestamptz_array:
       return decodeDatetimeArray(strValue);
     default:
-      throw new Error(`Don't know how to parse column type: ${typeOid}`);
+      // A separate category for not handled values
+      // They might or might not be represented correctly as strings,
+      // returning them to the user as raw strings allows them to parse
+      // them as they see fit
+      return strValue;
   }
 }
 
