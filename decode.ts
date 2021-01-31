@@ -16,6 +16,7 @@ import {
   decodeJson,
   decodeJsonArray,
   decodeLine,
+  decodeLineArray,
   decodePoint,
   decodePointArray,
   decodeStringArray,
@@ -119,6 +120,8 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeJsonArray(strValue);
     case Oid.line:
       return decodeLine(strValue);
+    case Oid.line_array:
+      return decodeLineArray(strValue);
     case Oid.point:
       return decodePoint(strValue);
     case Oid.point_array:

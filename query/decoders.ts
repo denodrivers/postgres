@@ -188,6 +188,10 @@ export function decodeLine(value: string): Line {
   };
 }
 
+export function decodeLineArray(value: string) {
+  return parseArray(value, decodeLine);
+}
+
 // Ported from https://github.com/brianc/node-pg-types
 // Copyright (c) 2014 Brian M. Carlson. All rights reserved. MIT License.
 export function decodePoint(value: string): Point {
