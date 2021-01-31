@@ -38,6 +38,14 @@ function generateRandomNumber(max_value: number) {
   return Math.round((Math.random() * max_value + Number.EPSILON) * 100) / 100;
 }
 
+// deno-lint-ignore camelcase
+function generateRandomPoint(max_value = 100): Point {
+  return {
+    x: String(generateRandomNumber(max_value)) as Float8,
+    y: String(generateRandomNumber(max_value)) as Float8,
+  };
+}
+
 const CLIENT = new Client(TEST_CONNECTION_PARAMS);
 
 const testClient = getTestClient(CLIENT, SETUP);
@@ -807,75 +815,55 @@ testClient(async function boxArray() {
 testClient(async function path() {
   const points = Array.from(
     { length: Math.floor((Math.random() + 1) * 10) },
-    () => {
-      return [
-        String(generateRandomNumber(100)),
-        String(generateRandomNumber(100)),
-      ];
-    },
+    generateRandomPoint,
   );
 
   const selectRes = await CLIENT.queryArray<[Path]>(
-    `SELECT '(${points.map(([x, y]) => `(${x},${y})`).join(",")})'::PATH`,
+    `SELECT '(${points.map(({ x, y }) => `(${x},${y})`).join(",")})'::PATH`,
   );
 
-  assertEquals(selectRes.rows[0][0], points.map(([x, y]) => ({ x, y })));
+  assertEquals(selectRes.rows[0][0], points);
 });
 
 testClient(async function pathArray() {
   const points = Array.from(
     { length: Math.floor((Math.random() + 1) * 10) },
-    () => {
-      return [
-        String(generateRandomNumber(100)),
-        String(generateRandomNumber(100)),
-      ];
-    },
+    generateRandomPoint,
   );
 
   const selectRes = await CLIENT.queryArray<[[Path]]>(
     `SELECT ARRAY['(${
-      points.map(([x, y]) => `(${x},${y})`).join(",")
+      points.map(({ x, y }) => `(${x},${y})`).join(",")
     })'::PATH]`,
   );
 
-  assertEquals(selectRes.rows[0][0][0], points.map(([x, y]) => ({ x, y })));
+  assertEquals(selectRes.rows[0][0][0], points);
 });
 
 testClient(async function polygon() {
   const points = Array.from(
     { length: Math.floor((Math.random() + 1) * 10) },
-    () => {
-      return [
-        String(generateRandomNumber(100)),
-        String(generateRandomNumber(100)),
-      ];
-    },
+    generateRandomPoint,
   );
 
   const selectRes = await CLIENT.queryArray<[Polygon]>(
-    `SELECT '(${points.map(([x, y]) => `(${x},${y})`).join(",")})'::POLYGON`,
+    `SELECT '(${points.map(({ x, y }) => `(${x},${y})`).join(",")})'::POLYGON`,
   );
 
-  assertEquals(selectRes.rows[0][0], points.map(([x, y]) => ({ x, y })));
+  assertEquals(selectRes.rows[0][0], points);
 });
 
 testClient(async function polygonArray() {
   const points = Array.from(
     { length: Math.floor((Math.random() + 1) * 10) },
-    () => {
-      return [
-        String(generateRandomNumber(100)),
-        String(generateRandomNumber(100)),
-      ];
-    },
+    generateRandomPoint,
   );
 
   const selectRes = await CLIENT.queryArray<[[Polygon]]>(
     `SELECT ARRAY['(${
-      points.map(([x, y]) => `(${x},${y})`).join(",")
+      points.map(({ x, y }) => `(${x},${y})`).join(",")
     })'::POLYGON]`,
   );
 
-  assertEquals(selectRes.rows[0][0][0], points.map(([x, y]) => ({ x, y })));
+  assertEquals(selectRes.rows[0][0][0], points);
 });
