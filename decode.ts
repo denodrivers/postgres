@@ -8,6 +8,7 @@ import {
   decodeBytea,
   decodeByteaArray,
   decodeDate,
+  decodeDateArray,
   decodeDatetime,
   decodeDatetimeArray,
   decodeInt,
@@ -103,6 +104,8 @@ function decodeText(value: Uint8Array, typeOid: number): any {
       return decodeByteaArray(strValue);
     case Oid.date:
       return decodeDate(strValue);
+    case Oid.date_array:
+      return decodeDateArray(strValue);
     case Oid.int8:
       return decodeBigint(strValue);
     case Oid.int8_array:
