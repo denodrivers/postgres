@@ -16,6 +16,15 @@ export type Float4 = "string";
  * */
 export type Float8 = "string";
 
+/**
+ * https://www.postgresql.org/docs/13/datatype-geometric.html#DATATYPE-LINE
+ */
+export interface Line {
+  a: Float8;
+  b: Float8;
+  c: Float8;
+}
+
 /**  
  * https://www.postgresql.org/docs/13/datatype-geometric.html#id-1.5.7.16.5
  */
