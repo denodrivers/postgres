@@ -195,7 +195,7 @@ export class Connection {
     }
   }
 
-  async handleAuth(msg: Message) {    
+  async handleAuth(msg: Message) {
     switch (msg.type) {
       case "E":
         await this._processError(msg, false);
