@@ -158,6 +158,7 @@ export class Connection {
     this.conn = await Deno.connect({ port, hostname });
 
     this.bufReader = new BufReader(this.conn);
+
     this.bufWriter = new BufWriter(this.conn);
     this.packetWriter = new PacketWriter();
 
@@ -194,7 +195,12 @@ export class Connection {
     }
   }
 
-  async handleAuth(msg: Message) {
+  async handleAuth(msg: Message) {    
+    switch (msg.type) {
+      case "E":
+        await this._processError(msg, false);
+    }
+
     const code = msg.reader.readInt32();
     switch (code) {
       // pass
@@ -218,10 +224,6 @@ export class Connection {
           `Database server expected scram-sha-256 authentication, which is not supported at the moment`,
         );
       }
-      case 1397113172: 
-        throw new Error(
-          `Connection was rejected for the specified database with code: "${code}"`,
-        );
       default:
         throw new Error(`Unknown auth message code ${code}`);
     }
