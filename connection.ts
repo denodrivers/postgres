@@ -218,10 +218,15 @@ export class Connection {
         await this._readAuthResponse();
         break;
       }
+      case 7: {
+        throw new Error(
+          "Database server expected gss authentication, which is not supported at the moment",
+        );
+      }
       // scram-sha-256 password
       case 10: {
         throw new Error(
-          `Database server expected scram-sha-256 authentication, which is not supported at the moment`,
+          "Database server expected scram-sha-256 authentication, which is not supported at the moment",
         );
       }
       default:
