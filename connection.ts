@@ -212,6 +212,10 @@ export class Connection {
         await this._readAuthResponse();
         break;
       }
+      case 1397113172:
+        throw new Error(
+          "Server expected an SSL connection. SSL authentication is not yet implemented",
+        );
       default:
         throw new Error(`Unknown auth message code ${code}`);
     }
