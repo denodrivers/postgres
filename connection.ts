@@ -197,24 +197,30 @@ export class Connection {
   async handleAuth(msg: Message) {
     const code = msg.reader.readInt32();
     switch (code) {
+      // pass
       case 0:
-        // pass
         break;
+      // cleartext password
       case 3:
-        // cleartext password
         await this._authCleartext();
         await this._readAuthResponse();
         break;
+      // md5 password
       case 5: {
-        // md5 password
         const salt = msg.reader.readBytes(4);
         await this._authMd5(salt);
         await this._readAuthResponse();
         break;
       }
-      case 1397113172:
+      // scram-sha-256 password
+      case 10: {
         throw new Error(
-          "Server expected an SSL connection. SSL authentication is not yet implemented",
+          `Database server expected scram-sha-256 authentication, which is not supported at the moment`,
+        );
+      }
+      case 1397113172: 
+        throw new Error(
+          `Connection was rejected for the specified database with code: "${code}"`,
         );
       default:
         throw new Error(`Unknown auth message code ${code}`);
