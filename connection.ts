@@ -122,7 +122,7 @@ export class Connection {
     return new Message(msgType, msgLength, msgBody);
   }
 
-  private async _sendStartupMessage() {
+  private async sendStartupMessage(): Promise<Message> {
     const writer = this.packetWriter;
     writer.clear();
     // protocol version - 3.0, written as
@@ -151,10 +151,19 @@ export class Connection {
       .join();
 
     await this.bufWriter.write(finalBuffer);
+    await this.bufWriter.flush();
+
+    return await this.readMessage();
   }
 
   async startup() {
     const { port, hostname } = this.connParams;
+
+    // TODO
+    // Send an SSLRequest message
+    // Check if connection allows SSL
+    // If it is then start a ssl handshake before the startup
+
     this.conn = await Deno.connect({ port, hostname });
 
     this.bufReader = new BufReader(this.conn);
@@ -162,14 +171,13 @@ export class Connection {
     this.bufWriter = new BufWriter(this.conn);
     this.packetWriter = new PacketWriter();
 
-    await this._sendStartupMessage();
-    await this.bufWriter.flush();
+    // deno-lint-ignore camelcase
+    const startup_response = await this.sendStartupMessage();
+    await this.authenticate(startup_response);
 
-    let msg: Message;
-
-    msg = await this.readMessage();
-    await this.handleAuth(msg);
-
+    // Handle connection status
+    // (connected but not ready)
+    let msg;
     while (true) {
       msg = await this.readMessage();
       switch (msg.type) {
@@ -195,7 +203,13 @@ export class Connection {
     }
   }
 
-  async handleAuth(msg: Message) {
+  // TODO
+  // Why is this handling the startup message response?
+  /**
+   * Will attempt to authenticate with the database using the provided
+   * password credentials
+   */
+  private async authenticate(msg: Message) {
     switch (msg.type) {
       case "E":
         await this._processError(msg, false);
@@ -208,14 +222,14 @@ export class Connection {
         break;
       // cleartext password
       case 3:
-        await this._authCleartext();
-        await this._readAuthResponse();
+        await this.assertAuthentication(
+          await this.authenticateWithClearPassword(),
+        );
         break;
       // md5 password
       case 5: {
         const salt = msg.reader.readBytes(4);
-        await this._authMd5(salt);
-        await this._readAuthResponse();
+        await this.assertAuthentication(await this.authenticateWithMd5(salt));
         break;
       }
       case 7: {
@@ -234,31 +248,32 @@ export class Connection {
     }
   }
 
-  private async _readAuthResponse() {
-    const msg = await this.readMessage();
-
-    if (msg.type === "E") {
-      throw parseError(msg);
-    } else if (msg.type !== "R") {
-      throw new Error(`Unexpected auth response: ${msg.type}.`);
+  // deno-lint-ignore camelcase
+  private assertAuthentication(auth_message: Message) {
+    if (auth_message.type === "E") {
+      throw parseError(auth_message);
+    } else if (auth_message.type !== "R") {
+      throw new Error(`Unexpected auth response: ${auth_message.type}.`);
     }
 
-    const responseCode = msg.reader.readInt32();
+    const responseCode = auth_message.reader.readInt32();
     if (responseCode !== 0) {
       throw new Error(`Unexpected auth response code: ${responseCode}.`);
     }
   }
 
-  private async _authCleartext() {
+  private async authenticateWithClearPassword(): Promise<Message> {
     this.packetWriter.clear();
     const password = this.connParams.password || "";
     const buffer = this.packetWriter.addCString(password).flush(0x70);
 
     await this.bufWriter.write(buffer);
     await this.bufWriter.flush();
+
+    return this.readMessage();
   }
 
-  private async _authMd5(salt: Uint8Array) {
+  private async authenticateWithMd5(salt: Uint8Array): Promise<Message> {
     this.packetWriter.clear();
 
     if (!this.connParams.password) {
@@ -274,6 +289,8 @@ export class Connection {
 
     await this.bufWriter.write(buffer);
     await this.bufWriter.flush();
+
+    return this.readMessage();
   }
 
   private _processBackendKeyData(msg: Message) {
@@ -494,9 +511,12 @@ export class Connection {
     return warning;
   }
 
-  private async _readParseComplete() {
-    const msg = await this.readMessage();
-
+  /**
+   * The first response sent by the server indicates if the query is syntactically correct
+   * 
+   * This asserts that response is successful
+   */
+  private async assertParseResponse(msg: Message) {
     switch (msg.type) {
       // parse completed
       case "1":
@@ -512,9 +532,7 @@ export class Connection {
     }
   }
 
-  private async _readBindComplete() {
-    const msg = await this.readMessage();
-
+  private async assertBindResponse(msg: Message) {
     switch (msg.type) {
       // bind completed
       case "2":
@@ -531,6 +549,9 @@ export class Connection {
 
   // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
   //  sent after error response is received in prepared statements?
+  /**
+   * https://www.postgresql.org/docs/13/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
+   */
   async _preparedQuery(query: Query, type: ResultType): Promise<QueryResult> {
     await this._sendPrepareMessage(query);
     await this._sendBindMessage(query);
@@ -540,8 +561,8 @@ export class Connection {
     // send all messages to backend
     await this.bufWriter.flush();
 
-    await this._readParseComplete();
-    await this._readBindComplete();
+    await this.assertParseResponse(await this.readMessage());
+    await this.assertBindResponse(await this.readMessage());
 
     let result;
     if (type === ResultType.ARRAY) {
