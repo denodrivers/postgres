@@ -187,10 +187,9 @@ testClient(async function transactionWithConcurrentQueries() {
 
 testClient(async function handleNameTooLongError() {
   const result = await CLIENT.queryObject(`
-    SELECT id AS "very_very_very_very_very_very_very_very_very_very_very_long_name" FROM ids ORDER BY id
+    SELECT 1 AS "very_very_very_very_very_very_very_very_very_very_very_long_name"
   `);
   assertEquals(result.rows, [
     { "very_very_very_very_very_very_very_very_very_very_very_long_nam": 1 },
-    { "very_very_very_very_very_very_very_very_very_very_very_long_nam": 2 },
   ]);
 });
