@@ -388,6 +388,9 @@ export class Connection {
         case "N":
           result.warnings.push(await this._processNotice(msg));
           break;
+        case "T":
+          result.loadColumnDescriptions(this._processRowDescription(msg));
+          break;
         default:
           throw new Error(`Unexpected frame: ${msg.type}`);
       }

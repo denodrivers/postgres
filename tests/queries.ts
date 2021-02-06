@@ -184,3 +184,12 @@ testClient(async function transactionWithConcurrentQueries() {
     assertEquals(r.rows[0][0], i);
   });
 });
+
+testClient(async function handleNameTooLongError() {
+  const result = await CLIENT.queryObject(`
+    SELECT 1 AS "very_very_very_very_very_very_very_very_very_very_very_long_name"
+  `);
+  assertEquals(result.rows, [
+    { "very_very_very_very_very_very_very_very_very_very_very_long_nam": 1 },
+  ]);
+});
