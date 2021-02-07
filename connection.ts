@@ -57,6 +57,62 @@ enum TransactionStatus {
   InFailedTransaction = "E",
 }
 
+/**
+ * This asserts the argument bind response is succesful
+ */
+function assertArgumentsResponse(msg: Message) {
+  switch (msg.type) {
+    // bind completed
+    case "2":
+      // no-op
+      break;
+    // error response
+    case "E":
+      throw parseError(msg);
+    default:
+      throw new Error(`Unexpected frame: ${msg.type}`);
+  }
+}
+
+function assertSuccessfulStartup(msg: Message) {
+  switch (msg.type) {
+    case "E":
+      throw parseError(msg);
+  }
+}
+
+// deno-lint-ignore camelcase
+function assertSuccessfulAuthentication(auth_message: Message) {
+  if (auth_message.type === "E") {
+    throw parseError(auth_message);
+  } else if (auth_message.type !== "R") {
+    throw new Error(`Unexpected auth response: ${auth_message.type}.`);
+  }
+
+  const responseCode = auth_message.reader.readInt32();
+  if (responseCode !== 0) {
+    throw new Error(`Unexpected auth response code: ${responseCode}.`);
+  }
+}
+
+/**
+ * This asserts the query parse response is succesful
+ */
+function assertQueryResponse(msg: Message) {
+  switch (msg.type) {
+    // parse completed
+    case "1":
+      // TODO: add to already parsed queries if
+      // query has name, so it's not parsed again
+      break;
+    // error response
+    case "E":
+      throw parseError(msg);
+    default:
+      throw new Error(`Unexpected frame: ${msg.type}`);
+  }
+}
+
 export class Message {
   public reader: PacketReader;
 
@@ -206,6 +262,7 @@ export class Connection {
 
     // deno-lint-ignore camelcase
     const startup_response = await this.sendStartupMessage();
+    assertSuccessfulStartup(startup_response);
     await this.authenticate(startup_response);
 
     // Handle connection status
@@ -243,11 +300,6 @@ export class Connection {
    * password credentials
    */
   private async authenticate(msg: Message) {
-    switch (msg.type) {
-      case "E":
-        await this.processError(msg, false);
-    }
-
     const code = msg.reader.readInt32();
     switch (code) {
       // pass
@@ -255,14 +307,16 @@ export class Connection {
         break;
       // cleartext password
       case 3:
-        await this.assertAuthentication(
+        await assertSuccessfulAuthentication(
           await this.authenticateWithClearPassword(),
         );
         break;
       // md5 password
       case 5: {
         const salt = msg.reader.readBytes(4);
-        await this.assertAuthentication(await this.authenticateWithMd5(salt));
+        await assertSuccessfulAuthentication(
+          await this.authenticateWithMd5(salt),
+        );
         break;
       }
       case 7: {
@@ -278,20 +332,6 @@ export class Connection {
       }
       default:
         throw new Error(`Unknown auth message code ${code}`);
-    }
-  }
-
-  // deno-lint-ignore camelcase
-  private assertAuthentication(auth_message: Message) {
-    if (auth_message.type === "E") {
-      throw parseError(auth_message);
-    } else if (auth_message.type !== "R") {
-      throw new Error(`Unexpected auth response: ${auth_message.type}.`);
-    }
-
-    const responseCode = auth_message.reader.readInt32();
-    if (responseCode !== 0) {
-      throw new Error(`Unexpected auth response code: ${responseCode}.`);
     }
   }
 
@@ -540,43 +580,6 @@ export class Connection {
     return warning;
   }
 
-  /**
-   * This asserts the query parse response is succesful
-   */
-  private async assertQueryResponse(msg: Message) {
-    switch (msg.type) {
-      // parse completed
-      case "1":
-        // TODO: add to already parsed queries if
-        // query has name, so it's not parsed again
-        break;
-      // error response
-      case "E":
-        await this.processError(msg);
-        break;
-      default:
-        throw new Error(`Unexpected frame: ${msg.type}`);
-    }
-  }
-
-  /**
-   * This asserts the argument bing response is succesful
-   */
-  private async assertArgumentsResponse(msg: Message) {
-    switch (msg.type) {
-      // bind completed
-      case "2":
-        // no-op
-        break;
-      // error response
-      case "E":
-        await this.processError(msg);
-        break;
-      default:
-        throw new Error(`Unexpected frame: ${msg.type}`);
-    }
-  }
-
   // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
   //  sent after error response is received in prepared statements?
   /**
@@ -591,8 +594,8 @@ export class Connection {
     // send all messages to backend
     await this.#bufWriter.flush();
 
-    await this.assertQueryResponse(await this.readMessage());
-    await this.assertArgumentsResponse(await this.readMessage());
+    await assertQueryResponse(await this.readMessage());
+    await assertArgumentsResponse(await this.readMessage());
 
     let result;
     if (type === ResultType.ARRAY) {
