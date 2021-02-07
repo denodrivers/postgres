@@ -36,7 +36,6 @@ import { parseError, parseNotice } from "./warning.ts";
 import {
   Query,
   QueryArrayResult,
-  QueryConfig,
   QueryObjectResult,
   QueryResult,
 } from "./query.ts";
@@ -93,27 +92,26 @@ const encoder = new TextEncoder();
 //Refactor properties to not be lazily initialized
 //or to handle their undefined value
 export class Connection {
-  #conn!: Deno.Conn;
   #bufReader!: BufReader;
   #bufWriter!: BufWriter;
+  #conn!: Deno.Conn;
   #packetWriter!: PacketWriter;
-
-  // TODO
-  // Find out what the transaction status is used for
-  #transactionStatus?: TransactionStatus;
-  // TODO
-  // Find out what the pid is for
-  #pid?: number;
-  // TODO
-  // Find out what the secret key is for
-  #secretKey?: number;
   // TODO
   // Find out what parameters are for
   #parameters: { [key: string]: string } = {};
+  // TODO
+  // Find out what the pid is for
+  #pid?: number;
   #queryLock: DeferredStack<undefined> = new DeferredStack(
     1,
     [undefined],
   );
+  // TODO
+  // Find out what the secret key is for
+  #secretKey?: number;
+  // TODO
+  // Find out what the transaction status is used for
+  #transactionStatus?: TransactionStatus;
 
   constructor(private connParams: ConnectionParams) {}
 
@@ -515,11 +513,9 @@ export class Connection {
   }
 
   /**
-   * The first response sent by the server indicates if the query is syntactically correct
-   * 
-   * This asserts that response is successful
+   * This asserts the query parse response is succesful
    */
-  private async assertParseResponse(msg: Message) {
+  private async assertQueryResponse(msg: Message) {
     switch (msg.type) {
       // parse completed
       case "1":
@@ -535,7 +531,10 @@ export class Connection {
     }
   }
 
-  private async assertBindResponse(msg: Message) {
+  /**
+   * This asserts the argument bing response is succesful
+   */
+  private async assertArgumentsResponse(msg: Message) {
     switch (msg.type) {
       // bind completed
       case "2":
@@ -564,8 +563,8 @@ export class Connection {
     // send all messages to backend
     await this.#bufWriter.flush();
 
-    await this.assertParseResponse(await this.readMessage());
-    await this.assertBindResponse(await this.readMessage());
+    await this.assertQueryResponse(await this.readMessage());
+    await this.assertArgumentsResponse(await this.readMessage());
 
     let result;
     if (type === ResultType.ARRAY) {
