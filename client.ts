@@ -161,7 +161,6 @@ export class Client extends QueryClient {
 
   async connect(): Promise<void> {
     await this._connection.startup();
-    await this._connection.initSQL();
   }
 
   async end(): Promise<void> {
