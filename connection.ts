@@ -128,6 +128,24 @@ export class Connection {
     return new Message(msgType, msgLength, msgBody);
   }
 
+  private async testSSL() {
+    const writer = this.#packetWriter;
+    writer.clear();
+    writer
+      .addInt32(8)
+      .addInt32(80877103)
+      .join();
+
+    await this.#bufWriter.write(writer.flush());
+    await this.#bufWriter.flush();
+
+    const response = new Uint8Array(1);
+    await this.#conn.read(response);
+    console.log(
+      String.fromCharCode(response[0]),
+    );
+  }
+
   private async sendStartupMessage(): Promise<Message> {
     const writer = this.#packetWriter;
     writer.clear();
@@ -165,16 +183,12 @@ export class Connection {
   async startup() {
     const { port, hostname } = this.connParams;
 
-    // TODO
-    // Send an SSLRequest message
-    // Check if connection allows SSL
-    // If it is then start a ssl handshake before the startup
-
     this.#conn = await Deno.connect({ port, hostname });
-
     this.#bufReader = new BufReader(this.#conn);
     this.#bufWriter = new BufWriter(this.#conn);
     this.#packetWriter = new PacketWriter();
+
+    await this.testSSL();
 
     // deno-lint-ignore camelcase
     const startup_response = await this.sendStartupMessage();
