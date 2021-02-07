@@ -184,7 +184,7 @@ export class Connection {
     return new Message(msgType, msgLength, msgBody);
   }
 
-  private async acceptsSSLConnection(): Promise<boolean> {
+  private async serverAcceptsTLS(): Promise<boolean> {
     const writer = this.#packetWriter;
     writer.clear();
     writer
@@ -245,17 +245,25 @@ export class Connection {
   }
 
   async startup() {
-    const { port, hostname } = this.connParams;
+    const {
+      hostname,
+      port,
+      tls: {
+        enforce: enforceTLS,
+      },
+    } = this.connParams;
 
     this.#conn = await Deno.connect({ port, hostname });
     this.#bufWriter = new BufWriter(this.#conn);
     this.#packetWriter = new PacketWriter();
 
-    // deno-lint-ignore camelcase
-    const attempt_ssl = await this.acceptsSSLConnection();
-    if (attempt_ssl) {
+    if (await this.serverAcceptsTLS()) {
       this.#conn = await Deno.startTls(this.#conn, { hostname });
       this.#bufWriter = new BufWriter(this.#conn);
+    } else if (enforceTLS) {
+      throw new Error(
+        "The server isn't accepting SSL connections. Change the client configuration so TLS configuration isn't required to connect",
+      );
     }
 
     this.#bufReader = new BufReader(this.#conn);

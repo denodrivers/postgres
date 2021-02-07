@@ -35,8 +35,15 @@ export class ConnectionParamsError extends Error {
   }
 }
 
-// TODO
-// Support other params
+interface TLSOptions {
+  /**
+   * This will force the connection to run over TLS
+   * If the server doesn't support TLS, the connection will fail
+   * 
+   * default: `false`
+   * */
+  enforce: boolean;
+}
 
 export interface ConnectionOptions {
   applicationName?: string;
@@ -44,6 +51,7 @@ export interface ConnectionOptions {
   hostname?: string;
   password?: string;
   port?: string | number;
+  tls?: TLSOptions;
   user?: string;
 }
 
@@ -53,6 +61,7 @@ export interface ConnectionParams {
   hostname: string;
   password?: string;
   port: number;
+  tls: TLSOptions;
   user: string;
 }
 
@@ -116,9 +125,12 @@ function parseOptionsFromDsn(connString: string): ConnectionOptions {
 }
 
 const DEFAULT_OPTIONS = {
+  applicationName: "deno_postgres",
   hostname: "127.0.0.1",
   port: "5432",
-  applicationName: "deno_postgres",
+  tls: {
+    enforce: false,
+  },
 };
 
 export function createParams(
@@ -160,6 +172,9 @@ export function createParams(
     hostname: params.hostname ?? pgEnv.hostname ?? DEFAULT_OPTIONS.hostname,
     password: params.password ?? pgEnv.password,
     port,
+    tls: {
+      enforce: !!params?.tls?.enforce ?? DEFAULT_OPTIONS.tls.enforce,
+    },
     user: params.user ?? pgEnv.user,
   };
 
