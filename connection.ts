@@ -86,23 +86,31 @@ export class RowDescription {
   constructor(public columnCount: number, public columns: Column[]) {}
 }
 
+const decoder = new TextDecoder();
+const encoder = new TextEncoder();
+
 //TODO
 //Refactor properties to not be lazily initialized
 //or to handle their undefined value
 export class Connection {
-  private conn!: Deno.Conn;
+  #conn!: Deno.Conn;
+  #bufReader!: BufReader;
+  #bufWriter!: BufWriter;
+  #packetWriter!: PacketWriter;
 
-  private bufReader!: BufReader;
-  private bufWriter!: BufWriter;
-  private packetWriter!: PacketWriter;
-  private decoder: TextDecoder = new TextDecoder();
-  private encoder: TextEncoder = new TextEncoder();
-
-  private _transactionStatus?: TransactionStatus;
-  private _pid?: number;
-  private _secretKey?: number;
-  private _parameters: { [key: string]: string } = {};
-  private _queryLock: DeferredStack<undefined> = new DeferredStack(
+  // TODO
+  // Find out what the transaction status is used for
+  #transactionStatus?: TransactionStatus;
+  // TODO
+  // Find out what the pid is for
+  #pid?: number;
+  // TODO
+  // Find out what the secret key is for
+  #secretKey?: number;
+  // TODO
+  // Find out what parameters are for
+  #parameters: { [key: string]: string } = {};
+  #queryLock: DeferredStack<undefined> = new DeferredStack(
     1,
     [undefined],
   );
@@ -113,17 +121,17 @@ export class Connection {
   async readMessage(): Promise<Message> {
     // TODO: reuse buffer instead of allocating new ones each for each read
     const header = new Uint8Array(5);
-    await this.bufReader.readFull(header);
-    const msgType = this.decoder.decode(header.slice(0, 1));
+    await this.#bufReader.readFull(header);
+    const msgType = decoder.decode(header.slice(0, 1));
     const msgLength = readUInt32BE(header, 1) - 4;
     const msgBody = new Uint8Array(msgLength);
-    await this.bufReader.readFull(msgBody);
+    await this.#bufReader.readFull(msgBody);
 
     return new Message(msgType, msgLength, msgBody);
   }
 
   private async sendStartupMessage(): Promise<Message> {
-    const writer = this.packetWriter;
+    const writer = this.#packetWriter;
     writer.clear();
     // protocol version - 3.0, written as
     writer.addInt16(3).addInt16(0);
@@ -150,8 +158,8 @@ export class Connection {
       .add(bodyBuffer)
       .join();
 
-    await this.bufWriter.write(finalBuffer);
-    await this.bufWriter.flush();
+    await this.#bufWriter.write(finalBuffer);
+    await this.#bufWriter.flush();
 
     return await this.readMessage();
   }
@@ -164,12 +172,11 @@ export class Connection {
     // Check if connection allows SSL
     // If it is then start a ssl handshake before the startup
 
-    this.conn = await Deno.connect({ port, hostname });
+    this.#conn = await Deno.connect({ port, hostname });
 
-    this.bufReader = new BufReader(this.conn);
-
-    this.bufWriter = new BufWriter(this.conn);
-    this.packetWriter = new PacketWriter();
+    this.#bufReader = new BufReader(this.#conn);
+    this.#bufWriter = new BufWriter(this.#conn);
+    this.#packetWriter = new PacketWriter();
 
     // deno-lint-ignore camelcase
     const startup_response = await this.sendStartupMessage();
@@ -183,7 +190,7 @@ export class Connection {
       switch (msg.type) {
         // Connection error (wrong database or user)
         case "E":
-          await this._processError(msg, false);
+          await this.processError(msg, false);
           break;
         // backend key data
         case "K":
@@ -212,7 +219,7 @@ export class Connection {
   private async authenticate(msg: Message) {
     switch (msg.type) {
       case "E":
-        await this._processError(msg, false);
+        await this.processError(msg, false);
     }
 
     const code = msg.reader.readInt32();
@@ -263,18 +270,18 @@ export class Connection {
   }
 
   private async authenticateWithClearPassword(): Promise<Message> {
-    this.packetWriter.clear();
+    this.#packetWriter.clear();
     const password = this.connParams.password || "";
-    const buffer = this.packetWriter.addCString(password).flush(0x70);
+    const buffer = this.#packetWriter.addCString(password).flush(0x70);
 
-    await this.bufWriter.write(buffer);
-    await this.bufWriter.flush();
+    await this.#bufWriter.write(buffer);
+    await this.#bufWriter.flush();
 
     return this.readMessage();
   }
 
   private async authenticateWithMd5(salt: Uint8Array): Promise<Message> {
-    this.packetWriter.clear();
+    this.#packetWriter.clear();
 
     if (!this.connParams.password) {
       throw new Error("Auth Error: attempting MD5 auth with password unset");
@@ -285,29 +292,29 @@ export class Connection {
       this.connParams.user,
       salt,
     );
-    const buffer = this.packetWriter.addCString(password).flush(0x70);
+    const buffer = this.#packetWriter.addCString(password).flush(0x70);
 
-    await this.bufWriter.write(buffer);
-    await this.bufWriter.flush();
+    await this.#bufWriter.write(buffer);
+    await this.#bufWriter.flush();
 
     return this.readMessage();
   }
 
   private _processBackendKeyData(msg: Message) {
-    this._pid = msg.reader.readInt32();
-    this._secretKey = msg.reader.readInt32();
+    this.#pid = msg.reader.readInt32();
+    this.#secretKey = msg.reader.readInt32();
   }
 
   private _processParameterStatus(msg: Message) {
     // TODO: should we save all parameters?
     const key = msg.reader.readCString();
     const value = msg.reader.readCString();
-    this._parameters[key] = value;
+    this.#parameters[key] = value;
   }
 
   private _processReadyForQuery(msg: Message) {
     const txStatus = msg.reader.readByte();
-    this._transactionStatus = String.fromCharCode(
+    this.#transactionStatus = String.fromCharCode(
       txStatus,
     ) as TransactionStatus;
   }
@@ -328,12 +335,12 @@ export class Connection {
     query: Query,
     type: ResultType,
   ): Promise<QueryResult> {
-    this.packetWriter.clear();
+    this.#packetWriter.clear();
 
-    const buffer = this.packetWriter.addCString(query.text).flush(0x51);
+    const buffer = this.#packetWriter.addCString(query.text).flush(0x51);
 
-    await this.bufWriter.write(buffer);
-    await this.bufWriter.flush();
+    await this.#bufWriter.write(buffer);
+    await this.#bufWriter.flush();
 
     let result;
     if (type === ResultType.ARRAY) {
@@ -350,23 +357,23 @@ export class Connection {
     switch (msg.type) {
       // row description
       case "T":
-        result.loadColumnDescriptions(this._processRowDescription(msg));
+        result.loadColumnDescriptions(this.parseRowDescription(msg));
         break;
       // no data
       case "n":
         break;
       // error response
       case "E":
-        await this._processError(msg);
+        await this.processError(msg);
         break;
       // notice response
       case "N":
-        result.warnings.push(await this._processNotice(msg));
+        result.warnings.push(await this.processNotice(msg));
         break;
       // command complete
       // TODO: this is duplicated in next loop
       case "C": {
-        const commandTag = this._readCommandTag(msg);
+        const commandTag = this.getCommandTag(msg);
         result.handleCommandComplete(commandTag);
         result.done();
         break;
@@ -382,13 +389,12 @@ export class Connection {
         // data row
         case "D": {
           // this is actually packet read
-          const foo = this._readDataRow(msg);
-          result.insertRow(foo);
+          result.insertRow(this.parseRowData(msg));
           break;
         }
         // command complete
         case "C": {
-          const commandTag = this._readCommandTag(msg);
+          const commandTag = this.getCommandTag(msg);
           result.handleCommandComplete(commandTag);
           result.done();
           break;
@@ -399,14 +405,14 @@ export class Connection {
           return result;
         // error response
         case "E":
-          await this._processError(msg);
+          await this.processError(msg);
           break;
         // notice response
         case "N":
-          result.warnings.push(await this._processNotice(msg));
+          result.warnings.push(await this.processNotice(msg));
           break;
         case "T":
-          result.loadColumnDescriptions(this._processRowDescription(msg));
+          result.loadColumnDescriptions(this.parseRowDescription(msg));
           break;
         default:
           throw new Error(`Unexpected frame: ${msg.type}`);
@@ -414,90 +420,87 @@ export class Connection {
     }
   }
 
-  async _sendPrepareMessage(query: Query) {
-    this.packetWriter.clear();
+  private async appendQueryToMessage(query: Query) {
+    this.#packetWriter.clear();
 
-    const buffer = this.packetWriter
+    const buffer = this.#packetWriter
       .addCString("") // TODO: handle named queries (config.name)
       .addCString(query.text)
       .addInt16(0)
       .flush(0x50);
-    await this.bufWriter.write(buffer);
+    await this.#bufWriter.write(buffer);
   }
 
-  async _sendBindMessage(query: Query) {
-    this.packetWriter.clear();
+  private async appendArgumentsToMessage(query: Query) {
+    this.#packetWriter.clear();
 
     const hasBinaryArgs = query.args.some((arg) => arg instanceof Uint8Array);
 
     // bind statement
-    this.packetWriter.clear();
-    this.packetWriter
+    this.#packetWriter.clear();
+    this.#packetWriter
       .addCString("") // TODO: unnamed portal
       .addCString(""); // TODO: unnamed prepared statement
 
     if (hasBinaryArgs) {
-      this.packetWriter.addInt16(query.args.length);
+      this.#packetWriter.addInt16(query.args.length);
 
       query.args.forEach((arg) => {
-        this.packetWriter.addInt16(arg instanceof Uint8Array ? 1 : 0);
+        this.#packetWriter.addInt16(arg instanceof Uint8Array ? 1 : 0);
       });
     } else {
-      this.packetWriter.addInt16(0);
+      this.#packetWriter.addInt16(0);
     }
 
-    this.packetWriter.addInt16(query.args.length);
+    this.#packetWriter.addInt16(query.args.length);
 
     query.args.forEach((arg) => {
       if (arg === null || typeof arg === "undefined") {
-        this.packetWriter.addInt32(-1);
+        this.#packetWriter.addInt32(-1);
       } else if (arg instanceof Uint8Array) {
-        this.packetWriter.addInt32(arg.length);
-        this.packetWriter.add(arg);
+        this.#packetWriter.addInt32(arg.length);
+        this.#packetWriter.add(arg);
       } else {
-        const byteLength = this.encoder.encode(arg).length;
-        this.packetWriter.addInt32(byteLength);
-        this.packetWriter.addString(arg);
+        const byteLength = encoder.encode(arg).length;
+        this.#packetWriter.addInt32(byteLength);
+        this.#packetWriter.addString(arg);
       }
     });
 
-    this.packetWriter.addInt16(0);
-    const buffer = this.packetWriter.flush(0x42);
-    await this.bufWriter.write(buffer);
+    this.#packetWriter.addInt16(0);
+    const buffer = this.#packetWriter.flush(0x42);
+    await this.#bufWriter.write(buffer);
   }
 
-  async _sendDescribeMessage() {
-    this.packetWriter.clear();
+  /**
+   * This function appends the query type (in this case prepared statement)
+   * to the message
+   */
+  private async appendQueryTypeToMessage() {
+    this.#packetWriter.clear();
 
-    const buffer = this.packetWriter.addCString("P").flush(0x44);
-    await this.bufWriter.write(buffer);
+    const buffer = this.#packetWriter.addCString("P").flush(0x44);
+    await this.#bufWriter.write(buffer);
   }
 
-  async _sendExecuteMessage() {
-    this.packetWriter.clear();
+  private async appendExecuteToMessage() {
+    this.#packetWriter.clear();
 
-    const buffer = this.packetWriter
+    const buffer = this.#packetWriter
       .addCString("") // unnamed portal
       .addInt32(0)
       .flush(0x45);
-    await this.bufWriter.write(buffer);
+    await this.#bufWriter.write(buffer);
   }
 
-  async _sendFlushMessage() {
-    this.packetWriter.clear();
+  private async appendSyncToMessage() {
+    this.#packetWriter.clear();
 
-    const buffer = this.packetWriter.flush(0x48);
-    await this.bufWriter.write(buffer);
+    const buffer = this.#packetWriter.flush(0x53);
+    await this.#bufWriter.write(buffer);
   }
 
-  async _sendSyncMessage() {
-    this.packetWriter.clear();
-
-    const buffer = this.packetWriter.flush(0x53);
-    await this.bufWriter.write(buffer);
-  }
-
-  async _processError(msg: Message, recoverable = true) {
+  private async processError(msg: Message, recoverable = true) {
     const error = parseError(msg);
     if (recoverable) {
       await this._readReadyForQuery();
@@ -505,7 +508,7 @@ export class Connection {
     throw error;
   }
 
-  _processNotice(msg: Message) {
+  private processNotice(msg: Message) {
     const warning = parseNotice(msg);
     console.error(`${bold(yellow(warning.severity))}: ${warning.message}`);
     return warning;
@@ -525,7 +528,7 @@ export class Connection {
         break;
       // error response
       case "E":
-        await this._processError(msg);
+        await this.processError(msg);
         break;
       default:
         throw new Error(`Unexpected frame: ${msg.type}`);
@@ -540,7 +543,7 @@ export class Connection {
         break;
       // error response
       case "E":
-        await this._processError(msg);
+        await this.processError(msg);
         break;
       default:
         throw new Error(`Unexpected frame: ${msg.type}`);
@@ -553,13 +556,13 @@ export class Connection {
    * https://www.postgresql.org/docs/13/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
    */
   async _preparedQuery(query: Query, type: ResultType): Promise<QueryResult> {
-    await this._sendPrepareMessage(query);
-    await this._sendBindMessage(query);
-    await this._sendDescribeMessage();
-    await this._sendExecuteMessage();
-    await this._sendSyncMessage();
+    await this.appendQueryToMessage(query);
+    await this.appendArgumentsToMessage(query);
+    await this.appendQueryTypeToMessage();
+    await this.appendExecuteToMessage();
+    await this.appendSyncToMessage();
     // send all messages to backend
-    await this.bufWriter.flush();
+    await this.#bufWriter.flush();
 
     await this.assertParseResponse(await this.readMessage());
     await this.assertBindResponse(await this.readMessage());
@@ -576,7 +579,7 @@ export class Connection {
     switch (msg.type) {
       // row description
       case "T": {
-        const rowDescription = this._processRowDescription(msg);
+        const rowDescription = this.parseRowDescription(msg);
         result.loadColumnDescriptions(rowDescription);
         break;
       }
@@ -585,7 +588,7 @@ export class Connection {
         break;
       // error
       case "E":
-        await this._processError(msg);
+        await this.processError(msg);
         break;
       default:
         throw new Error(`Unexpected frame: ${msg.type}`);
@@ -598,20 +601,20 @@ export class Connection {
         // data row
         case "D": {
           // this is actually packet read
-          const rawDataRow = this._readDataRow(msg);
+          const rawDataRow = this.parseRowData(msg);
           result.insertRow(rawDataRow);
           break;
         }
         // command complete
         case "C": {
-          const commandTag = this._readCommandTag(msg);
+          const commandTag = this.getCommandTag(msg);
           result.handleCommandComplete(commandTag);
           result.done();
           break outerLoop;
         }
         // error response
         case "E":
-          await this._processError(msg);
+          await this.processError(msg);
           break;
         default:
           throw new Error(`Unexpected frame: ${msg.type}`);
@@ -624,7 +627,7 @@ export class Connection {
   }
 
   async query(query: Query, type: ResultType): Promise<QueryResult> {
-    await this._queryLock.pop();
+    await this.#queryLock.pop();
     try {
       if (query.args.length === 0) {
         return await this._simpleQuery(query, type);
@@ -632,11 +635,11 @@ export class Connection {
         return await this._preparedQuery(query, type);
       }
     } finally {
-      this._queryLock.push(undefined);
+      this.#queryLock.push(undefined);
     }
   }
 
-  private _processRowDescription(msg: Message): RowDescription {
+  private parseRowDescription(msg: Message): RowDescription {
     const columnCount = msg.reader.readInt16();
     const columns = [];
 
@@ -659,9 +662,9 @@ export class Connection {
   }
 
   //TODO
-  //Research corner cases where _readDataRow can return null values
+  //Research corner cases where parseRowData can return null values
   // deno-lint-ignore no-explicit-any
-  _readDataRow(msg: Message): any[] {
+  private parseRowData(msg: Message): any[] {
     const fieldCount = msg.reader.readInt16();
     const row = [];
 
@@ -680,20 +683,14 @@ export class Connection {
     return row;
   }
 
-  _readCommandTag(msg: Message) {
+  private getCommandTag(msg: Message) {
     return msg.reader.readString(msg.byteCount);
-  }
-
-  async initSQL(): Promise<void> {
-    const config: QueryConfig = { text: "select 1;", args: [] };
-    const query = new Query(config);
-    await this.query(query, ResultType.ARRAY);
   }
 
   async end(): Promise<void> {
     const terminationMessage = new Uint8Array([0x58, 0x00, 0x00, 0x00, 0x04]);
-    await this.bufWriter.write(terminationMessage);
-    await this.bufWriter.flush();
-    this.conn.close();
+    await this.#bufWriter.write(terminationMessage);
+    await this.#bufWriter.flush();
+    this.#conn.close();
   }
 }

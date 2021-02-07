@@ -36,7 +36,6 @@ export class Pool extends QueryClient {
   private async _createConnection(): Promise<Connection> {
     const connection = new Connection(this._connectionParams);
     await connection.startup();
-    await connection.initSQL();
     return connection;
   }
 
