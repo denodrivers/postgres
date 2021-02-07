@@ -128,7 +128,7 @@ export class Connection {
     return new Message(msgType, msgLength, msgBody);
   }
 
-  private async testSSL() {
+  private async acceptsSSLConnection(): Promise<boolean> {
     const writer = this.#packetWriter;
     writer.clear();
     writer
@@ -141,9 +141,17 @@ export class Connection {
 
     const response = new Uint8Array(1);
     await this.#conn.read(response);
-    console.log(
-      String.fromCharCode(response[0]),
-    );
+
+    switch (String.fromCharCode(response[0])) {
+      case "S":
+        return true;
+      case "N":
+        return false;
+      default:
+        throw new Error(
+          `Could not check if server accepts SSL connections, server responded with: ${response}`,
+        );
+    }
   }
 
   private async sendStartupMessage(): Promise<Message> {
@@ -184,11 +192,17 @@ export class Connection {
     const { port, hostname } = this.connParams;
 
     this.#conn = await Deno.connect({ port, hostname });
-    this.#bufReader = new BufReader(this.#conn);
     this.#bufWriter = new BufWriter(this.#conn);
     this.#packetWriter = new PacketWriter();
 
-    await this.testSSL();
+    // deno-lint-ignore camelcase
+    const attempt_ssl = await this.acceptsSSLConnection();
+    if (attempt_ssl) {
+      this.#conn = await Deno.startTls(this.#conn, { hostname });
+      this.#bufWriter = new BufWriter(this.#conn);
+    }
+
+    this.#bufReader = new BufReader(this.#conn);
 
     // deno-lint-ignore camelcase
     const startup_response = await this.sendStartupMessage();
