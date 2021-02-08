@@ -245,6 +245,9 @@ export class Connection {
     return await this.readMessage();
   }
 
+  /**
+   * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
+   * */
   async startup() {
     const {
       hostname,
@@ -257,6 +260,9 @@ export class Connection {
     this.#conn = await Deno.connect({ port, hostname });
     this.#bufWriter = new BufWriter(this.#conn);
 
+    /**
+     * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
+     * */
     if (await this.serverAcceptsTLS()) {
       this.#conn = await Deno.startTls(this.#conn, { hostname });
       this.#bufWriter = new BufWriter(this.#conn);
