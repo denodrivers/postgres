@@ -264,7 +264,23 @@ export class Connection {
      * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
      * */
     if (await this.serverAcceptsTLS()) {
-      this.#conn = await Deno.startTls(this.#conn, { hostname });
+      try {
+        this.#conn = await Deno.startTls(this.#conn, { hostname });
+      } catch (e) {
+        if (!enforceTLS) {
+          console.error(
+            bold(
+              `${
+                yellow("TLS connection failed.")
+              } Defaulting to non-encrypted connection`,
+            ),
+          );
+          console.log(e);
+          this.#conn = await Deno.connect({ port, hostname });
+        } else {
+          throw e;
+        }
+      }
       this.#bufWriter = new BufWriter(this.#conn);
     } else if (enforceTLS) {
       throw new Error(
