@@ -48,7 +48,6 @@ function generateRandomPoint(max_value = 100): Point {
 }
 
 const CLIENT = new Client(TEST_CONNECTION_PARAMS);
-
 const testClient = getTestClient(CLIENT, SETUP);
 
 testClient(async function inet() {

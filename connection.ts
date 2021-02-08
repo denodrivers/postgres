@@ -151,7 +151,8 @@ export class Connection {
   #bufReader!: BufReader;
   #bufWriter!: BufWriter;
   #conn!: Deno.Conn;
-  #packetWriter!: PacketWriter;
+  connected = false;
+  #packetWriter = new PacketWriter();
   // TODO
   // Find out what parameters are for
   #parameters: { [key: string]: string } = {};
@@ -172,7 +173,7 @@ export class Connection {
   constructor(private connParams: ConnectionParams) {}
 
   /** Read single message sent by backend */
-  async readMessage(): Promise<Message> {
+  private async readMessage(): Promise<Message> {
     // TODO: reuse buffer instead of allocating new ones each for each read
     const header = new Uint8Array(5);
     await this.#bufReader.readFull(header);
@@ -255,14 +256,13 @@ export class Connection {
 
     this.#conn = await Deno.connect({ port, hostname });
     this.#bufWriter = new BufWriter(this.#conn);
-    this.#packetWriter = new PacketWriter();
 
     if (await this.serverAcceptsTLS()) {
       this.#conn = await Deno.startTls(this.#conn, { hostname });
       this.#bufWriter = new BufWriter(this.#conn);
     } else if (enforceTLS) {
       throw new Error(
-        "The server isn't accepting SSL connections. Change the client configuration so TLS configuration isn't required to connect",
+        "The server isn't accepting TLS connections. Change the client configuration so TLS configuration isn't required to connect",
       );
     }
 
@@ -275,29 +275,38 @@ export class Connection {
 
     // Handle connection status
     // (connected but not ready)
-    let msg;
-    while (true) {
-      msg = await this.readMessage();
-      switch (msg.type) {
-        // Connection error (wrong database or user)
-        case "E":
-          await this.processError(msg, false);
-          break;
-        // backend key data
-        case "K":
-          this._processBackendKeyData(msg);
-          break;
-        // parameter status
-        case "S":
-          this._processParameterStatus(msg);
-          break;
-        // ready for query
-        case "Z":
-          this._processReadyForQuery(msg);
-          return;
-        default:
-          throw new Error(`Unknown response for startup: ${msg.type}`);
+    try {
+      let msg;
+      connection_status:
+      while (true) {
+        msg = await this.readMessage();
+        switch (msg.type) {
+          // Connection error (wrong database or user)
+          case "E":
+            await this.processError(msg, false);
+            break;
+          // backend key data
+          case "K":
+            this._processBackendKeyData(msg);
+            break;
+          // parameter status
+          case "S":
+            this._processParameterStatus(msg);
+            break;
+          // ready for query
+          case "Z": {
+            this._processReadyForQuery(msg);
+            break connection_status;
+          }
+          default:
+            throw new Error(`Unknown response for startup: ${msg.type}`);
+        }
       }
+
+      this.connected = true;
+    } catch (e) {
+      this.#conn.close();
+      throw e;
     }
   }
 
@@ -593,7 +602,10 @@ export class Connection {
   /**
    * https://www.postgresql.org/docs/13/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
    */
-  async _preparedQuery(query: Query, type: ResultType): Promise<QueryResult> {
+  private async _preparedQuery(
+    query: Query,
+    type: ResultType,
+  ): Promise<QueryResult> {
     await this.appendQueryToMessage(query);
     await this.appendArgumentsToMessage(query);
     await this.appendQueryTypeToMessage();
@@ -665,6 +677,9 @@ export class Connection {
   }
 
   async query(query: Query, type: ResultType): Promise<QueryResult> {
+    if (!this.connected) {
+      throw new Error("The connection hasn't been initialized");
+    }
     await this.#queryLock.pop();
     try {
       if (query.args.length === 0) {
@@ -726,9 +741,12 @@ export class Connection {
   }
 
   async end(): Promise<void> {
-    const terminationMessage = new Uint8Array([0x58, 0x00, 0x00, 0x00, 0x04]);
-    await this.#bufWriter.write(terminationMessage);
-    await this.#bufWriter.flush();
-    this.#conn.close();
+    if (this.connected) {
+      const terminationMessage = new Uint8Array([0x58, 0x00, 0x00, 0x00, 0x04]);
+      await this.#bufWriter.write(terminationMessage);
+      await this.#bufWriter.flush();
+      this.#conn.close();
+      this.connected = false;
+    }
   }
 }
