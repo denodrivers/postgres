@@ -269,13 +269,11 @@ export class Connection {
       } catch (e) {
         if (!enforceTLS) {
           console.error(
-            bold(
-              `${
-                yellow("TLS connection failed.")
-              } Defaulting to non-encrypted connection`,
-            ),
+            bold(yellow("TLS connection failed with message: ")) +
+              e.message +
+              "\n" +
+              bold("Defaulting to non-encrypted connection"),
           );
-          console.log(e);
           this.#conn = await Deno.connect({ port, hostname });
         } else {
           throw e;
