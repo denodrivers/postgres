@@ -264,6 +264,11 @@ export class Connection {
      * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
      * */
     if (await this.serverAcceptsTLS()) {
+      if (typeof Deno.startTls === "undefined") {
+        throw new Error(
+          "This library requires the --unstable flag in order to connect. Check the documentation for more information about this error",
+        );
+      }
       try {
         this.#conn = await Deno.startTls(this.#conn, { hostname });
       } catch (e) {

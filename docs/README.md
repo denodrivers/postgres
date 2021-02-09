@@ -63,7 +63,7 @@ their documentation is available here
 https://www.postgresql.org/docs/current/libpq-envars.html
 
 ```ts
-// PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env database.js
+// PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env --unstable database.js
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 
 const client = new Client();
