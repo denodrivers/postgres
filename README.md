@@ -17,6 +17,7 @@ It's still work in progress, but you can take it for a test drive!
 ## Example
 
 ```ts
+// deno run --allow-net --allow-read --unstable mod.ts
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 
 const client = new Client({
@@ -39,6 +40,12 @@ await client.connect();
 
 await client.end();
 ```
+
+## Unstable
+
+Due to the use of the `Deno.startTls` API, the library require to pass the
+`--unstable` for it's usage. This is a situation that will be solved when that
+API is stabilized.
 
 ## Docs
 

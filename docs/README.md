@@ -28,6 +28,72 @@ await client.end();
 
 ## Connection Management
 
+### Connecting to DB
+
+```ts
+import { Client } from "https://deno.land/x/postgres/mod.ts";
+
+let config;
+
+config = {
+  applicationName: "my_custom_app",
+  database: "test",
+  hostname: "localhost",
+  password: "password",
+  port: 5432,
+  user: "user",
+};
+
+// Alternatively you can use a connection string
+config =
+  "postgres://user:password@localhost:5432/test?application_name=my_custom_app";
+
+const client = new Client(config);
+await client.connect();
+await client.end();
+```
+
+The values required to connect to the database can be read directly from
+environmental variables, given the case that the user doesn't provide them while
+initializing the client. The only requirement for this variables to be read is
+for Deno to be run with `--allow-env` permissions
+
+The env variables that the client will recognize are the same as `libpq` and
+their documentation is available here
+https://www.postgresql.org/docs/current/libpq-envars.html
+
+```ts
+// PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env --unstable database.js
+import { Client } from "https://deno.land/x/postgres/mod.ts";
+
+const client = new Client();
+await client.connect();
+await client.end();
+```
+
+### SSL/TLS connection
+
+Using a database that supports TLS is quite simple. After providing your
+connection parameters, the client will check if the database accepts encrypted
+connections and will attempt to connect with the parameters provided. If the
+connection is succesful, the following transactions will be carried over TLS.
+
+However, if the connection fails for whatever reason the user can choose to
+terminate the connection or to attempt to connect using a non-encrypted one.
+This behavior can be defined using the connection parameter `tls.enforce` (only
+available using the configuration object).
+
+If set to true, the driver will fail inmediately if no TLS connection can be
+established. If set to false the driver will attempt to connect without
+encryption after TLS connection has failed, but will display a warning
+containing the reason why the TLS connection failed _This is the default
+configuration_.
+
+In the upcoming weeks support for client certificate authentication will be
+added.
+
+### Clients
+
 You are free to create your 'clients' like so:
 
 ```typescript
@@ -37,7 +103,7 @@ const client = new Client({
 await client.connect()
 ```
 
-## Pools
+### Pools
 
 For stronger management and scalability, you can use **pools**:
 
@@ -74,50 +140,9 @@ The number of pools is up to you, but I feel a pool of 20 is good for small
 applications. Though remember this can differ based on how active your
 application is. Increase or decrease where necessary.
 
-## Connecting to DB
+## API
 
-```ts
-import { Client } from "https://deno.land/x/postgres/mod.ts";
-
-let config;
-
-config = {
-  applicationName: "my_custom_app",
-  database: "test",
-  hostname: "localhost",
-  password: "password",
-  port: 5432,
-  user: "user",
-};
-
-// Alternatively you can use a connection string
-config =
-  "postgres://user:password@localhost:5432/test?application_name=my_custom_app";
-
-const client = new Client(config);
-await client.connect();
-await client.end();
-```
-
-The values required to connect to the database can be read directly from
-environmental variables, given the case that the user doesn't provide them while
-initializing the client. The only requirement for this variables to be read is
-for Deno to be run with `--allow-env` permissions
-
-The env variables that the client will recognize are the same as `libpq` and
-their documentation is available here
-https://www.postgresql.org/docs/current/libpq-envars.html
-
-```ts
-// PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env database.js
-import { Client } from "https://deno.land/x/postgres/mod.ts";
-
-const client = new Client();
-await client.connect();
-await client.end();
-```
-
-## Queries
+### Queries
 
 Simple query
 
@@ -144,7 +169,7 @@ const result = await client.queryArray({
 console.log(result.rows);
 ```
 
-## Generic Parameters
+### Generic Parameters
 
 Both the `queryArray` and `queryObject` functions have a generic implementation
 that allows users to type the result of the query
@@ -163,7 +188,7 @@ const object_result = await client.queryObject<{ id: number; name: string }>(
 const person = object_result.rows[0];
 ```
 
-## Object query
+### Object query
 
 The `queryObject` function allows you to return the results of the executed
 query as a set objects, allowing easy management with interface like types.
