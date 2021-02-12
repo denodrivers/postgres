@@ -61,6 +61,14 @@ export class QueryClient {
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<[number, string]>
    * ```
+   * 
+   * It also allows you to execute prepared stamements with template strings
+   * 
+   * ```ts
+   * const id = 12;
+   * // Array<[number, string]>
+   * const {rows} = await my_client.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
+   * ```
    */
   queryArray<T extends Array<unknown>>(
     query: string,
@@ -69,16 +77,26 @@ export class QueryClient {
   queryArray<T extends Array<unknown>>(
     config: QueryConfig,
   ): Promise<QueryArrayResult<T>>;
+  queryArray<T extends Array<unknown>>(
+    strings: TemplateStringsArray,
+    ...args: QueryArguments
+  ): Promise<QueryArrayResult<T>>;
   queryArray<T extends Array<unknown> = Array<unknown>>(
     // deno-lint-ignore camelcase
-    query_or_config: string | QueryConfig,
+    query_template_or_config: TemplateStringsArray | string | QueryConfig,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>> {
     let query;
-    if (typeof query_or_config === "string") {
-      query = new Query(query_or_config, ...args);
+    if (typeof query_template_or_config === "string") {
+      query = new Query(query_template_or_config, ...args);
+    } else if (Array.isArray(query_template_or_config)) {
+      const sql = query_template_or_config.reduce((curr, next, index) => {
+        return `${curr}$${index}${next}`;
+      });
+
+      query = new Query(sql, ...args);
     } else {
-      query = new Query(query_or_config);
+      query = new Query(query_template_or_config as QueryConfig);
     }
 
     return this._executeQuery(
@@ -118,6 +136,14 @@ export class QueryClient {
    * 
    * console.log(rows); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
    * ```
+   * 
+   * It also allows you to execute prepared stamements with template strings
+   * 
+   * ```ts
+   * const id = 12;
+   * // Array<{id: number, name: string}>
+   * const {rows} = await my_client.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
+   * ```
    */
   queryObject<T extends Record<string, unknown>>(
     query: string,
@@ -126,18 +152,28 @@ export class QueryClient {
   queryObject<T extends Record<string, unknown>>(
     config: QueryObjectConfig,
   ): Promise<QueryObjectResult<T>>;
+  queryObject<T extends Record<string, unknown>>(
+    query: TemplateStringsArray,
+    ...args: QueryArguments
+  ): Promise<QueryObjectResult<T>>;
   queryObject<
     T extends Record<string, unknown> = Record<string, unknown>,
   >(
     // deno-lint-ignore camelcase
-    query_or_config: string | QueryObjectConfig,
+    query_template_or_config: string | QueryObjectConfig | TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>> {
     let query;
-    if (typeof query_or_config === "string") {
-      query = new Query(query_or_config, ...args);
+    if (typeof query_template_or_config === "string") {
+      query = new Query(query_template_or_config, ...args);
+    } else if (Array.isArray(query_template_or_config)) {
+      const sql = query_template_or_config.reduce((curr, next, index) => {
+        return `${curr}$${index}${next}`;
+      });
+
+      query = new Query(sql, ...args);
     } else {
-      query = new Query(query_or_config);
+      query = new Query(query_template_or_config as QueryObjectConfig);
     }
 
     return this._executeQuery(
