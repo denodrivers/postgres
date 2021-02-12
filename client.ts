@@ -6,34 +6,15 @@ import {
 } from "./connection_params.ts";
 import {
   Query,
+  QueryArguments,
   QueryArrayResult,
   QueryConfig,
   QueryObjectConfig,
   QueryObjectResult,
   QueryResult,
+  templateStringToQuery,
 } from "./query.ts";
-
-// TODO
-// Limit the type of parameters that can be passed
-// to a query
-/**
- * https://www.postgresql.org/docs/current/sql-prepare.html
- * 
- * This arguments will be appended to the prepared statement passed
- * as query
- * 
- * They will take the position according to the order in which they were provided
- * 
- * ```ts
- * await my_client.queryArray(
- *  "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
- *  10, // $1
- *  20, // $2
- * );
- * ```
- * */
-// deno-lint-ignore no-explicit-any
-type QueryArguments = any[];
+import { isTemplateString } from "./utils.ts";
 
 export class QueryClient {
   /**
@@ -89,14 +70,10 @@ export class QueryClient {
     let query;
     if (typeof query_template_or_config === "string") {
       query = new Query(query_template_or_config, ...args);
-    } else if (Array.isArray(query_template_or_config)) {
-      const sql = query_template_or_config.reduce((curr, next, index) => {
-        return `${curr}$${index}${next}`;
-      });
-
-      query = new Query(sql, ...args);
+    } else if (isTemplateString(query_template_or_config)) {
+      query = templateStringToQuery(query_template_or_config, args);
     } else {
-      query = new Query(query_template_or_config as QueryConfig);
+      query = new Query(query_template_or_config);
     }
 
     return this._executeQuery(
@@ -160,18 +137,17 @@ export class QueryClient {
     T extends Record<string, unknown> = Record<string, unknown>,
   >(
     // deno-lint-ignore camelcase
-    query_template_or_config: string | QueryObjectConfig | TemplateStringsArray,
+    query_template_or_config:
+      | string
+      | QueryObjectConfig
+      | TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>> {
     let query;
     if (typeof query_template_or_config === "string") {
       query = new Query(query_template_or_config, ...args);
-    } else if (Array.isArray(query_template_or_config)) {
-      const sql = query_template_or_config.reduce((curr, next, index) => {
-        return `${curr}$${index}${next}`;
-      });
-
-      query = new Query(sql, ...args);
+    } else if (isTemplateString(query_template_or_config)) {
+      query = templateStringToQuery(query_template_or_config, args);
     } else {
       query = new Query(query_template_or_config as QueryObjectConfig);
     }
