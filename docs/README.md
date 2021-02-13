@@ -35,6 +35,7 @@ import { Client } from "https://deno.land/x/postgres/mod.ts";
 
 let config;
 
+// You can use the connection interface to set the connection properties
 config = {
   applicationName: "my_custom_app",
   database: "test",
@@ -42,6 +43,9 @@ config = {
   password: "password",
   port: 5432,
   user: "user",
+  tls: {
+    enforce: false,
+  },
 };
 
 // Alternatively you can use a connection string
@@ -58,9 +62,9 @@ environmental variables, given the case that the user doesn't provide them while
 initializing the client. The only requirement for this variables to be read is
 for Deno to be run with `--allow-env` permissions
 
-The env variables that the client will recognize are the same as `libpq` and
-their documentation is available here
-https://www.postgresql.org/docs/current/libpq-envars.html
+The env variables that the client will recognize are taken from `libpq` to keep
+consistency with other PostgreSQL clients out there (see
+https://www.postgresql.org/docs/current/libpq-envars.html)
 
 ```ts
 // PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env --unstable database.js
@@ -80,21 +84,18 @@ connection is succesful, the following transactions will be carried over TLS.
 
 However, if the connection fails for whatever reason the user can choose to
 terminate the connection or to attempt to connect using a non-encrypted one.
-This behavior can be defined using the connection parameter `tls.enforce` (only
-available using the configuration object).
+This behavior can be defined using the connection parameter `tls.enforce` (not
+available if using a connection string).
 
 If set to true, the driver will fail inmediately if no TLS connection can be
 established. If set to false the driver will attempt to connect without
 encryption after TLS connection has failed, but will display a warning
-containing the reason why the TLS connection failed _This is the default
-configuration_.
-
-In the upcoming weeks support for client certificate authentication will be
-added.
+containing the reason why the TLS connection failed. **This is the default
+configuration**.
 
 ### Clients
 
-You are free to create your 'clients' like so:
+You are free to create your clients like so:
 
 ```typescript
 const client = new Client({
@@ -133,12 +134,12 @@ await runQuery("SELECT ID, NAME FROM users WHERE id = '1';"); // [{id: 1, name: 
 
 This improves performance, as creating a whole new connection for each query can
 be an expensive operation. With pools, you can keep the connections open to be
-re-used when requested (`const client = dbPool.connect()`). So one of the active
+re-used when requested using the `connect()` method. So one of the active
 connections will be used instead of creating a new one.
 
-The number of pools is up to you, but I feel a pool of 20 is good for small
-applications. Though remember this can differ based on how active your
-application is. Increase or decrease where necessary.
+The number of pools is up to you, but a pool of 20 is good for small
+applications, this can differ based on how active your application is. Increase
+or decrease where necessary.
 
 ## API
 
@@ -154,19 +155,23 @@ console.log(result.rows);
 #### Prepared statement
 
 ```ts
-const result = await client.queryArray(
-  "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
-  10,
-  20,
-);
-console.log(result.rows);
+{
+  const result = await client.queryArray(
+    "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
+    10,
+    20,
+  );
+  console.log(result.rows);
+}
 
-// equivalent using QueryConfig interface
-const result = await client.queryArray({
-  text: "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
-  args: [10, 20],
-});
-console.log(result.rows);
+{
+  // equivalent using QueryConfig interface
+  const result = await client.queryArray({
+    text: "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
+    args: [10, 20],
+  });
+  console.log(result.rows);
+}
 ```
 
 #### Prepared statement with template strings
@@ -189,14 +194,14 @@ console.log(result.rows);
 
 ##### Why use template strings?
 
-Template strings map to prepared statements, which protects your queries against
-SQL injection to a certain degree (see
+Template string queries get executed as prepared statements, which protects your
+SQL against injection to a certain degree (see
 https://security.stackexchange.com/questions/15214/are-prepared-statements-100-safe-against-sql-injection).
 
-However, they are also they are easier to write and read than plain SQL queries
-and are more compact than using the query arguments.
+Also, they are easier to write and read than plain SQL queries and are more
+compact than using the `QueryOptions` interface
 
-Template strings can turn the following
+For example, template strings can turn the following:
 
 ```ts
 await client.queryObject({
@@ -219,7 +224,7 @@ are really `text` and `args` to execute your query
 ### Generic Parameters
 
 Both the `queryArray` and `queryObject` functions have a generic implementation
-that allows users to type the result of the query
+that allow users to type the result of the query
 
 ```typescript
 {
@@ -298,8 +303,8 @@ const result = await client.queryObject(
 const users = result.rows; // [{id: 1, name: 'Ca'}, {id: 2, name: 'Jo'}, ...]
 ```
 
-Don't use TypeScript generics to map these properties, since TypeScript is for
-documentation purposes only it won't affect the final outcome of the query
+**Don't use TypeScript generics to map these properties**, this generics only
+exist at compile time and won't affect the final outcome of the query
 
 ```ts
 interface User {
@@ -311,32 +316,40 @@ const result = await client.queryObject<User>(
   "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
 );
 
-// Type will be User[], but actual outcome will always be
-const users = result.rows; // [{id: 1, substr: 'Ca'}, {id: 2, substr: 'Jo'}, ...]
+const users = result.rows; // TypeScript says this will be User[]
+console.log(rows); // [{id: 1, substr: 'Ca'}, {id: 2, substr: 'Jo'}, ...]
+
+// Don't trust TypeScript :)
 ```
 
-- The fields will be matched in the order they were defined
-- The fields will override any defined alias in the query
+Other aspects to take into account when using the `fields` argument:
+
+- The fields will be matched in the order they were declared
+- The fields will override any alias in the query
 - These field properties must be unique (case insensitive), otherwise the query
   will throw before execution
 - The fields must match the number of fields returned on the query, otherwise
   the query will throw on execution
 
 ```ts
-// This will throw because the property id is duplicated
-await client.queryObject(
-  {
-    text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
-    fields: ["id", "ID"],
-  },
-);
+{
+  // This will throw because the property id is duplicated
+  await client.queryObject(
+    {
+      text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
+      fields: ["id", "ID"],
+    },
+  );
+}
 
-// This will throw because the returned number of columns don't match the
-// number of defined ones in the function call
-await client.queryObject(
-  {
-    text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
-    fields: ["id", "name", "something_else"],
-  },
-);
+{
+  // This will throw because the returned number of columns don't match the
+  // number of defined ones in the function call
+  await client.queryObject(
+    {
+      text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
+      fields: ["id", "name", "something_else"],
+    },
+  );
+}
 ```
