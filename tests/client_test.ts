@@ -1,5 +1,5 @@
 import { Client, PostgresError } from "../mod.ts";
-import { assertThrowsAsync } from "../test_deps.ts";
+import { assertThrowsAsync } from "./test_deps.ts";
 import TEST_CONNECTION_PARAMS from "./config.ts";
 
 function getRandomString() {

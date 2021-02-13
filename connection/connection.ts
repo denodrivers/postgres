@@ -26,10 +26,9 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { bold, yellow } from "./deps.ts";
-import { BufReader, BufWriter } from "./deps.ts";
+import { bold, BufReader, BufWriter, yellow } from "../deps.ts";
 import { DeferredStack } from "./deferred.ts";
-import { hashMd5Password, readUInt32BE } from "./utils.ts";
+import { hashMd5Password, readUInt32BE } from "../utils.ts";
 import { PacketReader } from "./packet_reader.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { parseError, parseNotice } from "./warning.ts";
@@ -38,7 +37,7 @@ import {
   QueryArrayResult,
   QueryObjectResult,
   QueryResult,
-} from "./query.ts";
+} from "../query/query.ts";
 import type { ConnectionParams } from "./connection_params.ts";
 
 export enum ResultType {

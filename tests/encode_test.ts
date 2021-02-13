@@ -1,6 +1,6 @@
 const { test } = Deno;
-import { assertEquals } from "../test_deps.ts";
-import { encode } from "../encode.ts";
+import { assertEquals } from "./test_deps.ts";
+import { encode } from "../query/encode.ts";
 
 // internally `encode` uses `getTimezoneOffset` to encode Date
 // so for testing purposes we'll be overriding it

@@ -1,8 +1,7 @@
-import type { RowDescription } from "./connection.ts";
+import type { RowDescription } from "../connection/connection.ts";
 import { encode, EncodedArg } from "./encode.ts";
 import { decode } from "./decode.ts";
-import { WarningFields } from "./warning.ts";
-import { isTemplateString } from "./utils.ts";
+import { WarningFields } from "../connection/warning.ts";
 
 const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
 

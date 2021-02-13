@@ -25,7 +25,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { copy } from "./deps.ts";
+import { copy } from "../deps.ts";
 
 export class PacketWriter {
   private size: number;

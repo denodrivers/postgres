@@ -1,9 +1,9 @@
-import { Connection, ResultType } from "./connection.ts";
+import { Connection, ResultType } from "./connection/connection.ts";
 import {
   ConnectionOptions,
   ConnectionString,
   createParams,
-} from "./connection_params.ts";
+} from "./connection/connection_params.ts";
 import {
   Query,
   QueryArguments,
@@ -13,7 +13,7 @@ import {
   QueryObjectResult,
   QueryResult,
   templateStringToQuery,
-} from "./query.ts";
+} from "./query/query.ts";
 import { isTemplateString } from "./utils.ts";
 
 export class QueryClient {
