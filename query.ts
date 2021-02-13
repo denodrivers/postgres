@@ -2,6 +2,7 @@ import type { RowDescription } from "./connection.ts";
 import { encode, EncodedArg } from "./encode.ts";
 import { decode } from "./decode.ts";
 import { WarningFields } from "./warning.ts";
+import { isTemplateString } from "./utils.ts";
 
 const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
 
@@ -15,11 +16,22 @@ type CommandType = (
   | "COPY"
 );
 
+export function templateStringToQuery(
+  template: TemplateStringsArray,
+  args: QueryArguments,
+): Query {
+  const text = template.reduce((curr, next, index) => {
+    return `${curr}$${index}${next}`;
+  });
+
+  return new Query(text, ...args);
+}
+
 export interface QueryConfig {
-  text: string;
   args?: Array<unknown>;
-  name?: string;
   encoder?: (arg: unknown) => EncodedArg;
+  name?: string;
+  text: string;
 }
 
 export interface QueryObjectConfig extends QueryConfig {
@@ -33,6 +45,28 @@ export interface QueryObjectConfig extends QueryConfig {
    */
   fields?: string[];
 }
+
+// TODO
+// Limit the type of parameters that can be passed
+// to a query
+/**
+ * https://www.postgresql.org/docs/current/sql-prepare.html
+ * 
+ * This arguments will be appended to the prepared statement passed
+ * as query
+ * 
+ * They will take the position according to the order in which they were provided
+ * 
+ * ```ts
+ * await my_client.queryArray(
+ *  "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
+ *  10, // $1
+ *  20, // $2
+ * );
+ * ```
+ * */
+// deno-lint-ignore no-explicit-any
+export type QueryArguments = any[];
 
 export class QueryResult {
   // TODO
@@ -175,8 +209,8 @@ export class Query {
         ...query_config
       } = config_or_text;
 
-      config = query_config;
-
+      // Check that the fields passed are valid and can be used to map
+      // the result of the query
       if (fields) {
         //deno-lint-ignore camelcase
         const clean_fields = fields.map((field) =>
@@ -191,6 +225,8 @@ export class Query {
 
         this.fields = clean_fields;
       }
+
+      config = query_config;
     }
     this.text = config.text;
     this.args = this._prepareArgs(config);

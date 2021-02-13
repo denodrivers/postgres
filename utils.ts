@@ -87,3 +87,13 @@ export function parseDsn(dsn: string): DsnResult {
     params: Object.fromEntries(url.searchParams.entries()),
   };
 }
+
+export function isTemplateString(
+  // deno-lint-ignore no-explicit-any
+  template: any,
+): template is TemplateStringsArray {
+  if (!Array.isArray(template)) {
+    return false;
+  }
+  return true;
+}

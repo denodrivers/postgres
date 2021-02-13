@@ -193,3 +193,22 @@ testClient(async function handleNameTooLongError() {
     { "very_very_very_very_very_very_very_very_very_very_very_long_nam": 1 },
   ]);
 });
+
+testClient(async function templateStringQueryObject() {
+  const value = { x: "A", y: "B" };
+
+  const { rows } = await CLIENT.queryObject<{ x: string; y: string }>
+    `SELECT ${value.x} AS X, ${value.y} AS Y`;
+
+  assertEquals(rows[0], value);
+});
+
+testClient(async function templateStringQueryArray() {
+  // deno-lint-ignore camelcase
+  const [value_1, value_2] = ["A", "B"];
+
+  const { rows } = await CLIENT.queryArray<[string, string]>
+    `SELECT ${value_1}, ${value_2}`;
+
+  assertEquals(rows[0], [value_1, value_2]);
+});

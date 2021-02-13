@@ -144,14 +144,14 @@ application is. Increase or decrease where necessary.
 
 ### Queries
 
-Simple query
+#### Simple query
 
 ```ts
 const result = await client.queryArray("SELECT ID, NAME FROM PEOPLE");
 console.log(result.rows);
 ```
 
-Parametrized query
+#### Prepared statement
 
 ```ts
 const result = await client.queryArray(
@@ -169,23 +169,88 @@ const result = await client.queryArray({
 console.log(result.rows);
 ```
 
+#### Prepared statement with template strings
+
+```ts
+{
+  const result = await client.queryArray
+    `SELECT ID, NAME FROM PEOPLE WHERE AGE > ${10} AND AGE < ${20}`;
+  console.log(result.rows);
+}
+
+{
+  const min = 10;
+  const max = 20;
+  const result = await client.queryObject
+    `SELECT ID, NAME FROM PEOPLE WHERE AGE > ${min} AND AGE < ${max}`;
+  console.log(result.rows);
+}
+```
+
+##### Why use template strings?
+
+Template strings map to prepared statements, which protects your queries against
+SQL injection to a certain degree (see
+https://security.stackexchange.com/questions/15214/are-prepared-statements-100-safe-against-sql-injection).
+
+However, they are also they are easier to write and read than plain SQL queries
+and are more compact than using the query arguments.
+
+Template strings can turn the following
+
+```ts
+await client.queryObject({
+  text: "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
+  args: [10, 20],
+});
+```
+
+Into a much more readable:
+
+```ts
+await client.queryObject
+  `SELECT ID, NAME FROM PEOPLE WHERE AGE > ${10} AND AGE < ${20}`;
+```
+
+However, a limitation of template strings is that you can't pass any parameters
+provided by the `QueryOptions` interface, so the only options you have available
+are really `text` and `args` to execute your query
+
 ### Generic Parameters
 
 Both the `queryArray` and `queryObject` functions have a generic implementation
 that allows users to type the result of the query
 
 ```typescript
-const array_result = await client.queryArray<[number, string]>(
-  "SELECT ID, NAME FROM PEOPLE WHERE ID = 17",
-);
-// [number, string]
-const person = array_result.rows[0];
+{
+  const array_result = await client.queryArray<[number, string]>(
+    "SELECT ID, NAME FROM PEOPLE WHERE ID = 17",
+  );
+  // [number, string]
+  const person = array_result.rows[0];
+}
 
-const object_result = await client.queryObject<{ id: number; name: string }>(
-  "SELECT ID, NAME FROM PEOPLE WHERE ID = 17",
-);
-// {id: number, name: string}
-const person = object_result.rows[0];
+{
+  const array_result = await client.queryArray<[number, string]>
+    `SELECT ID, NAME FROM PEOPLE WHERE ID = ${17}`;
+  // [number, string]
+  const person = array_result.rows[0];
+}
+
+{
+  const object_result = await client.queryObject<{ id: number; name: string }>(
+    "SELECT ID, NAME FROM PEOPLE WHERE ID = 17",
+  );
+  // {id: number, name: string}
+  const person = object_result.rows[0];
+}
+
+{
+  const object_result = await client.queryObject<{ id: number; name: string }>
+    `SELECT ID, NAME FROM PEOPLE WHERE ID = ${17}`;
+  // {id: number, name: string}
+  const person = object_result.rows[0];
+}
 ```
 
 ### Object query
