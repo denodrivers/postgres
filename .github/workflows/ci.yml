@@ -40,4 +40,4 @@ jobs:
           PGDATABASE: deno_postgres
           PGPASSWORD: test
           PGUSER: test
-        run: deno test --allow-net --allow-env --allow-read=tests/config.json --unstable test.ts
+        run: deno test --allow-net --allow-env --allow-read=tests/config.json --unstable
