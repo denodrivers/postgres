@@ -93,6 +93,11 @@ encryption after TLS connection has failed, but will display a warning
 containing the reason why the TLS connection failed. **This is the default
 configuration**.
 
+Sadly, stablishing a TLS connection in the way Postgres requires it isn't
+possible without the `Deno.startTls` API, which is currently marked as unstable.
+This is a situation that will be solved once this API is stabilized, however I
+don't have an estimated time of when that might happen.
+
 ### Clients
 
 You are free to create your clients like so:

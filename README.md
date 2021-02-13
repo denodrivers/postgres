@@ -53,11 +53,12 @@ await client.connect();
 await client.end();
 ```
 
-## Unstable
+## Why do I need unstable to connect using TLS?
 
-Due to the use of the `Deno.startTls` API, the library require to pass the
-`--unstable` for it's usage. This is a situation that will be solved when that
-API is stabilized.
+Sadly, stablishing a TLS connection in the way Postgres requires it isn't
+possible without the `Deno.startTls` API, which is currently marked as unstable.
+This is a situation that will be solved once this API is stabilized, however I
+don't have an estimated time of when that might happen.
 
 ## Docs
 
