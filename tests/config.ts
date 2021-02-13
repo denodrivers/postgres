@@ -1,4 +1,4 @@
-import { ConnectionOptions } from "../connection_params.ts";
+import { ConnectionOptions } from "../connection/connection_params.ts";
 
 const file = "config.json";
 const path = new URL("config.json", import.meta.url);

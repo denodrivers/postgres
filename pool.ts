@@ -1,13 +1,13 @@
 import { PoolClient, QueryClient } from "./client.ts";
-import { Connection, ResultType } from "./connection.ts";
+import { Connection, ResultType } from "./connection/connection.ts";
 import {
   ConnectionOptions,
   ConnectionParams,
   ConnectionString,
   createParams,
-} from "./connection_params.ts";
-import { DeferredStack } from "./deferred.ts";
-import { Query, QueryResult } from "./query.ts";
+} from "./connection/connection_params.ts";
+import { DeferredStack } from "./connection/deferred.ts";
+import { Query, QueryResult } from "./query/query.ts";
 
 export class Pool extends QueryClient {
   private _connectionParams: ConnectionParams;

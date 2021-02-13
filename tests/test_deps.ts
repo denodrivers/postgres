@@ -1,4 +1,4 @@
-export * from "./deps.ts";
+export * from "../deps.ts";
 export {
   assert,
   assertEquals,

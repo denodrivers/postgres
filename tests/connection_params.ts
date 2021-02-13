@@ -1,6 +1,9 @@
 const { test } = Deno;
-import { assertEquals, assertThrows } from "../test_deps.ts";
-import { ConnectionParamsError, createParams } from "../connection_params.ts";
+import { assertEquals, assertThrows } from "./test_deps.ts";
+import {
+  ConnectionParamsError,
+  createParams,
+} from "../connection/connection_params.ts";
 // deno-lint-ignore camelcase
 import { has_env_access } from "./constants.ts";
 

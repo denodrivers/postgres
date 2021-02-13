@@ -1,5 +1,5 @@
 import { Oid } from "./oid.ts";
-import { Column, Format } from "./connection.ts";
+import { Column, Format } from "../connection/connection.ts";
 import {
   decodeBigint,
   decodeBigintArray,
@@ -32,7 +32,7 @@ import {
   decodeStringArray,
   decodeTid,
   decodeTidArray,
-} from "./query/decoders.ts";
+} from "./decoders.ts";
 
 const decoder = new TextDecoder();
 
