@@ -68,7 +68,7 @@ test("dsnStyleParameters", function () {
   assertEquals(p.port, 10101);
 });
 
-test("dsnStyleParametersWithPostgresqlDriver", function() {
+test("dsnStyleParametersWithPostgresqlDriver", function () {
   const p = createParams(
     "postgresql://some_user@some_host:10101/deno_postgres",
   );
