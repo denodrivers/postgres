@@ -123,9 +123,9 @@ function parseOptionsFromDsn(connString: string): ConnectionOptions {
     const sslmode = dsn.params.sslmode;
     delete dsn.params.sslmode;
 
-    if (sslmode !== "require" && sslmode !== "allow") {
+    if (sslmode !== "require" && sslmode !== "prefer") {
       throw new ConnectionParamsError(
-        `Supplied DSN has invalid sslmode '${sslmode}'. Only 'require' or 'allow' are supported`,
+        `Supplied DSN has invalid sslmode '${sslmode}'. Only 'require' or 'prefer' are supported`,
       );
     }
 

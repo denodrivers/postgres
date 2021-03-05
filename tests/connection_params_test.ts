@@ -139,7 +139,7 @@ test("dsnStyleParametersWithInvalidSSLMode", function () {
         "postgres://some_user@some_host:10101/deno_postgres?sslmode=disable",
       ),
     undefined,
-    "Supplied DSN has invalid sslmode 'disable'. Only 'require' or 'allow' are supported",
+    "Supplied DSN has invalid sslmode 'disable'. Only 'require' or 'prefer' are supported",
   );
 });
 
