@@ -11,7 +11,7 @@ import { has_env_access } from "./constants.ts";
  * This function is ment to be used as a container for env based tests.
  * It will mutate the env state and run the callback passed to it, then
  * reset the env variables to it's original state
- * 
+ *
  * It can only be used in tests that run with env permissions
  */
 const withEnv = (env: {
@@ -60,6 +60,17 @@ function withNotAllowedEnv(fn: () => void) {
 test("dsnStyleParameters", function () {
   const p = createParams(
     "postgres://some_user@some_host:10101/deno_postgres",
+  );
+
+  assertEquals(p.database, "deno_postgres");
+  assertEquals(p.user, "some_user");
+  assertEquals(p.hostname, "some_host");
+  assertEquals(p.port, 10101);
+});
+
+test("dsnStyleParametersWithPostgresqlDriver", function () {
+  const p = createParams(
+    "postgresql://some_user@some_host:10101/deno_postgres",
   );
 
   assertEquals(p.database, "deno_postgres");

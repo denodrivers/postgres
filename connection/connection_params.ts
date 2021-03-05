@@ -2,11 +2,11 @@ import { parseDsn } from "../utils.ts";
 
 /**
  * The connection string must match the following URI structure
- * 
+ *
  * ```ts
  * const connection = "postgres://user:password@hostname:port/database?application_name=application_name";
  * ```
- * 
+ *
  * Password, port and application name are optional parameters
  */
 export type ConnectionString = string;
@@ -14,7 +14,7 @@ export type ConnectionString = string;
 /**
  * This function retrieves the connection options from the environmental variables
  * as they are, without any extra parsing
- * 
+ *
  * It will throw if no env permission was provided on startup
  */
 function getPgEnv(): ConnectionOptions {
@@ -39,7 +39,7 @@ interface TLSOptions {
   /**
    * This will force the connection to run over TLS
    * If the server doesn't support TLS, the connection will fail
-   * 
+   *
    * default: `false`
    * */
   enforce: boolean;
@@ -76,7 +76,7 @@ function formatMissingParams(missingParams: string[]) {
 /**
  * This validates the options passed are defined and have a value other than null
  * or empty string, it throws a connection error otherwise
- * 
+ *
  * @param has_env_access This parameter will change the error message if set to true,
  * telling the user to pass env permissions in order to read environmental variables
  */
@@ -112,7 +112,7 @@ function assertRequiredOptions(
 function parseOptionsFromDsn(connString: string): ConnectionOptions {
   const dsn = parseDsn(connString);
 
-  if (dsn.driver !== "postgres") {
+  if (dsn.driver !== "postgres" && dsn.driver !== "postgresql") {
     throw new ConnectionParamsError(
       `Supplied DSN has invalid driver: ${dsn.driver}.`,
     );
