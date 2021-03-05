@@ -1,9 +1,9 @@
 # Testing
 
 To run tests, first prepare your configuration file by copying
-`config.example.json` into `config.json` and updating it appropriately based
-on your environment. If you use the Docker based configuration below there's
-no need to modify the configuration.
+`config.example.json` into `config.json` and updating it appropriately based on
+your environment. If you use the Docker based configuration below there's no
+need to modify the configuration.
 
 ## Running the Tests
 
