@@ -102,6 +102,14 @@ test("dsnStyleParametersWithApplicationName", function () {
   assertEquals(p.port, 10101);
 });
 
+test("dsnStyleParametersWithSSLModeRequire", function () {
+  const p = createParams(
+    "postgres://some_user@some_host:10101/deno_postgres?sslmode=require",
+  );
+
+  assertEquals(p.tls.enforce, true);
+});
+
 test("dsnStyleParametersWithInvalidDriver", function () {
   assertThrows(
     () =>
@@ -121,6 +129,17 @@ test("dsnStyleParametersWithInvalidPort", function () {
       ),
     undefined,
     "Invalid URL",
+  );
+});
+
+test("dsnStyleParametersWithInvalidSSLMode", function () {
+  assertThrows(
+    () =>
+      createParams(
+        "postgres://some_user@some_host:10101/deno_postgres?sslmode=disable",
+      ),
+    undefined,
+    "Supplied DSN has invalid sslmode 'disable'. Only 'require' or 'prefer' are supported",
   );
 });
 

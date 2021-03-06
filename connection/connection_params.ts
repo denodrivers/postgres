@@ -118,8 +118,25 @@ function parseOptionsFromDsn(connString: string): ConnectionOptions {
     );
   }
 
+  let enforceTls = false;
+  if (dsn.params.sslmode) {
+    const sslmode = dsn.params.sslmode;
+    delete dsn.params.sslmode;
+
+    if (sslmode !== "require" && sslmode !== "prefer") {
+      throw new ConnectionParamsError(
+        `Supplied DSN has invalid sslmode '${sslmode}'. Only 'require' or 'prefer' are supported`,
+      );
+    }
+
+    if (sslmode === "require") {
+      enforceTls = true;
+    }
+  }
+
   return {
     ...dsn,
+    tls: { enforce: enforceTls },
     applicationName: dsn.params.application_name,
   };
 }
