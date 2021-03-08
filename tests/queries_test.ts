@@ -1,10 +1,10 @@
 import { Client } from "../mod.ts";
 import { assert, assertEquals, assertThrowsAsync } from "./test_deps.ts";
 import { DEFAULT_SETUP } from "./constants.ts";
-import TEST_CONNECTION_PARAMS from "./config.ts";
+import { getMainConfiguration } from "./config.ts";
 import { getTestClient } from "./helpers.ts";
 
-const CLIENT = new Client(TEST_CONNECTION_PARAMS);
+const CLIENT = new Client(getMainConfiguration());
 
 const testClient = getTestClient(CLIENT, DEFAULT_SETUP);
 

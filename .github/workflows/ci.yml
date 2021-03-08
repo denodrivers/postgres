@@ -25,8 +25,4 @@ jobs:
         run: deno lint --unstable
 
       - name: Run tests
-        env:
-          PGDATABASE: postgres
-          PGPASSWORD: postgres
-          PGUSER: postgres
         run: deno test --allow-net --allow-env --allow-read=tests/config.json

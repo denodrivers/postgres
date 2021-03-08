@@ -1,13 +1,13 @@
 import { Client, PostgresError } from "../mod.ts";
 import { assertThrowsAsync } from "./test_deps.ts";
-import TEST_CONNECTION_PARAMS from "./config.ts";
+import { getMainConfiguration } from "./config.ts";
 
 function getRandomString() {
   return Math.random().toString(36).substring(7);
 }
 
 Deno.test("badAuthData", async function () {
-  const badConnectionData = { ...TEST_CONNECTION_PARAMS };
+  const badConnectionData = getMainConfiguration();
   badConnectionData.password += getRandomString();
   const client = new Client(badConnectionData);
 
@@ -26,7 +26,7 @@ Deno.test("badAuthData", async function () {
 // This test requires current user database connection permissions
 // on "pg_hba.conf" set to "all"
 Deno.test("startupError", async function () {
-  const badConnectionData = { ...TEST_CONNECTION_PARAMS };
+  const badConnectionData = getMainConfiguration();
   badConnectionData.database += getRandomString();
   const client = new Client(badConnectionData);
 

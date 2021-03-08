@@ -1,7 +1,7 @@
 import { assertEquals, assertThrowsAsync, delay } from "./test_deps.ts";
 import { Pool } from "../pool.ts";
 import { DEFAULT_SETUP } from "./constants.ts";
-import TEST_CONNECTION_PARAMS from "./config.ts";
+import { getMainConfiguration } from "./config.ts";
 
 function testPool(
   t: (pool: Pool) => void | Promise<void>,
@@ -11,7 +11,7 @@ function testPool(
   // constructing Pool instantiates the connections,
   // so this has to be constructed for each test.
   const fn = async () => {
-    const POOL = new Pool(TEST_CONNECTION_PARAMS, 10, lazy);
+    const POOL = new Pool(getMainConfiguration(), 10, lazy);
     try {
       for (const q of setupQueries || DEFAULT_SETUP) {
         await POOL.queryArray(q);
