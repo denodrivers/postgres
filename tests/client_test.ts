@@ -23,6 +23,8 @@ Deno.test("badAuthData", async function () {
     });
 });
 
+// This test requires current user database connection permissions
+// on "pg_hba.conf" set to "all"
 Deno.test("startupError", async function () {
   const badConnectionData = { ...TEST_CONNECTION_PARAMS };
   badConnectionData.database += getRandomString();
