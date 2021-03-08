@@ -5,27 +5,16 @@ on: [push, pull_request, release]
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_DB: deno_postgres
-          POSTGRES_PASSWORD: test
-          POSTGRES_USER: test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
 
     steps:
       - name: Clone repo
         uses: actions/checkout@master
 
+      - name: Initialize postgres container
+        run: docker-compose up
+
       - name: Install deno
-        uses: denolib/setup-deno@master
+        uses: denolib/setup-deno@v2.3.0
         with: 
           deno-version: 1.7.1
 
@@ -37,7 +26,7 @@ jobs:
 
       - name: Run tests
         env:
-          PGDATABASE: deno_postgres
-          PGPASSWORD: test
-          PGUSER: test
+          PGDATABASE: postgres
+          PGPASSWORD: postgres
+          PGUSER: postgres
         run: deno test --allow-net --allow-env --allow-read=tests/config.json
