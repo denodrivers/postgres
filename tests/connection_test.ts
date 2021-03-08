@@ -1,13 +1,10 @@
-import {
-  assertEquals,
-  assertThrowsAsync,
-} from "./test_deps.ts";
+import { assertThrowsAsync } from "./test_deps.ts";
 import {
   getClearConfiguration,
   getMainConfiguration,
   getMd5Configuration,
 } from "./config.ts";
-import {Client, PostgresError} from "../mod.ts";
+import { Client, PostgresError } from "../mod.ts";
 
 function getRandomString() {
   return Math.random().toString(36).substring(7);
