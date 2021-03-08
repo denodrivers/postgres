@@ -11,7 +11,7 @@ jobs:
         uses: actions/checkout@master
 
       - name: Initialize postgres container
-        run: docker-compose up
+        run: docker-compose up -d
 
       - name: Install deno
         uses: denolib/setup-deno@v2.3.0
