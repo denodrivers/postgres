@@ -4,6 +4,7 @@ import {
   ConnectionString,
   createParams,
 } from "./connection/connection_params.ts";
+import { PostgresError } from "./connection/warning.ts";
 import {
   Query,
   QueryArguments,
@@ -15,6 +16,11 @@ import {
   templateStringToQuery,
 } from "./query/query.ts";
 import { isTemplateString } from "./utils.ts";
+
+/** Transaction processor */
+export interface TransactionProcessor<T> {
+  (connection: Connection): Promise<T>;
+}
 
 export class QueryClient {
   /**
@@ -173,6 +179,26 @@ export class Client extends QueryClient {
 
   async connect(): Promise<void> {
     await this._connection.startup();
+  }
+
+  async transactionQuery<T extends Record<string, unknown>>(
+    processor: TransactionProcessor<T>,
+    _result: ResultType,
+  ): Promise<T> {
+    if (!this._connection) {
+      throw new Error("Unconnected");
+    }
+    try {
+      await this._executeQuery(new Query("BEGIN"), _result);
+      const result = await processor(this._connection);
+      await this._executeQuery(new Query("COMMIT"), _result);
+      return result;
+    } catch (error) {
+      await this._executeQuery(new Query("ROLLBACK"), _result);
+    }
+    throw new PostgresError(
+      { severity: "high", code: "E", message: error.message },
+    );
   }
 
   async end(): Promise<void> {
