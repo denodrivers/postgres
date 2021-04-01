@@ -10,19 +10,8 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@master
 
-      - name: Initialize postgres container
-        run: docker-compose up -d
-
-      - name: Install deno
-        uses: denolib/setup-deno@v2.3.0
-        with: 
-          deno-version: 1.7.1
-
-      - name: Check formatting
-        run: deno fmt --check
-
-      - name: Check lint
-        run: deno lint --unstable
-
+      - name: Build container
+        run: docker-compose build tests
+      
       - name: Run tests
-        run: deno test --allow-net --allow-env --allow-read=tests/config.json
+        run: docker-compose run tests
