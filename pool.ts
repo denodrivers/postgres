@@ -1,5 +1,5 @@
 import { PoolClient, QueryClient } from "./client.ts";
-import { Connection, ResultType } from "./connection/connection.ts";
+import { Connection } from "./connection/connection.ts";
 import {
   ConnectionOptions,
   ConnectionParams,
@@ -7,7 +7,13 @@ import {
   createParams,
 } from "./connection/connection_params.ts";
 import { DeferredStack } from "./connection/deferred.ts";
-import { Query, QueryResult } from "./query/query.ts";
+import {
+  Query,
+  QueryArrayResult,
+  QueryObjectResult,
+  QueryResult,
+  ResultType,
+} from "./query/query.ts";
 
 export class Pool extends QueryClient {
   private _connectionParams: ConnectionParams;
@@ -29,8 +35,10 @@ export class Pool extends QueryClient {
     this.ready = this._startup();
   }
 
-  _executeQuery(query: Query, result: ResultType): Promise<QueryResult> {
-    return this._execute(query, result);
+  _executeQuery(query: Query<ResultType.ARRAY>): Promise<QueryArrayResult>;
+  _executeQuery(query: Query<ResultType.OBJECT>): Promise<QueryObjectResult>;
+  _executeQuery(query: Query<ResultType>): Promise<QueryResult> {
+    return this._execute(query);
   }
 
   private async _createConnection(): Promise<Connection> {
@@ -73,11 +81,19 @@ export class Pool extends QueryClient {
     );
   }
 
-  private async _execute(query: Query, type: ResultType): Promise<QueryResult> {
+  private async _execute(
+    query: Query<ResultType.ARRAY>,
+  ): Promise<QueryArrayResult>;
+  private async _execute(
+    query: Query<ResultType.OBJECT>,
+  ): Promise<QueryObjectResult>;
+  private async _execute(
+    query: Query<ResultType>,
+  ): Promise<QueryResult> {
     await this.ready;
     const connection = await this._availableConnections.pop();
     try {
-      return await connection.query(query, type);
+      return await connection.query(query);
     } catch (error) {
       throw error;
     } finally {
