@@ -247,6 +247,7 @@ testClient(async function transaction() {
 
 testClient(async function transactionLock() {
   const transaction = CLIENT.createTransaction("x");
+
   await transaction.begin();
   await transaction.queryArray`SELECT 1`;
   await assertThrowsAsync(
@@ -258,6 +259,8 @@ testClient(async function transactionLock() {
     "The connection is not being locked by the transaction",
   );
   await transaction.end();
+
+  await CLIENT.queryArray`SELECT 1`;
   assertEquals(
     CLIENT.locked,
     false,
