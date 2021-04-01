@@ -187,14 +187,96 @@ export class QueryClient {
   }
 }
 
+class Savepoint {
+  /**
+   * This is the count of the current savepoint instances in the transaction
+   */
+  #instance_count = 0;
+  #release_callback: (name: string) => Promise<void>;
+  #update_callback: (name: string) => Promise<void>;
+
+  constructor(
+    public readonly name: string,
+    // deno-lint-ignore camelcase
+    update_callback: (name: string) => Promise<void>,
+    // deno-lint-ignore camelcase
+    release_callback: (name: string) => Promise<void>,
+  ) {
+    this.#release_callback = release_callback;
+    this.#update_callback = update_callback;
+  }
+
+  get instances() {
+    return this.#instance_count;
+  }
+
+  /**
+   * Releasing a savepoint will remove it's last instance in the transaction
+   * 
+   * ```ts
+   * const savepoint = await transaction.savepoint("n1");
+   * await savepoint.release();
+   * transaction.rollback(savepoint); // Error, can't rollback because the savepoint was released
+   * ```
+   * 
+   * It will also allow you to set the savepoint to the position it had before the last update
+   * 
+   * * ```ts
+   * const savepoint = await transaction.savepoint("n1");
+   * await savepoint.update();
+   * await savepoint.release(); // This drops the update of the last statement
+   * transaction.rollback(savepoint); // Will rollback to the first instance of the savepoint
+   * ```
+   * 
+   * This function will throw if there are no savepoint instances to drop
+   */
+  async release() {
+    if (this.#instance_count === 0) {
+      throw new Error("This savepoint has no instances to release");
+    }
+
+    await this.#release_callback(this.name);
+    --this.#instance_count;
+  }
+
+  /**
+   * Updating a savepoint will update its position in the transaction execution
+   * 
+   * ```ts
+   * const savepoint = await transaction.savepoint("n1");
+   * transaction.queryArray`INSERT INTO MY_TABLE (X) VALUES (${my_value})`;
+   * await savepoint.update(); // Rolling back will now return you to this point on the transaction
+   * ```
+   * 
+   * You can also undo a savepoint update by using the `release` method
+   * 
+   * ```ts
+   * const savepoint = await transaction.savepoint("n1");
+   * transaction.queryArray`DELETE FROM VERY_IMPORTANT_TABLE`;
+   * await savepoint.update(); // Oops, shouldn't have updated the savepoint
+   * await savepoint.release(); // This will undo the last update and return the savepoint to the first instance
+   * await transaction.rollback(); // Will rollback before the table was deleted
+   * ```
+   * */
+  async update() {
+    await this.#update_callback(this.name);
+    ++this.#instance_count;
+  }
+}
+
 class Transaction {
   #client: QueryClient;
+  #savepoints: Savepoint[] = [];
 
   constructor(
     public name: string,
     client: QueryClient,
   ) {
     this.#client = client;
+  }
+
+  get savepoints() {
+    return this.#savepoints;
   }
 
   // TODO
@@ -219,6 +301,8 @@ class Transaction {
 
   // TODO
   // Update documentation
+  // Add an example showing how a throw inside a transaction does not release
+  // the session
   /**
    * This method allows executed queries to be retrieved as array entries.
    * It supports a generic interface in order to type the entries retrieved by the query
@@ -278,6 +362,8 @@ class Transaction {
 
   // TODO
   // Update documentation
+  // Add an example showing how a throw inside a transaction does not release
+  // the session
   /**
    * This method allows executed queries to be retrieved as object entries.
    * It supports a generic interface in order to type the entries retrieved by the query
@@ -367,12 +453,42 @@ class Transaction {
   // TODO
   // Check if savepoint was registered
   // Throw if transaction ain't open
-  async rollback(savepoint?: string) {
-    if (savepoint) {
-      await this.queryArray(`ROLLBACK TO ${savepoint}`);
+  /**
+   * If rollback is called without a savepoint, it will terminate the current transaction
+   */
+  async rollback(savepoint?: string | Savepoint) {
+    if (typeof savepoint !== "undefined") {
+      // deno-lint-ignore camelcase
+      let savepoint_name: string;
+      if (savepoint instanceof Savepoint) {
+        savepoint_name = savepoint.name;
+      } else {
+        // TODO
+        // Cleanup string
+        savepoint_name = savepoint;
+      }
+
+      // deno-lint-ignore camelcase
+      const ts_savepoint = this.#savepoints.find(({ name }) =>
+        name === savepoint_name
+      );
+      if (!ts_savepoint) {
+        throw new Error(
+          `There is no "${savepoint_name}" registered in this transaction`,
+        );
+      }
+      if (!ts_savepoint.instances) {
+        throw new Error(
+          `There are no instances of "${savepoint_name}" left to rollback to`,
+        );
+      }
+
+      await this.queryArray(`ROLLBACK TO ${savepoint_name}`);
       return;
     }
-    await this.queryArray("ROLLBACK");
+
+    await this.queryArray`ROLLBACK`;
+    this.#client.locked = false;
   }
 
   // TODO
@@ -380,9 +496,29 @@ class Transaction {
   // Research if savepoints can be removed
   // Generate random name
   // Check special characters
-  async savepoint(name: string): Promise<string> {
-    await this.queryArray(`SAVEPOINT ${name}`);
-    return name;
+  /**
+   * Savepoints are case insensitive and must start with an  character
+   * 
+   * ```ts
+   * const savepoint = await transaction.save("MY_savepoint"); // returns a `Savepoint` with name "my_savepoint"
+   * await transaction.rollback(savepoint);
+   * ```
+   */
+  async savepoint(name: string): Promise<Savepoint> {
+    const savepoint = new Savepoint(
+      name,
+      async (name: string) => {
+        await this.queryArray(`SAVEPOINT ${name}`);
+      },
+      async (name: string) => {
+        await this.queryArray(`RELEASE SAVEPOINT ${name}`);
+      },
+    );
+
+    await savepoint.update();
+    this.#savepoints.push(savepoint);
+
+    return savepoint;
   }
 }
 

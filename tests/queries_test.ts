@@ -267,3 +267,60 @@ testClient(async function transactionLock() {
     "Client was not released after transaction",
   );
 });
+
+testClient(async function transactionSavepoints() {
+  // deno-lint-ignore camelcase
+  const savepoint_name = "a1";
+  const transaction = CLIENT.createTransaction("x");
+
+  await transaction.begin();
+  await transaction.queryArray`CREATE TEMP TABLE X (Y INT)`;
+  await transaction.queryArray`INSERT INTO X VALUES (1)`;
+  // deno-lint-ignore camelcase
+  const { rows: query_1 } = await transaction.queryObject<{ y: number }>
+    `SELECT Y FROM X`;
+  assertEquals(query_1, [{ y: 1 }]);
+
+  const savepoint = await transaction.savepoint(savepoint_name);
+
+  await transaction.queryArray`DELETE FROM X`;
+  // deno-lint-ignore camelcase
+  const { rowCount: query_2 } = await transaction.queryObject<{ y: number }>
+    `SELECT Y FROM X`;
+  assertEquals(query_2, 0);
+
+  await savepoint.update();
+
+  await transaction.queryArray`INSERT INTO X VALUES (2)`;
+  // deno-lint-ignore camelcase
+  const { rows: query_3 } = await transaction.queryObject<{ y: number }>
+    `SELECT Y FROM X`;
+  assertEquals(query_3, [{ y: 2 }]);
+
+  await transaction.rollback(savepoint);
+  // deno-lint-ignore camelcase
+  const { rowCount: query_4 } = await transaction.queryObject<{ y: number }>
+    `SELECT Y FROM X`;
+  assertEquals(query_4, 0);
+
+  assertEquals(
+    savepoint.instances,
+    2,
+    "An incorrect number of instances were created for a transaction savepoint",
+  );
+  await savepoint.release();
+  assertEquals(
+    savepoint.instances,
+    1,
+    "The instance for the savepoint was not released",
+  );
+
+  // This checks that the savepoint can be called by name as well
+  await transaction.rollback(savepoint_name);
+  // deno-lint-ignore camelcase
+  const { rows: query_5 } = await transaction.queryObject<{ y: number }>
+    `SELECT Y FROM X`;
+  assertEquals(query_5, [{ y: 1 }]);
+
+  await transaction.end();
+});
