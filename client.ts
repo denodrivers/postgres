@@ -78,8 +78,11 @@ export class QueryClient {
     query_template_or_config: TemplateStringsArray | string | QueryConfig,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>> {
-    // TODO
-    // Throw if transaction is open
+    if (this.locked) {
+      throw new Error(
+        "This connection is currently locked by the x transaction",
+      );
+    }
 
     let query: Query<ResultType.ARRAY>;
     if (typeof query_template_or_config === "string") {
@@ -158,8 +161,11 @@ export class QueryClient {
       | TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>> {
-    // TODO
-    // Throw if transaction is open
+    if (this.locked) {
+      throw new Error(
+        "This connection is currently locked by the x transaction",
+      );
+    }
 
     let query: Query<ResultType.OBJECT>;
     if (typeof query_template_or_config === "string") {
@@ -194,20 +200,20 @@ class Transaction {
   // TODO
   // Throw if there is already an open transaction
   async begin() {
-    await this.#client.queryArray("BEGIN");
+    await this.queryArray("BEGIN");
     this.#client.locked = true;
   }
 
   // TODO
   // Throw if transaction ain't open
   async commit() {
-    await this.#client.queryArray("COMMIT");
+    await this.queryArray("COMMIT");
   }
 
   // TODO
   // Throw if transaction ain't open
   async end() {
-    await this.#client.queryArray("END");
+    await this.queryArray("END");
     this.#client.locked = false;
   }
 
@@ -363,10 +369,10 @@ class Transaction {
   // Throw if transaction ain't open
   async rollback(savepoint?: string) {
     if (savepoint) {
-      await this.#client.queryArray(`ROLLBACK TO ${savepoint}`);
+      await this.queryArray(`ROLLBACK TO ${savepoint}`);
       return;
     }
-    await this.#client.queryArray("ROLLBACK");
+    await this.queryArray("ROLLBACK");
   }
 
   // TODO
@@ -375,7 +381,7 @@ class Transaction {
   // Generate random name
   // Check special characters
   async savepoint(name: string): Promise<string> {
-    await this.#client.queryArray(`SAVEPOINT ${name}`);
+    await this.queryArray(`SAVEPOINT ${name}`);
     return name;
   }
 }
