@@ -214,7 +214,7 @@ testClient(async function templateStringQueryArray() {
 });
 
 testClient(async function transaction() {
-  const transaction = CLIENT.startTransaction("x");
+  const transaction = CLIENT.createTransaction("x");
   await transaction.begin();
   assertEquals(CLIENT.locked, true, "Client is locked out during transaction");
   await transaction.queryArray`CREATE TEMP TABLE TEST (X INTEGER)`;

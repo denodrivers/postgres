@@ -398,7 +398,7 @@ export class Client extends QueryClient {
     await this._connection.startup();
   }
 
-  startTransaction(name: string): Transaction {
+  createTransaction(name: string): Transaction {
     return new Transaction(name, this);
   }
 
