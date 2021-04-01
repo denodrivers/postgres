@@ -77,8 +77,9 @@ to discuss bugs and features before opening issues
   - https://docs.docker.com/get-docker/
   - https://docs.docker.com/compose/install/
 
-- You must have `deno` installed in your machine. The current version is tested
-  under Deno `1.7.1`. Future versions may have a different behavior
+- You don't need `deno` installed in your machine to run the tests, since it
+  will be installed in the Docker container when you build it. However you will
+  need it in order to run the linter and formatter locally
   - https://deno.land/
   - `deno upgrade --version 1.7.1`
   - `dvm install 1.7.1 && dvm use 1.7.1`
