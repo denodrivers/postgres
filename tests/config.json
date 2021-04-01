@@ -1,7 +1,7 @@
 {
   "applicationName": "deno_postgres",
   "database": "postgres",
-  "hostname": "localhost",
+  "hostname": "postgres",
   "password": "postgres",
   "port": 5432,
   "users": {
