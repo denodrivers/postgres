@@ -1,4 +1,4 @@
-import { Connection, ResultType } from "./connection/connection.ts";
+import { Connection } from "./connection/connection.ts";
 import {
   ConnectionOptions,
   ConnectionString,
@@ -12,6 +12,7 @@ import {
   QueryObjectConfig,
   QueryObjectResult,
   QueryResult,
+  ResultType,
   templateStringToQuery,
 } from "./query/query.ts";
 import { isTemplateString } from "./utils.ts";
@@ -23,7 +24,13 @@ export class QueryClient {
    * It's sole purpose is to be a common interface implementations can use
    * regardless of their internal structure
    */
-  _executeQuery(_query: Query, _result: ResultType): Promise<QueryResult> {
+  _executeQuery<T extends Array<unknown>>(
+    _query: Query<ResultType.ARRAY>,
+  ): Promise<QueryArrayResult<T>>;
+  _executeQuery<T extends Record<string, unknown>>(
+    _query: Query<ResultType.OBJECT>,
+  ): Promise<QueryObjectResult<T>>;
+  _executeQuery(_query: Query<ResultType>): Promise<QueryResult> {
     throw new Error(
       `"${this._executeQuery.name}" hasn't been implemented for class "${this.constructor.name}"`,
     );
@@ -67,19 +74,20 @@ export class QueryClient {
     query_template_or_config: TemplateStringsArray | string | QueryConfig,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>> {
-    let query;
+    let query: Query<ResultType.ARRAY>;
     if (typeof query_template_or_config === "string") {
-      query = new Query(query_template_or_config, ...args);
+      query = new Query(query_template_or_config, ResultType.ARRAY, ...args);
     } else if (isTemplateString(query_template_or_config)) {
-      query = templateStringToQuery(query_template_or_config, args);
+      query = templateStringToQuery(
+        query_template_or_config,
+        args,
+        ResultType.ARRAY,
+      );
     } else {
-      query = new Query(query_template_or_config);
+      query = new Query(query_template_or_config, ResultType.ARRAY);
     }
 
-    return this._executeQuery(
-      query,
-      ResultType.ARRAY,
-    ) as Promise<QueryArrayResult<T>>;
+    return this._executeQuery(query);
   }
 
   /**
@@ -143,19 +151,23 @@ export class QueryClient {
       | TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>> {
-    let query;
+    let query: Query<ResultType.OBJECT>;
     if (typeof query_template_or_config === "string") {
-      query = new Query(query_template_or_config, ...args);
+      query = new Query(query_template_or_config, ResultType.OBJECT, ...args);
     } else if (isTemplateString(query_template_or_config)) {
-      query = templateStringToQuery(query_template_or_config, args);
+      query = templateStringToQuery(
+        query_template_or_config,
+        args,
+        ResultType.OBJECT,
+      );
     } else {
-      query = new Query(query_template_or_config as QueryObjectConfig);
+      query = new Query(
+        query_template_or_config as QueryObjectConfig,
+        ResultType.OBJECT,
+      );
     }
 
-    return this._executeQuery(
-      query,
-      ResultType.OBJECT,
-    ) as Promise<QueryObjectResult<T>>;
+    return this._executeQuery<T>(query);
   }
 }
 
@@ -167,8 +179,10 @@ export class Client extends QueryClient {
     this._connection = new Connection(createParams(config));
   }
 
-  _executeQuery(query: Query, result: ResultType): Promise<QueryResult> {
-    return this._connection.query(query, result);
+  _executeQuery(query: Query<ResultType.ARRAY>): Promise<QueryArrayResult>;
+  _executeQuery(query: Query<ResultType.OBJECT>): Promise<QueryObjectResult>;
+  _executeQuery(query: Query<ResultType>): Promise<QueryResult> {
+    return this._connection.query(query);
   }
 
   async connect(): Promise<void> {
@@ -190,8 +204,10 @@ export class PoolClient extends QueryClient {
     this._releaseCallback = releaseCallback;
   }
 
-  _executeQuery(query: Query, result: ResultType): Promise<QueryResult> {
-    return this._connection.query(query, result);
+  _executeQuery(query: Query<ResultType.ARRAY>): Promise<QueryArrayResult>;
+  _executeQuery(query: Query<ResultType.OBJECT>): Promise<QueryObjectResult>;
+  _executeQuery(query: Query<ResultType>): Promise<QueryResult> {
+    return this._connection.query(query);
   }
 
   async release(): Promise<void> {

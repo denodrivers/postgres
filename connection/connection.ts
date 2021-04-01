@@ -37,13 +37,9 @@ import {
   QueryArrayResult,
   QueryObjectResult,
   QueryResult,
+  ResultType,
 } from "../query/query.ts";
 import type { ConnectionParams } from "./connection_params.ts";
-
-export enum ResultType {
-  ARRAY,
-  OBJECT,
-}
 
 export enum Format {
   TEXT = 0,
@@ -439,8 +435,13 @@ export class Connection {
   }
 
   private async _simpleQuery(
-    query: Query,
-    type: ResultType,
+    query: Query<ResultType.ARRAY>,
+  ): Promise<QueryArrayResult>;
+  private async _simpleQuery(
+    query: Query<ResultType.OBJECT>,
+  ): Promise<QueryObjectResult>;
+  private async _simpleQuery(
+    query: Query<ResultType>,
   ): Promise<QueryResult> {
     this.#packetWriter.clear();
 
@@ -450,7 +451,7 @@ export class Connection {
     await this.#bufWriter.flush();
 
     let result;
-    if (type === ResultType.ARRAY) {
+    if (query.result_type === ResultType.ARRAY) {
       result = new QueryArrayResult(query);
     } else {
       result = new QueryObjectResult(query);
@@ -527,7 +528,7 @@ export class Connection {
     }
   }
 
-  private async appendQueryToMessage(query: Query) {
+  private async appendQueryToMessage<T extends ResultType>(query: Query<T>) {
     this.#packetWriter.clear();
 
     const buffer = this.#packetWriter
@@ -538,7 +539,9 @@ export class Connection {
     await this.#bufWriter.write(buffer);
   }
 
-  private async appendArgumentsToMessage(query: Query) {
+  private async appendArgumentsToMessage<T extends ResultType>(
+    query: Query<T>,
+  ) {
     this.#packetWriter.clear();
 
     const hasBinaryArgs = query.args.some((arg) => arg instanceof Uint8Array);
@@ -626,9 +629,8 @@ export class Connection {
   /**
    * https://www.postgresql.org/docs/13/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
    */
-  private async _preparedQuery(
-    query: Query,
-    type: ResultType,
+  private async _preparedQuery<T extends ResultType>(
+    query: Query<T>,
   ): Promise<QueryResult> {
     await this.appendQueryToMessage(query);
     await this.appendArgumentsToMessage(query);
@@ -642,7 +644,7 @@ export class Connection {
     await assertArgumentsResponse(await this.readMessage());
 
     let result;
-    if (type === ResultType.ARRAY) {
+    if (query.result_type === ResultType.ARRAY) {
       result = new QueryArrayResult(query);
     } else {
       result = new QueryObjectResult(query);
@@ -700,16 +702,24 @@ export class Connection {
     return result;
   }
 
-  async query(query: Query, type: ResultType): Promise<QueryResult> {
+  async query(
+    query: Query<ResultType.ARRAY>,
+  ): Promise<QueryArrayResult>;
+  async query(
+    query: Query<ResultType.OBJECT>,
+  ): Promise<QueryObjectResult>;
+  async query(
+    query: Query<ResultType>,
+  ): Promise<QueryResult> {
     if (!this.connected) {
       throw new Error("The connection hasn't been initialized");
     }
     await this.#queryLock.pop();
     try {
       if (query.args.length === 0) {
-        return await this._simpleQuery(query, type);
+        return await this._simpleQuery(query);
       } else {
-        return await this._preparedQuery(query, type);
+        return await this._preparedQuery(query);
       }
     } finally {
       this.#queryLock.push(undefined);

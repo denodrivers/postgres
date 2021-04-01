@@ -15,15 +15,30 @@ type CommandType = (
   | "COPY"
 );
 
-export function templateStringToQuery(
+export enum ResultType {
+  ARRAY,
+  OBJECT,
+}
+
+/**
+ * This function transforms template string arguments into a query
+ * 
+ * ```ts
+ * ["SELECT NAME FROM TABLE WHERE ID = ", " AND DATE < "]
+ * // "SELECT NAME FROM TABLE WHERE ID = $1 AND DATE < $2"
+ * ```
+ */
+export function templateStringToQuery<T extends ResultType>(
   template: TemplateStringsArray,
   args: QueryArguments,
-): Query {
+  // deno-lint-ignore camelcase
+  result_type: T,
+): Query<T> {
   const text = template.reduce((curr, next, index) => {
     return `${curr}$${index}${next}`;
   });
 
-  return new Query(text, ...args);
+  return new Query(text, result_type, ...args);
 }
 
 export interface QueryConfig {
@@ -76,7 +91,7 @@ export class QueryResult {
   public rowDescription?: RowDescription;
   public warnings: WarningFields[] = [];
 
-  constructor(public query: Query) {}
+  constructor(public query: Query<ResultType>) {}
 
   /**
    * This function is required to parse each column
@@ -109,7 +124,8 @@ export class QueryResult {
   }
 }
 
-export class QueryArrayResult<T extends Array<unknown>> extends QueryResult {
+export class QueryArrayResult<T extends Array<unknown> = Array<unknown>>
+  extends QueryResult {
   public rows: T[] = [];
 
   // deno-lint-ignore camelcase
@@ -140,8 +156,9 @@ export class QueryArrayResult<T extends Array<unknown>> extends QueryResult {
   }
 }
 
-export class QueryObjectResult<T extends Record<string, unknown>>
-  extends QueryResult {
+export class QueryObjectResult<
+  T extends Record<string, unknown> = Record<string, unknown>,
+> extends QueryResult {
   public rows: T[] = [];
 
   // deno-lint-ignore camelcase
@@ -189,15 +206,25 @@ export class QueryObjectResult<T extends Record<string, unknown>>
   }
 }
 
-export class Query {
-  public text: string;
+export class Query<T extends ResultType> {
   public args: EncodedArg[];
   public fields?: string[];
+  public result_type: ResultType;
+  public text: string;
 
-  constructor(config: QueryObjectConfig);
-  constructor(text: string, ...args: unknown[]);
   //deno-lint-ignore camelcase
-  constructor(config_or_text: string | QueryObjectConfig, ...args: unknown[]) {
+  constructor(config: QueryObjectConfig, result_type: T);
+  //deno-lint-ignore camelcase
+  constructor(text: string, result_type: T, ...args: unknown[]);
+  constructor(
+    //deno-lint-ignore camelcase
+    config_or_text: string | QueryObjectConfig,
+    //deno-lint-ignore camelcase
+    result_type: T,
+    ...args: unknown[]
+  ) {
+    this.result_type = result_type;
+
     let config: QueryConfig;
     if (typeof config_or_text === "string") {
       config = { text: config_or_text, args };
