@@ -212,3 +212,38 @@ testClient(async function templateStringQueryArray() {
 
   assertEquals(rows[0], [value_1, value_2]);
 });
+
+testClient(async function transaction() {
+  const transaction = CLIENT.startTransaction("x");
+  await transaction.begin();
+  assertEquals(CLIENT.locked, true, "Client is locked out during transaction");
+  await transaction.queryArray`CREATE TEMP TABLE TEST (X INTEGER)`;
+  const savepoint = await transaction.savepoint("table_creation");
+  await transaction.queryArray`INSERT INTO TEST (X) VALUES (1)`;
+  // deno-lint-ignore camelcase
+  const query_1 = await transaction.queryObject<{ x: number }>
+    `SELECT X FROM TEST`;
+  assertEquals(
+    query_1.rows[0].x,
+    1,
+    "Operation was not executed inside transaction",
+  );
+  await transaction.rollback(savepoint);
+  // deno-lint-ignore camelcase
+  const query_2 = await transaction.queryObject<{ x: number }>
+    `SELECT X FROM TEST`;
+  assertEquals(
+    query_2.rowCount,
+    0,
+    "Rollback was not succesful inside transaction",
+  );
+  await transaction.end();
+  assertEquals(
+    CLIENT.locked,
+    false,
+    "Client was not released after transaction",
+  );
+});
+
+// TODO
+// Add tests about queries throwing while transaction is open
