@@ -85,12 +85,13 @@ to discuss bugs and features before opening issues
   - `dvm install 1.7.1 && dvm use 1.7.1`
 
 - You don't need to install Postgres locally in your machine in order to test
-  the library it will run as a service in the Docker container when you build it
+  the library, it will run as a service in the Docker container when you build
+  it
 
 ### Running the tests
 
-The tests are found under the `./tests` folder, and will be run in the Docker
-container found in the root of the project.
+The tests are found under the `./tests` folder, and they are based on query
+result assertions
 
 In order to run the tests run the following commands
 
@@ -99,6 +100,29 @@ In order to run the tests run the following commands
 
 The build step will check linting and formatting as well and report it to the
 command line
+
+It is recommended that you don't rely on any previously initialized data for
+your tests, instead of that create all the data you need at the moment of
+running the tests
+
+For example, the following test will create a temporal table that will dissapear
+once the test has been completed
+
+```ts
+Deno.test("INSERT works correctly", async () => {
+  await client.queryArray(
+    `CREATE TEMP TABLE MY_TEST (X INTEGER);`,
+  );
+  await client.queryArray(
+    `INSERT INTO MY_TEST (X) VALUES (1);`,
+  );
+  const result = await client.queryObject<{ x: number }>({
+    text: `SELECT X FROM MY_TEST`,
+    fields: ["x"],
+  });
+  assertEquals(result.rows[0].x, 1);
+});
+```
 
 ## Contributing guidelines
 
