@@ -6,7 +6,7 @@
 [![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://doc.deno.land/https/deno.land/x/postgres@v0.8.0/mod.ts)
 [![License](https://img.shields.io/github/license/denodrivers/postgres?color=yellowgreen&label=License&style=flat-square)](LICENSE)
 
-PostgreSQL driver for Deno
+A lightweight PostgreSQL driver for Deno focused on user expirience
 
 `deno-postgres` is being developed based on excellent work of
 [node-postgres](https://github.com/brianc/node-postgres) and
@@ -60,6 +60,14 @@ Sadly, stablishing a TLS connection in the way Postgres requires it isn't
 possible without the `Deno.startTls` API, which is currently marked as unstable.
 This is a situation that will be solved once this API is stabilized, however I
 don't have an estimated time of when that might happen.
+
+## Documentation
+
+The documentation is available on the deno-postgres website
+[https://deno-postgres.com/](https://deno-postgres.com/)
+
+Join me on [Discord](https://discord.gg/HEdTCvZUSf) as well! It's a good place
+to discuss bugs and features before opening issues
 
 ## Contributing
 
