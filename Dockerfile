@@ -9,5 +9,11 @@ USER deno
 COPY deps.ts .
 RUN deno cache deps.ts
 ADD . .
+
+# Code health checks
+RUN deno lint --unstable
+RUN deno fmt --check
+
+# Run tests
 CMD /wait && deno test --unstable -A
 
