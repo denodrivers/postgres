@@ -5,39 +5,13 @@ on: [push, pull_request, release]
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_DB: deno_postgres
-          POSTGRES_PASSWORD: test
-          POSTGRES_USER: test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
 
     steps:
       - name: Clone repo
         uses: actions/checkout@master
 
-      - name: Install deno
-        uses: denolib/setup-deno@master
-        with: 
-          deno-version: 1.7.1
-
-      - name: Check formatting
-        run: deno fmt --check
-
-      - name: Check lint
-        run: deno lint --unstable
-
+      - name: Build container
+        run: docker-compose build tests
+      
       - name: Run tests
-        env:
-          PGDATABASE: deno_postgres
-          PGPASSWORD: test
-          PGUSER: test
-        run: deno test --allow-net --allow-env --allow-read=tests/config.json
+        run: docker-compose run tests

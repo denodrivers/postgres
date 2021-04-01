@@ -6,7 +6,7 @@ import {
   parseDate,
 } from "./test_deps.ts";
 import { Client } from "../mod.ts";
-import TEST_CONNECTION_PARAMS from "./config.ts";
+import { getMainConfiguration } from "./config.ts";
 import { getTestClient } from "./helpers.ts";
 import {
   Box,
@@ -47,7 +47,7 @@ function generateRandomPoint(max_value = 100): Point {
   };
 }
 
-const CLIENT = new Client(TEST_CONNECTION_PARAMS);
+const CLIENT = new Client(getMainConfiguration());
 const testClient = getTestClient(CLIENT, SETUP);
 
 testClient(async function inet() {
@@ -226,10 +226,8 @@ testClient(async function regtypeArray() {
   assertEquals(result.rows[0][0], ["integer", "bigint"]);
 });
 
-// This test assumes that if the user wasn't provided through
-// the config file, it will be available in the env config
 testClient(async function regrole() {
-  const user = TEST_CONNECTION_PARAMS.user || Deno.env.get("PGUSER");
+  const user = getMainConfiguration().user;
 
   const result = await CLIENT.queryArray(
     `SELECT ($1)::regrole`,
@@ -239,10 +237,8 @@ testClient(async function regrole() {
   assertEquals(result.rows[0][0], user);
 });
 
-// This test assumes that if the user wasn't provided through
-// the config file, it will be available in the env config
 testClient(async function regroleArray() {
-  const user = TEST_CONNECTION_PARAMS.user || Deno.env.get("PGUSER");
+  const user = getMainConfiguration().user;
 
   const result = await CLIENT.queryArray(
     `SELECT ARRAY[($1)::regrole]`,

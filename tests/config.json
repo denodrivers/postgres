@@ -1,0 +1,12 @@
+{
+  "applicationName": "deno_postgres",
+  "database": "postgres",
+  "hostname": "postgres",
+  "password": "postgres",
+  "port": 5432,
+  "users": {
+    "clear": "clear",
+    "main": "postgres",
+    "md5": "md5"
+  }
+}

@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres
+    hostname: postgres
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+    volumes:
+      - ./docker/data/:/var/lib/postgresql/host/
+      - ./docker/init/:/docker-entrypoint-initdb.d/
+  tests:
+    build: .
+    depends_on:
+      - database
+    environment:
+      - WAIT_HOSTS=postgres:5432
+      # Wait thirty seconds after database goes online
+      # For database metadata initialization
+      - WAIT_AFTER_HOSTS=30
