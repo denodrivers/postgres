@@ -40,6 +40,7 @@ import {
   ResultType,
 } from "../query/query.ts";
 import type { ConnectionParams } from "./connection_params.ts";
+import * as scram from "./scram.ts";
 
 export enum Format {
   TEXT = 0,
@@ -363,9 +364,10 @@ export class Connection {
       }
       // scram-sha-256 password
       case 10: {
-        throw new Error(
-          "Database server expected scram-sha-256 authentication, which is not supported at the moment",
+        await assertSuccessfulAuthentication(
+          await this.authenticateWithScramSha256(),
         );
+        break;
       }
       default:
         throw new Error(`Unknown auth message code ${code}`);
@@ -400,6 +402,77 @@ export class Connection {
     await this.#bufWriter.write(buffer);
     await this.#bufWriter.flush();
 
+    return this.readMessage();
+  }
+
+  private async authenticateWithScramSha256(): Promise<Message> {
+    if (!this.connParams.password) {
+      throw new Error(
+        "Auth Error: attempting SCRAM-SHA-256 auth with password unset",
+      );
+    }
+
+    const client = new scram.Client(
+      this.connParams.user,
+      this.connParams.password,
+    );
+    const utf8 = new TextDecoder("utf-8");
+
+    // SASLInitialResponse
+    const clientFirstMessage = client.composeChallenge();
+    this.#packetWriter.clear();
+    this.#packetWriter.addCString("SCRAM-SHA-256");
+    this.#packetWriter.addInt32(clientFirstMessage.length);
+    this.#packetWriter.addString(clientFirstMessage);
+    this.#bufWriter.write(this.#packetWriter.flush(0x70));
+    this.#bufWriter.flush();
+
+    // AuthenticationSASLContinue
+    const saslContinue = await this.readMessage();
+    switch (saslContinue.type) {
+      case "R": {
+        if (saslContinue.reader.readInt32() != 11) {
+          throw new Error("AuthenticationSASLContinue is expected");
+        }
+        break;
+      }
+      case "E": {
+        throw parseError(saslContinue);
+      }
+      default: {
+        throw new Error("unexpected message");
+      }
+    }
+    const serverFirstMessage = utf8.decode(saslContinue.reader.readAllBytes());
+    client.receiveChallenge(serverFirstMessage);
+
+    // SASLResponse
+    const clientFinalMessage = client.composeResponse();
+    this.#packetWriter.clear();
+    this.#packetWriter.addString(clientFinalMessage);
+    this.#bufWriter.write(this.#packetWriter.flush(0x70));
+    this.#bufWriter.flush();
+
+    // AuthenticationSASLFinal
+    const saslFinal = await this.readMessage();
+    switch (saslFinal.type) {
+      case "R": {
+        if (saslFinal.reader.readInt32() !== 12) {
+          throw new Error("AuthenticationSASLFinal is expected");
+        }
+        break;
+      }
+      case "E": {
+        throw parseError(saslFinal);
+      }
+      default: {
+        throw new Error("unexpected message");
+      }
+    }
+    const serverFinalMessage = utf8.decode(saslFinal.reader.readAllBytes());
+    client.receiveResponse(serverFinalMessage);
+
+    // AuthenticationOK
     return this.readMessage();
   }
 
