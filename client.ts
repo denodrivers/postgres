@@ -451,10 +451,29 @@ class Transaction {
   // Method to display available savepoints
 
   // TODO
-  // Check if savepoint was registered
   // Throw if transaction ain't open
   /**
-   * If rollback is called without a savepoint, it will terminate the current transaction
+   * Rollbacks are a mechanism to undo transaction operations without compromising the data
+   * 
+   * A rollback can be executed the following way
+   * ```ts
+   * // ...
+   * // Very very important operations that went very, very wrong
+   * await transaction.rollback(); // Like nothing ever happened
+   * ```
+   * 
+   * Calling a rollback without arguments will terminate the current transaction and undo all changes,
+   * but it can be used in conjuction with the savepoint feature to rollback specific changes like the following
+   * 
+   * ```ts
+   * // ...
+   * // Important operations I don't want to rollback
+   * const savepoint = await transaction.savepoint("before_disaster");
+   * await transaction.queryArray`UPDATE MY_TABLE SET X = 0`; // Oops, update without where
+   * await transaction.rollback(savepoint); // "before_disaster" would work as well
+   * // Everything that happened between the savepoint and the rollback gets undone
+   * await transaction.end(); // Commits all other changes
+   * ```
    */
   async rollback(savepoint?: string | Savepoint) {
     if (typeof savepoint !== "undefined") {
@@ -463,9 +482,7 @@ class Transaction {
       if (savepoint instanceof Savepoint) {
         savepoint_name = savepoint.name;
       } else {
-        // TODO
-        // Cleanup string
-        savepoint_name = savepoint;
+        savepoint_name = savepoint.toLowerCase();
       }
 
       // deno-lint-ignore camelcase
@@ -474,12 +491,12 @@ class Transaction {
       );
       if (!ts_savepoint) {
         throw new Error(
-          `There is no "${savepoint_name}" registered in this transaction`,
+          `There is no "${savepoint_name}" savepoint registered in this transaction`,
         );
       }
       if (!ts_savepoint.instances) {
         throw new Error(
-          `There are no instances of "${savepoint_name}" left to rollback to`,
+          `There are no savepoints of "${savepoint_name}" left to rollback to`,
         );
       }
 
@@ -491,32 +508,80 @@ class Transaction {
     this.#client.locked = false;
   }
 
-  // TODO
-  // Save savepoint name and throw preventely
-  // Research if savepoints can be removed
-  // Generate random name
-  // Check special characters
   /**
-   * Savepoints are case insensitive and must start with an  character
+   * This method will generate a savepoint, which will allow you to reset transaction states
+   * to a previous point of time
    * 
+   * Each savepoint has a unique name used to identify it, and it must abide the following rules
+   * 
+   * - Savepoint names must start with a letter or an underscore
+   * - Savepoint names are case insensitive
+   * - Savepoint names can't be longer than 63 characters
+   * - Savepoint names can only have alphanumeric characters
+   * 
+   * A savepoint can be easily created like this
    * ```ts
    * const savepoint = await transaction.save("MY_savepoint"); // returns a `Savepoint` with name "my_savepoint"
    * await transaction.rollback(savepoint);
+   * await savepoint.release(); // The savepoint will be removed
+   * ```
+   * All savepoints can have multiple positions in a transaction, and you can change or update
+   * this positions by using the `update` and `release` methods
+   * ```ts
+   * const savepoint = await transaction.save("n1");
+   * await transaction.queryArray`INSERT INTO MY_TABLE VALUES (${'A'}, ${2})`;
+   * await savepoint.update(); // The savepoint will continue from here
+   * await transaction.queryArray`DELETE FROM MY_TABLE`;
+   * await transaction.rollback(savepoint); // The transaction will rollback before the delete, but after the insert
+   * await savepoint.release(); // The last savepoint will be removed, the original one will remain
+   * await transaction.rollback(savepoint); // It rolls back before the insert
+   * await savepoint.release(); // All savepoints are released
+   * ```
+   * 
+   * Creating a new savepoint with an already used name will return you a reference to
+   * the original transaction
+   * ```ts
+   * const savepoint_a = await transaction.save("a");
+   * await transaction.queryArray`DELETE FROM MY_TABLE`;
+   * const savepoint_b = await transaction.save("a"); // They will be the same savepoint, but the savepoint will be updated to this position
+   * await transaction.rollback(savepoint_a); // Rolls back to savepoint_b
    * ```
    */
   async savepoint(name: string): Promise<Savepoint> {
-    const savepoint = new Savepoint(
-      name,
-      async (name: string) => {
-        await this.queryArray(`SAVEPOINT ${name}`);
-      },
-      async (name: string) => {
-        await this.queryArray(`RELEASE SAVEPOINT ${name}`);
-      },
-    );
+    if (!/^[a-zA-Z_]{1}[\w]{0,62}$/.test(name)) {
+      if (!Number.isNaN(Number(name[0]))) {
+        throw new Error("The savepoint name can't begin with a number");
+      }
+      if (name.length > 63) {
+        throw new Error(
+          "The savepoint name can't be longer than 63 characters",
+        );
+      }
+      throw new Error(
+        "The savepoint name can only contain alphanumeric characters",
+      );
+    }
 
-    await savepoint.update();
-    this.#savepoints.push(savepoint);
+    name = name.toLowerCase();
+
+    let savepoint = this.#savepoints.find((sv) => sv.name === name);
+
+    if (savepoint) {
+      await savepoint.update();
+    } else {
+      savepoint = new Savepoint(
+        name,
+        async (name: string) => {
+          await this.queryArray(`SAVEPOINT ${name}`);
+        },
+        async (name: string) => {
+          await this.queryArray(`RELEASE SAVEPOINT ${name}`);
+        },
+      );
+
+      await savepoint.update();
+      this.#savepoints.push(savepoint);
+    }
 
     return savepoint;
   }

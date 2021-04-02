@@ -251,9 +251,7 @@ testClient(async function transactionLock() {
   await transaction.begin();
   await transaction.queryArray`SELECT 1`;
   await assertThrowsAsync(
-    async () => {
-      await CLIENT.queryArray`SELECT 1`;
-    },
+    () => CLIENT.queryArray`SELECT 1`,
     undefined,
     "This connection is currently locked",
     "The connection is not being locked by the transaction",
@@ -323,4 +321,60 @@ testClient(async function transactionSavepoints() {
   assertEquals(query_5, [{ y: 1 }]);
 
   await transaction.end();
+});
+
+testClient(async function transactionSavepointValidations() {
+  const transaction = CLIENT.createTransaction("x");
+  await transaction.begin();
+
+  await assertThrowsAsync(
+    () => transaction.savepoint("1"),
+    undefined,
+    "The savepoint name can't begin with a number",
+  );
+
+  await assertThrowsAsync(
+    () =>
+      transaction.savepoint(
+        "this_savepoint_is_going_to_be_longer_than_sixty_three_characters",
+      ),
+    undefined,
+    "The savepoint name can't be longer than 63 characters",
+  );
+
+  await assertThrowsAsync(
+    () => transaction.savepoint("+"),
+    undefined,
+    "The savepoint name can only contain alphanumeric characters",
+  );
+
+  const savepoint = await transaction.savepoint("ABC1");
+  assertEquals(savepoint.name, "abc1");
+
+  assertEquals(
+    savepoint,
+    await transaction.savepoint("abc1"),
+    "Creating a savepoint with the same name should return the original one",
+  );
+  await savepoint.release();
+
+  await savepoint.release();
+
+  await assertThrowsAsync(
+    () => savepoint.release(),
+    undefined,
+    "This savepoint has no instances to release",
+  );
+
+  await assertThrowsAsync(
+    () => transaction.rollback(savepoint),
+    undefined,
+    `There are no savepoints of "abc1" left to rollback to`,
+  );
+
+  await assertThrowsAsync(
+    () => transaction.rollback("UNEXISTENT"),
+    undefined,
+    `There is no "unexistent" savepoint registered in this transaction`,
+  );
 });
