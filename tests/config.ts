@@ -26,6 +26,7 @@ const config: {
     clear: string;
     main: string;
     md5: string;
+    scram: string;
   };
 } = JSON.parse(content);
 
@@ -59,5 +60,16 @@ export const getMd5Configuration = (): ConnectionOptions => {
     password: config.password,
     port: config.port,
     user: config.users.main,
+  };
+};
+
+export const getScramSha256Configuration = (): ConnectionOptions => {
+  return {
+    applicationName: config.applicationName,
+    database: config.database,
+    hostname: config.hostname,
+    password: config.password,
+    port: config.port,
+    user: config.users.scram,
   };
 };
