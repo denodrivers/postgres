@@ -1,4 +1,5 @@
 import { Connection } from "./connection/connection.ts";
+import { PostgresError, TransactionError } from "./connection/warning.ts";
 import {
   ConnectionOptions,
   ConnectionString,
@@ -17,10 +18,10 @@ import {
 } from "./query/query.ts";
 import { isTemplateString } from "./utils.ts";
 
+// TODO
+// Don't allow the current transaction to be set by user
 export class QueryClient {
-  // TODO
-  // Rename
-  locked = false;
+  current_transaction: string | null = null;
 
   /**
    * This function is meant to be replaced when being extended
@@ -81,9 +82,9 @@ export class QueryClient {
     query_template_or_config: TemplateStringsArray | string | QueryConfig,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>> {
-    if (this.locked) {
+    if (this.current_transaction !== null) {
       throw new Error(
-        "This connection is currently locked by the x transaction",
+        `This connection is currently locked by the "${this.current_transaction}" transaction`,
       );
     }
 
@@ -164,9 +165,9 @@ export class QueryClient {
       | TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>> {
-    if (this.locked) {
+    if (this.current_transaction !== null) {
       throw new Error(
-        "This connection is currently locked by the x transaction",
+        `This connection is currently locked by the "${this.current_transaction}" transaction`,
       );
     }
 
@@ -268,7 +269,7 @@ class Savepoint {
 }
 
 // TODO
-// All methods should check if current open transaction matches this one
+// All methods should terminate the transaction on error and abstract the error
 class Transaction {
   #client: QueryClient;
   #savepoints: Savepoint[] = [];
@@ -284,37 +285,84 @@ class Transaction {
     return this.#savepoints;
   }
 
+  /**
+   * This method will throw if the transaction opened in the client doesn't match this one
+   */
+  #assertTransactionOpen = () => {
+    if (this.#client.current_transaction !== this.name) {
+      throw new Error(
+        `This transaction has not been started yet, make sure to use the "begin" method to do so`,
+      );
+    }
+  };
+
+  #releaseClient = () => {
+    this.#client.current_transaction = null;
+  };
+
   // TODO
   // Docs
   async begin() {
-    if (this.#client.locked) {
-      throw new Error("This client already has an ongoing transaction");
+    if (this.#client.current_transaction !== null) {
+      if (this.#client.current_transaction === this.name) {
+        throw new Error(
+          "This transaction is already open",
+        );
+      }
+
+      throw new Error(
+        `This client already has an ongoing transaction "${this.#client.current_transaction}"`,
+      );
     }
 
-    await this.#client.queryArray`BEGIN`;
-    this.#client.locked = true;
+    try {
+      await this.#client.queryArray`BEGIN`;
+    } catch (e) {
+      if (e instanceof PostgresError) {
+        await this.end();
+        throw new TransactionError(e);
+      } else {
+        throw e;
+      }
+    }
+    this.#client.current_transaction = this.name;
   }
 
   // TODO
   // Docs
   async commit() {
-    if (!this.#client.locked) {
-      throw new Error("This client doesn't have an ongoing transaction");
-    }
+    this.#assertTransactionOpen();
 
-    await this.queryArray`COMMIT`;
+    try {
+      await this.queryArray`COMMIT`;
+    } catch (e) {
+      if (e instanceof PostgresError) {
+        await this.end();
+        throw new TransactionError(e);
+      } else {
+        throw e;
+      }
+    }
   }
 
   // TODO
   // Docs
-  // Should clear all transaction metadata
   async end() {
-    if (!this.#client.locked) {
-      throw new Error("This client doesn't have an ongoing transaction");
+    this.#assertTransactionOpen();
+
+    try {
+      await this.queryArray`END`;
+    } catch (e) {
+      if (e instanceof PostgresError) {
+        await this.end();
+        throw new TransactionError(e);
+      } else {
+        throw e;
+      }
     }
 
-    await this.queryArray`END`;
-    this.#client.locked = false;
+    this.#savepoints = [];
+    this.#releaseClient();
   }
 
   // TODO
@@ -346,25 +394,23 @@ class Transaction {
    * const {rows} = await transaction.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
    * ```
    */
-  queryArray<T extends Array<unknown>>(
+  async queryArray<T extends Array<unknown>>(
     query: string,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>>;
-  queryArray<T extends Array<unknown>>(
+  async queryArray<T extends Array<unknown>>(
     config: QueryConfig,
   ): Promise<QueryArrayResult<T>>;
-  queryArray<T extends Array<unknown>>(
+  async queryArray<T extends Array<unknown>>(
     strings: TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>>;
-  queryArray<T extends Array<unknown> = Array<unknown>>(
+  async queryArray<T extends Array<unknown> = Array<unknown>>(
     // deno-lint-ignore camelcase
     query_template_or_config: TemplateStringsArray | string | QueryConfig,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>> {
-    if (!this.#client.locked) {
-      throw new Error("This client doesn't have an ongoing transaction");
-    }
+    this.#assertTransactionOpen();
 
     let query: Query<ResultType.ARRAY>;
     if (typeof query_template_or_config === "string") {
@@ -379,7 +425,20 @@ class Transaction {
       query = new Query(query_template_or_config, ResultType.ARRAY);
     }
 
-    return this.#client._executeQuery(query);
+    try {
+      return await this.#client._executeQuery(query);
+    } catch (e) {
+      // deno-lint-ignore no-unreachable
+      if (e instanceof PostgresError) {
+        // deno-lint-ignore no-unreachable
+        await this.end();
+        // deno-lint-ignore no-unreachable
+        throw new TransactionError(e);
+      } else {
+        // deno-lint-ignore no-unreachable
+        throw e;
+      }
+    }
   }
 
   // TODO
@@ -424,18 +483,18 @@ class Transaction {
    * const {rows} = await my_client.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
    * ```
    */
-  queryObject<T extends Record<string, unknown>>(
+  async queryObject<T extends Record<string, unknown>>(
     query: string,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>>;
-  queryObject<T extends Record<string, unknown>>(
+  async queryObject<T extends Record<string, unknown>>(
     config: QueryObjectConfig,
   ): Promise<QueryObjectResult<T>>;
-  queryObject<T extends Record<string, unknown>>(
+  async queryObject<T extends Record<string, unknown>>(
     query: TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>>;
-  queryObject<
+  async queryObject<
     T extends Record<string, unknown> = Record<string, unknown>,
   >(
     // deno-lint-ignore camelcase
@@ -445,9 +504,7 @@ class Transaction {
       | TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>> {
-    if (!this.#client.locked) {
-      throw new Error("This client doesn't have an ongoing transaction");
-    }
+    this.#assertTransactionOpen();
 
     let query: Query<ResultType.OBJECT>;
     if (typeof query_template_or_config === "string") {
@@ -465,7 +522,20 @@ class Transaction {
       );
     }
 
-    return this.#client._executeQuery<T>(query);
+    try {
+      return await this.#client._executeQuery<T>(query);
+    } catch (e) {
+      // deno-lint-ignore no-unreachable
+      if (e instanceof PostgresError) {
+        // deno-lint-ignore no-unreachable
+        await this.end();
+        // deno-lint-ignore no-unreachable
+        throw new TransactionError(e);
+      } else {
+        // deno-lint-ignore no-unreachable
+        throw e;
+      }
+    }
   }
 
   // TODO
@@ -497,9 +567,7 @@ class Transaction {
    * ```
    */
   async rollback(savepoint?: string | Savepoint) {
-    if (!this.#client.locked) {
-      throw new Error("This client doesn't have an ongoing transaction");
-    }
+    this.#assertTransactionOpen();
 
     if (typeof savepoint !== "undefined") {
       // deno-lint-ignore camelcase
@@ -529,8 +597,17 @@ class Transaction {
       return;
     }
 
-    await this.queryArray`ROLLBACK`;
-    this.#client.locked = false;
+    try {
+      await this.queryArray`ROLLBACK`;
+    } catch (e) {
+      if (e instanceof PostgresError) {
+        await this.end();
+        throw new TransactionError(e);
+      } else {
+        throw e;
+      }
+    }
+    this.#releaseClient();
   }
 
   /**
@@ -564,7 +641,7 @@ class Transaction {
    * ```
    * 
    * Creating a new savepoint with an already used name will return you a reference to
-   * the original transaction
+   * the original savepoint
    * ```ts
    * const savepoint_a = await transaction.save("a");
    * await transaction.queryArray`DELETE FROM MY_TABLE`;
@@ -573,9 +650,7 @@ class Transaction {
    * ```
    */
   async savepoint(name: string): Promise<Savepoint> {
-    if (!this.#client.locked) {
-      throw new Error("This client doesn't have an ongoing transaction");
-    }
+    this.#assertTransactionOpen();
 
     if (!/^[a-zA-Z_]{1}[\w]{0,62}$/.test(name)) {
       if (!Number.isNaN(Number(name[0]))) {
@@ -596,7 +671,16 @@ class Transaction {
     let savepoint = this.#savepoints.find((sv) => sv.name === name);
 
     if (savepoint) {
-      await savepoint.update();
+      try {
+        await savepoint.update();
+      } catch (e) {
+        if (e instanceof PostgresError) {
+          await this.end();
+          throw new TransactionError(e);
+        } else {
+          throw e;
+        }
+      }
     } else {
       savepoint = new Savepoint(
         name,
@@ -608,7 +692,16 @@ class Transaction {
         },
       );
 
-      await savepoint.update();
+      try {
+        await savepoint.update();
+      } catch (e) {
+        if (e instanceof PostgresError) {
+          await this.end();
+          throw new TransactionError(e);
+        } else {
+          throw e;
+        }
+      }
       this.#savepoints.push(savepoint);
     }
 
@@ -640,6 +733,7 @@ export class Client extends QueryClient {
 
   async end(): Promise<void> {
     await this._connection.end();
+    this.current_transaction = null;
   }
 }
 
@@ -661,5 +755,6 @@ export class PoolClient extends QueryClient {
 
   async release(): Promise<void> {
     await this._releaseCallback();
+    this.current_transaction = null;
   }
 }

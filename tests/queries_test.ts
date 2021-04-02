@@ -214,9 +214,16 @@ testClient(async function templateStringQueryArray() {
 });
 
 testClient(async function transaction() {
-  const transaction = CLIENT.createTransaction("x");
+  // deno-lint-ignore camelcase
+  const transaction_name = "x";
+  const transaction = CLIENT.createTransaction(transaction_name);
+
   await transaction.begin();
-  assertEquals(CLIENT.locked, true, "Client is locked out during transaction");
+  assertEquals(
+    CLIENT.current_transaction,
+    transaction_name,
+    "Client is locked out during transaction",
+  );
   await transaction.queryArray`CREATE TEMP TABLE TEST (X INTEGER)`;
   const savepoint = await transaction.savepoint("table_creation");
   await transaction.queryArray`INSERT INTO TEST (X) VALUES (1)`;
@@ -239,8 +246,8 @@ testClient(async function transaction() {
   );
   await transaction.end();
   assertEquals(
-    CLIENT.locked,
-    false,
+    CLIENT.current_transaction,
+    null,
     "Client was not released after transaction",
   );
 });
@@ -260,10 +267,56 @@ testClient(async function transactionLock() {
 
   await CLIENT.queryArray`SELECT 1`;
   assertEquals(
-    CLIENT.locked,
-    false,
+    CLIENT.current_transaction,
+    null,
     "Client was not released after transaction",
   );
+});
+
+testClient(async function transactionLockIsReleasedOnRollback() {
+  const transaction = CLIENT.createTransaction("x");
+
+  await CLIENT.queryArray`CREATE TEMP TABLE MY_TEST (X INTEGER)`;
+  await transaction.begin();
+  await transaction.queryArray`INSERT INTO MY_TEST (X) VALUES (1)`;
+  // deno-lint-ignore camelcase
+  const { rows: query_1 } = await transaction.queryObject<{ x: number }>
+    `SELECT X FROM MY_TEST`;
+  assertEquals(query_1, [{ x: 1 }]);
+  await transaction.rollback();
+
+  // deno-lint-ignore camelcase
+  const { rowCount: query_2 } = await CLIENT.queryObject<{ x: number }>
+    `SELECT X FROM MY_TEST`;
+  assertEquals(query_2, 0);
+
+  assertEquals(
+    CLIENT.current_transaction,
+    null,
+    "Client was not released after rollback",
+  );
+});
+
+testClient(async function transactionLockIsReleasedOnError() {
+  const transaction = CLIENT.createTransaction(
+    "transactionLockIsReleasedOnError",
+  );
+
+  await transaction.begin();
+  await assertThrowsAsync(
+    () => transaction.queryArray`SELECT []`,
+    undefined,
+    "This transaction has been aborted due to `PostgresError:",
+  );
+  assertEquals(CLIENT.current_transaction, null);
+
+  await transaction.begin();
+  await assertThrowsAsync(
+    () => transaction.queryObject`SELECT []`,
+    undefined,
+    "This transaction has been aborted due to `PostgresError:",
+  );
+  assertEquals(CLIENT.current_transaction, null);
 });
 
 testClient(async function transactionSavepoints() {
@@ -382,49 +435,61 @@ testClient(async function transactionSavepointValidations() {
 });
 
 testClient(async function transactionOperationsThrowIfTransactionNotBegun() {
-  const transaction = CLIENT.createTransaction("y");
+  // deno-lint-ignore camelcase
+  const transaction_x = CLIENT.createTransaction("x");
+  // deno-lint-ignore camelcase
+  const transaction_y = CLIENT.createTransaction("y");
 
-  await transaction.begin();
+  await transaction_x.begin();
+
   await assertThrowsAsync(
-    () => transaction.begin(),
+    () => transaction_y.begin(),
     undefined,
-    `This client already has an ongoing transaction`,
+    `This client already has an ongoing transaction "x"`,
   );
 
-  await transaction.end();
+  await transaction_x.end();
+  await transaction_y.begin();
   await assertThrowsAsync(
-    () => transaction.end(),
+    () => transaction_y.begin(),
     undefined,
-    `This client doesn't have an ongoing transaction`,
+    "This transaction is already open",
   );
 
+  await transaction_y.end();
   await assertThrowsAsync(
-    () => transaction.commit(),
+    () => transaction_y.end(),
     undefined,
-    `This client doesn't have an ongoing transaction`,
-  );
-
-  await assertThrowsAsync(
-    () => transaction.queryArray`SELECT 1`,
-    undefined,
-    `This client doesn't have an ongoing transaction`,
-  );
-
-  await assertThrowsAsync(
-    () => transaction.queryObject`SELECT 1`,
-    undefined,
-    `This client doesn't have an ongoing transaction`,
+    `This transaction has not been started yet, make sure to use the "begin" method to do so`,
   );
 
   await assertThrowsAsync(
-    () => transaction.rollback(),
+    () => transaction_y.commit(),
     undefined,
-    `This client doesn't have an ongoing transaction`,
+    `This transaction has not been started yet, make sure to use the "begin" method to do so`,
   );
 
   await assertThrowsAsync(
-    () => transaction.savepoint("SOME"),
+    () => transaction_y.queryArray`SELECT 1`,
     undefined,
-    `This client doesn't have an ongoing transaction`,
+    `This transaction has not been started yet, make sure to use the "begin" method to do so`,
+  );
+
+  await assertThrowsAsync(
+    () => transaction_y.queryObject`SELECT 1`,
+    undefined,
+    `This transaction has not been started yet, make sure to use the "begin" method to do so`,
+  );
+
+  await assertThrowsAsync(
+    () => transaction_y.rollback(),
+    undefined,
+    `This transaction has not been started yet, make sure to use the "begin" method to do so`,
+  );
+
+  await assertThrowsAsync(
+    () => transaction_y.savepoint("SOME"),
+    undefined,
+    `This transaction has not been started yet, make sure to use the "begin" method to do so`,
   );
 });

@@ -30,6 +30,16 @@ export class PostgresError extends Error {
   }
 }
 
+// TODO
+// Use error cause once it's added to JavaScript
+export class TransactionError extends Error {
+  constructor(public cause: PostgresError) {
+    super(
+      `This transaction has been aborted due to \`${cause}\`. Check the "cause" property to get more details`,
+    );
+  }
+}
+
 export function parseError(msg: Message): PostgresError {
   return new PostgresError(parseWarning(msg));
 }
