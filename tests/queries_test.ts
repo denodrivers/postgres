@@ -377,4 +377,54 @@ testClient(async function transactionSavepointValidations() {
     undefined,
     `There is no "unexistent" savepoint registered in this transaction`,
   );
+
+  await transaction.end();
+});
+
+testClient(async function transactionOperationsThrowIfTransactionNotBegun() {
+  const transaction = CLIENT.createTransaction("y");
+
+  await transaction.begin();
+  await assertThrowsAsync(
+    () => transaction.begin(),
+    undefined,
+    `This client already has an ongoing transaction`,
+  );
+
+  await transaction.end();
+  await assertThrowsAsync(
+    () => transaction.end(),
+    undefined,
+    `This client doesn't have an ongoing transaction`,
+  );
+
+  await assertThrowsAsync(
+    () => transaction.commit(),
+    undefined,
+    `This client doesn't have an ongoing transaction`,
+  );
+
+  await assertThrowsAsync(
+    () => transaction.queryArray`SELECT 1`,
+    undefined,
+    `This client doesn't have an ongoing transaction`,
+  );
+
+  await assertThrowsAsync(
+    () => transaction.queryObject`SELECT 1`,
+    undefined,
+    `This client doesn't have an ongoing transaction`,
+  );
+
+  await assertThrowsAsync(
+    () => transaction.rollback(),
+    undefined,
+    `This client doesn't have an ongoing transaction`,
+  );
+
+  await assertThrowsAsync(
+    () => transaction.savepoint("SOME"),
+    undefined,
+    `This client doesn't have an ongoing transaction`,
+  );
 });

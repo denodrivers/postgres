@@ -48,7 +48,10 @@ export class QueryClient {
    * const {rows} = await my_client.queryArray(
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<unknown[]>
+   * ```
    * 
+   * You can pass type arguments to the query in order to hint TypeScript what the return value will be
+   * ```ts
    * const {rows} = await my_client.queryArray<[number, string]>(
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<[number, string]>
@@ -264,6 +267,8 @@ class Savepoint {
   }
 }
 
+// TODO
+// All methods should check if current open transaction matches this one
 class Transaction {
   #client: QueryClient;
   #savepoints: Savepoint[] = [];
@@ -280,22 +285,35 @@ class Transaction {
   }
 
   // TODO
-  // Throw if there is already an open transaction
+  // Docs
   async begin() {
-    await this.queryArray("BEGIN");
+    if (this.#client.locked) {
+      throw new Error("This client already has an ongoing transaction");
+    }
+
+    await this.#client.queryArray`BEGIN`;
     this.#client.locked = true;
   }
 
   // TODO
-  // Throw if transaction ain't open
+  // Docs
   async commit() {
-    await this.queryArray("COMMIT");
+    if (!this.#client.locked) {
+      throw new Error("This client doesn't have an ongoing transaction");
+    }
+
+    await this.queryArray`COMMIT`;
   }
 
   // TODO
-  // Throw if transaction ain't open
+  // Docs
+  // Should clear all transaction metadata
   async end() {
-    await this.queryArray("END");
+    if (!this.#client.locked) {
+      throw new Error("This client doesn't have an ongoing transaction");
+    }
+
+    await this.queryArray`END`;
     this.#client.locked = false;
   }
 
@@ -308,11 +326,14 @@ class Transaction {
    * It supports a generic interface in order to type the entries retrieved by the query
    * 
    * ```ts
-   * const {rows} = await my_client.queryArray(
+   * const {rows} = await transaction.queryArray(
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<unknown[]>
+   * ```
    * 
-   * const {rows} = await my_client.queryArray<[number, string]>(
+   * You can pass type arguments to the query in order to hint TypeScript what the return value will be
+   * ```ts
+   * const {rows} = await transaction.queryArray<[number, string]>(
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<[number, string]>
    * ```
@@ -322,7 +343,7 @@ class Transaction {
    * ```ts
    * const id = 12;
    * // Array<[number, string]>
-   * const {rows} = await my_client.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
+   * const {rows} = await transaction.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
    * ```
    */
   queryArray<T extends Array<unknown>>(
@@ -341,8 +362,9 @@ class Transaction {
     query_template_or_config: TemplateStringsArray | string | QueryConfig,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>> {
-    // TODO
-    // Throw if transaction ain't open
+    if (!this.#client.locked) {
+      throw new Error("This client doesn't have an ongoing transaction");
+    }
 
     let query: Query<ResultType.ARRAY>;
     if (typeof query_template_or_config === "string") {
@@ -362,8 +384,6 @@ class Transaction {
 
   // TODO
   // Update documentation
-  // Add an example showing how a throw inside a transaction does not release
-  // the session
   /**
    * This method allows executed queries to be retrieved as object entries.
    * It supports a generic interface in order to type the entries retrieved by the query
@@ -425,8 +445,9 @@ class Transaction {
       | TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>> {
-    // TODO
-    // Throw if transaction ain't open
+    if (!this.#client.locked) {
+      throw new Error("This client doesn't have an ongoing transaction");
+    }
 
     let query: Query<ResultType.OBJECT>;
     if (typeof query_template_or_config === "string") {
@@ -476,6 +497,10 @@ class Transaction {
    * ```
    */
   async rollback(savepoint?: string | Savepoint) {
+    if (!this.#client.locked) {
+      throw new Error("This client doesn't have an ongoing transaction");
+    }
+
     if (typeof savepoint !== "undefined") {
       // deno-lint-ignore camelcase
       let savepoint_name: string;
@@ -548,6 +573,10 @@ class Transaction {
    * ```
    */
   async savepoint(name: string): Promise<Savepoint> {
+    if (!this.#client.locked) {
+      throw new Error("This client doesn't have an ongoing transaction");
+    }
+
     if (!/^[a-zA-Z_]{1}[\w]{0,62}$/.test(name)) {
       if (!Number.isNaN(Number(name[0]))) {
         throw new Error("The savepoint name can't begin with a number");
