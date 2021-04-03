@@ -269,7 +269,9 @@ class Savepoint {
 }
 
 // TODO
-// All methods should terminate the transaction on error and abstract the error
+// Add transaction options
+// Add transaction docs
+// Explain how failed operations automatically release the client
 class Transaction {
   #client: QueryClient;
   #savepoints: Savepoint[] = [];
@@ -300,8 +302,17 @@ class Transaction {
     this.#client.current_transaction = null;
   };
 
-  // TODO
-  // Docs
+  /**
+   * The begin method will officially begin the transaction, and it must be called before
+   * any query or transaction operation is executed in order to lock the session
+   * ```ts
+   * const transaction = new Transaction("transaction_name");
+   * await transaction.begin(); // Session is locked, transaction operations are now safe
+   * // Important operations
+   * await transaction.end(); // Session is unlocked, external operations can now take place
+   * ```
+   * https://www.postgresql.org/docs/13/sql-begin.html
+   */
   async begin() {
     if (this.#client.current_transaction !== null) {
       if (this.#client.current_transaction === this.name) {
@@ -329,12 +340,28 @@ class Transaction {
   }
 
   // TODO
-  // Docs
+  // Add chain option
+  // Explain differences between end method
+  /**
+   * The commit method will make permanent all changes made to the database in the
+   * current transaction
+   * 
+   * ```ts
+   * await transaction.begin();
+   * // Important operations
+   * await transaction.commit(); // Will terminate the transaction and save all changes
+   * ```
+   * 
+   * Executing a commit will end the current transaction
+   * 
+   * https://www.postgresql.org/docs/13/sql-commit.html
+   */
   async commit() {
     this.#assertTransactionOpen();
 
     try {
       await this.queryArray`COMMIT`;
+      this.#releaseClient();
     } catch (e) {
       if (e instanceof PostgresError) {
         await this.end();
@@ -346,7 +373,7 @@ class Transaction {
   }
 
   // TODO
-  // Docs
+  // Remove method, since it's esentially an alternative to commit
   async end() {
     this.#assertTransactionOpen();
 
@@ -354,7 +381,6 @@ class Transaction {
       await this.queryArray`END`;
     } catch (e) {
       if (e instanceof PostgresError) {
-        await this.end();
         throw new TransactionError(e);
       } else {
         throw e;
@@ -365,10 +391,6 @@ class Transaction {
     this.#releaseClient();
   }
 
-  // TODO
-  // Update documentation
-  // Add an example showing how a throw inside a transaction does not release
-  // the session
   /**
    * This method allows executed queries to be retrieved as array entries.
    * It supports a generic interface in order to type the entries retrieved by the query
@@ -441,18 +463,16 @@ class Transaction {
     }
   }
 
-  // TODO
-  // Update documentation
   /**
    * This method allows executed queries to be retrieved as object entries.
    * It supports a generic interface in order to type the entries retrieved by the query
    * 
    * ```ts
-   * const {rows} = await my_client.queryObject(
+   * const {rows} = await transaction.queryObject(
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Record<string, unknown>
    * 
-   * const {rows} = await my_client.queryObject<{id: number, name: string}>(
+   * const {rows} = await transaction.queryObject<{id: number, name: string}>(
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<{id: number, name: string}>
    * ```
@@ -461,13 +481,13 @@ class Transaction {
    * This will be assigned in the order they were provided
    * 
    * ```ts
-   * const {rows} = await my_client.queryObject(
+   * const {rows} = await transaction.queryObject(
    *  "SELECT ID, NAME FROM CLIENTS"
    * );
    * 
    * console.log(rows); // [{id: 78, name: "Frank"}, {id: 15, name: "Sarah"}]
    * 
-   * const {rows} = await my_client.queryObject({
+   * const {rows} = await transaction.queryObject({
    *  text: "SELECT ID, NAME FROM CLIENTS",
    *  fields: ["personal_id", "complete_name"],
    * });
@@ -480,7 +500,7 @@ class Transaction {
    * ```ts
    * const id = 12;
    * // Array<{id: number, name: string}>
-   * const {rows} = await my_client.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
+   * const {rows} = await transaction.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
    * ```
    */
   async queryObject<T extends Record<string, unknown>>(
@@ -542,7 +562,7 @@ class Transaction {
   // Method to display available savepoints
 
   // TODO
-  // Throw if transaction ain't open
+  // Add chain option
   /**
    * Rollbacks are a mechanism to undo transaction operations without compromising the data
    * 
@@ -565,6 +585,7 @@ class Transaction {
    * // Everything that happened between the savepoint and the rollback gets undone
    * await transaction.end(); // Commits all other changes
    * ```
+   * https://www.postgresql.org/docs/13/sql-rollback.html
    */
   async rollback(savepoint?: string | Savepoint) {
     this.#assertTransactionOpen();
@@ -648,6 +669,7 @@ class Transaction {
    * const savepoint_b = await transaction.save("a"); // They will be the same savepoint, but the savepoint will be updated to this position
    * await transaction.rollback(savepoint_a); // Rolls back to savepoint_b
    * ```
+   * https://www.postgresql.org/docs/13/sql-savepoint.html
    */
   async savepoint(name: string): Promise<Savepoint> {
     this.#assertTransactionOpen();

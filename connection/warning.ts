@@ -32,6 +32,7 @@ export class PostgresError extends Error {
 
 // TODO
 // Use error cause once it's added to JavaScript
+// Include transaction name in error log
 export class TransactionError extends Error {
   constructor(public cause: PostgresError) {
     super(
