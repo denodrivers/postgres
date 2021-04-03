@@ -64,7 +64,7 @@ export class Client {
     assert(this.state === State.Init);
 
     try {
-      // "n" for no channel binding, followed by an empty authz option.
+      // "n" for no channel binding, then an empty authzid option follows.
       const header = "n,,";
 
       const username = escape(normalize(this.username));
@@ -244,12 +244,16 @@ function bytes(str: string): Uint8Array {
 
 /**
  * Normalizes string per SASLprep.
+ * @see {@link https://tools.ietf.org/html/rfc3454}
  * @see {@link https://tools.ietf.org/html/rfc4013}
  */
 function normalize(str: string): string {
+  // TODO: Handle mapping and maybe unicode normalization.
   const unsafe = /[^\x21-\x7e]/;
   if (unsafe.test(str)) {
-    throw new Error("saslprep normalization is not implemented");
+    throw new Error(
+      "scram username/password is currently limited to safe ascii characters",
+    );
   }
   return str;
 }
