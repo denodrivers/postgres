@@ -1,14 +1,16 @@
 FROM hayd/alpine-deno:1.7.1
 WORKDIR /app
 
+# Install wait utility
 USER root
 ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.8.0/wait /wait
 RUN chmod +x /wait
 
+# Cache external libraries
 USER deno
-COPY deps.ts .
-RUN deno cache deps.ts
 ADD . .
+# Test deps caches all main dependencies as well
+RUN deno cache tests/test_deps.ts
 
 # Code health checks
 RUN deno lint --unstable

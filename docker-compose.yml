@@ -19,4 +19,4 @@ services:
       - WAIT_HOSTS=postgres:5432
       # Wait thirty seconds after database goes online
       # For database metadata initialization
-      - WAIT_AFTER_HOSTS=30
+      - WAIT_AFTER_HOSTS=15
