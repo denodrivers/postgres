@@ -545,7 +545,8 @@ class Transaction {
   // TODO
   // Add chain option
   /**
-   * Rollbacks are a mechanism to undo transaction operations without compromising the data
+   * Rollbacks are a mechanism to undo transaction operations without compromising the data that was modified during
+   * the transaction
    * 
    * A rollback can be executed the following way
    * ```ts
@@ -566,20 +567,74 @@ class Transaction {
    * // Everything that happened between the savepoint and the rollback gets undone
    * await transaction.end(); // Commits all other changes
    * ```
+   * 
+   * The rollback method allows you to specify a "chain" option, that allows you to not only undo the current transaction
+   * but to restart it with the same parameters in a single statement
+   * 
+   * ```ts
+   * // ...
+   * // Transaction operations I want to undo
+   * await transaction.rollback({ chain: true }); // All changes are undone, but the following statements will be executed inside a transaction as well
+   * await transaction.query`DELETE SOMETHING FROM SOMEWHERE`; // Still inside the transaction
+   * await transaction.commit(); // The transaction finishes for good
+   * ```
+   * 
+   * However, the "chain" option can't be used alongside a savepoint, even though they are similar
+   * 
+   * A savepoint is meant to reset progress up to a certain point, while a chained rollback is meant to reset all progress
+   * and start from scratch
+   * 
+   * ```ts
+   * await transaction.rollback({ chain: true, savepoint: my_savepoint }); // Error, can't both return to savepoint and reset transaction
+   * ```
    * https://www.postgresql.org/docs/13/sql-rollback.html
    */
-  async rollback(savepoint?: string | Savepoint) {
+  async rollback(savepoint?: string | Savepoint): Promise<void>;
+  async rollback(options?: { savepoint?: string | Savepoint }): Promise<void>;
+  async rollback(options?: { chain?: boolean }): Promise<void>;
+  async rollback(
+    // deno-lint-ignore camelcase
+    savepoint_or_options?: string | Savepoint | {
+      savepoint?: string | Savepoint;
+    } | { chain?: boolean },
+  ): Promise<void> {
     this.#assertTransactionOpen();
 
-    if (typeof savepoint !== "undefined") {
-      // deno-lint-ignore camelcase
-      let savepoint_name: string;
-      if (savepoint instanceof Savepoint) {
-        savepoint_name = savepoint.name;
-      } else {
-        savepoint_name = savepoint.toLowerCase();
-      }
+    // deno-lint-ignore camelcase
+    let savepoint_option: Savepoint | string | undefined;
+    if (
+      typeof savepoint_or_options === "string" ||
+      savepoint_or_options instanceof Savepoint
+    ) {
+      savepoint_option = savepoint_or_options;
+    } else {
+      savepoint_option =
+        (savepoint_or_options as { savepoint?: string | Savepoint })?.savepoint;
+    }
 
+    // deno-lint-ignore camelcase
+    let savepoint_name: string | undefined;
+    if (savepoint_option instanceof Savepoint) {
+      savepoint_name = savepoint_option.name;
+    } else if (typeof savepoint_option === "string") {
+      savepoint_name = savepoint_option.toLowerCase();
+    }
+
+    // deno-lint-ignore camelcase
+    let chain_option = false;
+    if (typeof savepoint_or_options === "object") {
+      chain_option = (savepoint_or_options as { chain?: boolean })?.chain ??
+        false;
+    }
+
+    if (chain_option && savepoint_name) {
+      throw new Error(
+        "The chain option can't be used alongside a savepoint on a rollback operation",
+      );
+    }
+
+    // If a savepoint is provided, rollback to that savepoint, continue the transaction
+    if (typeof savepoint_option !== "undefined") {
       // deno-lint-ignore camelcase
       const ts_savepoint = this.#savepoints.find(({ name }) =>
         name === savepoint_name
@@ -599,8 +654,10 @@ class Transaction {
       return;
     }
 
+    // If no savepoint is provided, rollback the whole transaction and check for the chain operator
+    // in order to decide whether to restart the transaction or end it
     try {
-      await this.queryArray`ROLLBACK`;
+      await this.queryArray(`ROLLBACK ${chain_option ? "AND CHAIN" : ""}`);
     } catch (e) {
       if (e instanceof PostgresError) {
         await this.commit();
@@ -609,7 +666,7 @@ class Transaction {
         throw e;
       }
     }
-    this.#releaseClient();
+    chain_option || this.#releaseClient();
   }
 
   /**

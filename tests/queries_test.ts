@@ -273,8 +273,9 @@ testClient(async function transactionLock() {
   );
 });
 
-testClient(async function transactionLockIsReleasedOnRollback() {
-  const transaction = CLIENT.createTransaction("x");
+testClient(async function transactionLockIsReleasedOnSavepointLessRollback() {
+  const name = "transactionLockIsReleasedOnRollback";
+  const transaction = CLIENT.createTransaction(name);
 
   await CLIENT.queryArray`CREATE TEMP TABLE MY_TEST (X INTEGER)`;
   await transaction.begin();
@@ -283,6 +284,15 @@ testClient(async function transactionLockIsReleasedOnRollback() {
   const { rows: query_1 } = await transaction.queryObject<{ x: number }>
     `SELECT X FROM MY_TEST`;
   assertEquals(query_1, [{ x: 1 }]);
+
+  await transaction.rollback({ chain: true });
+
+  assertEquals(
+    CLIENT.current_transaction,
+    name,
+    "Client shouldn't have been released after chained rollback",
+  );
+
   await transaction.rollback();
 
   // deno-lint-ignore camelcase
@@ -297,8 +307,24 @@ testClient(async function transactionLockIsReleasedOnRollback() {
   );
 });
 
-testClient(async function transactionLockIsReleasedOnError() {
-  const name = "transactionLockIsReleasedOnError";
+testClient(async function transactionRollbackValidations() {
+  const transaction = CLIENT.createTransaction(
+    "transactionRollbackValidations",
+  );
+  await transaction.begin();
+
+  await assertThrowsAsync(
+    // @ts-ignore This is made to check the two properties aren't passed at once
+    () => transaction.rollback({ savepoint: "unexistent", chain: true }),
+    undefined,
+    "The chain option can't be used alongside a savepoint on a rollback operation",
+  );
+
+  await transaction.commit();
+});
+
+testClient(async function transactionLockIsReleasedOnUnrecoverableError() {
+  const name = "transactionLockIsReleasedOnUnrecoverableError";
   const transaction = CLIENT.createTransaction(name);
 
   await transaction.begin();
