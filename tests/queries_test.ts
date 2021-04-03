@@ -273,6 +273,27 @@ testClient(async function transactionLock() {
   );
 });
 
+testClient(async function transactionCommitChain() {
+  const name = "transactionCommitChain";
+  const transaction = CLIENT.createTransaction(name);
+
+  await transaction.begin();
+
+  await transaction.commit({ chain: true });
+  assertEquals(
+    CLIENT.current_transaction,
+    name,
+    "Client shouldn't have been released on chained commit",
+  );
+
+  await transaction.commit();
+  assertEquals(
+    CLIENT.current_transaction,
+    null,
+    "Client was not released after transaction ended",
+  );
+});
+
 testClient(async function transactionLockIsReleasedOnSavepointLessRollback() {
   const name = "transactionLockIsReleasedOnRollback";
   const transaction = CLIENT.createTransaction(name);

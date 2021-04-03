@@ -302,6 +302,10 @@ class Transaction {
     this.#client.current_transaction = null;
   };
 
+  #resetTransaction = () => {
+    this.#savepoints = [];
+  };
+
   /**
    * The begin method will officially begin the transaction, and it must be called before
    * any query or transaction operation is executed in order to lock the session
@@ -339,11 +343,9 @@ class Transaction {
     this.#client.current_transaction = this.name;
   }
 
-  // TODO
-  // Add chain option
   /**
    * The commit method will make permanent all changes made to the database in the
-   * current transaction
+   * current transaction and end the current transaction
    * 
    * ```ts
    * await transaction.begin();
@@ -351,15 +353,26 @@ class Transaction {
    * await transaction.commit(); // Will terminate the transaction and save all changes
    * ```
    * 
-   * Executing a commit will end the current transaction
+   * The commit method allows you to specify a "chain" option, that allows you to both commit the current changes and
+   * start a new with the same transaction parameters in a single statement
+   * 
+   * ```ts
+   * // ...
+   * // Transaction operations I want to commit
+   * await transaction.commit({ chain: true }); // All changes are saved, following statements will be executed inside a transaction
+   * await transaction.query`DELETE SOMETHING FROM SOMEWHERE`; // Still inside the transaction
+   * await transaction.commit(); // The transaction finishes for good
+   * ```
    * 
    * https://www.postgresql.org/docs/13/sql-commit.html
    */
-  async commit() {
+  async commit(options?: { chain?: boolean }) {
     this.#assertTransactionOpen();
 
+    const chain = options?.chain ?? false;
+
     try {
-      await this.queryArray`COMMIT`;
+      await this.queryArray(`COMMIT ${chain ? "AND CHAIN" : ""}`);
     } catch (e) {
       if (e instanceof PostgresError) {
         throw new TransactionError(this.name, e);
@@ -368,8 +381,10 @@ class Transaction {
       }
     }
 
-    this.#savepoints = [];
-    this.#releaseClient();
+    this.#resetTransaction();
+    if (!chain) {
+      this.#releaseClient();
+    }
   }
 
   /**
@@ -542,8 +557,6 @@ class Transaction {
   // TODO
   // Method to display available savepoints
 
-  // TODO
-  // Add chain option
   /**
    * Rollbacks are a mechanism to undo transaction operations without compromising the data that was modified during
    * the transaction
@@ -666,7 +679,11 @@ class Transaction {
         throw e;
       }
     }
-    chain_option || this.#releaseClient();
+
+    this.#resetTransaction();
+    if (!chain_option) {
+      this.#releaseClient();
+    }
   }
 
   /**
