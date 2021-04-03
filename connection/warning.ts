@@ -32,11 +32,14 @@ export class PostgresError extends Error {
 
 // TODO
 // Use error cause once it's added to JavaScript
-// Include transaction name in error log
 export class TransactionError extends Error {
-  constructor(public cause: PostgresError) {
+  constructor(
+    // deno-lint-ignore camelcase
+    transaction_name: string,
+    public cause: PostgresError,
+  ) {
     super(
-      `This transaction has been aborted due to \`${cause}\`. Check the "cause" property to get more details`,
+      `The transaction "${transaction_name}" has been aborted due to \`${cause}\`. Check the "cause" property to get more details`,
     );
   }
 }

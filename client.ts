@@ -331,7 +331,7 @@ class Transaction {
     } catch (e) {
       if (e instanceof PostgresError) {
         await this.end();
-        throw new TransactionError(e);
+        throw new TransactionError(this.name, e);
       } else {
         throw e;
       }
@@ -365,7 +365,7 @@ class Transaction {
     } catch (e) {
       if (e instanceof PostgresError) {
         await this.end();
-        throw new TransactionError(e);
+        throw new TransactionError(this.name, e);
       } else {
         throw e;
       }
@@ -381,7 +381,7 @@ class Transaction {
       await this.queryArray`END`;
     } catch (e) {
       if (e instanceof PostgresError) {
-        throw new TransactionError(e);
+        throw new TransactionError(this.name, e);
       } else {
         throw e;
       }
@@ -455,7 +455,7 @@ class Transaction {
         // deno-lint-ignore no-unreachable
         await this.end();
         // deno-lint-ignore no-unreachable
-        throw new TransactionError(e);
+        throw new TransactionError(this.name, e);
       } else {
         // deno-lint-ignore no-unreachable
         throw e;
@@ -550,7 +550,7 @@ class Transaction {
         // deno-lint-ignore no-unreachable
         await this.end();
         // deno-lint-ignore no-unreachable
-        throw new TransactionError(e);
+        throw new TransactionError(this.name, e);
       } else {
         // deno-lint-ignore no-unreachable
         throw e;
@@ -623,7 +623,7 @@ class Transaction {
     } catch (e) {
       if (e instanceof PostgresError) {
         await this.end();
-        throw new TransactionError(e);
+        throw new TransactionError(this.name, e);
       } else {
         throw e;
       }
@@ -698,7 +698,7 @@ class Transaction {
       } catch (e) {
         if (e instanceof PostgresError) {
           await this.end();
-          throw new TransactionError(e);
+          throw new TransactionError(this.name, e);
         } else {
           throw e;
         }
@@ -719,7 +719,7 @@ class Transaction {
       } catch (e) {
         if (e instanceof PostgresError) {
           await this.end();
-          throw new TransactionError(e);
+          throw new TransactionError(this.name, e);
         } else {
           throw e;
         }

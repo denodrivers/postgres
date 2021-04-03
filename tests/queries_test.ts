@@ -298,15 +298,14 @@ testClient(async function transactionLockIsReleasedOnRollback() {
 });
 
 testClient(async function transactionLockIsReleasedOnError() {
-  const transaction = CLIENT.createTransaction(
-    "transactionLockIsReleasedOnError",
-  );
+  const name = "transactionLockIsReleasedOnError";
+  const transaction = CLIENT.createTransaction(name);
 
   await transaction.begin();
   await assertThrowsAsync(
     () => transaction.queryArray`SELECT []`,
     undefined,
-    "This transaction has been aborted due to `PostgresError:",
+    `The transaction "${name}" has been aborted due to \`PostgresError:`,
   );
   assertEquals(CLIENT.current_transaction, null);
 
@@ -314,7 +313,7 @@ testClient(async function transactionLockIsReleasedOnError() {
   await assertThrowsAsync(
     () => transaction.queryObject`SELECT []`,
     undefined,
-    "This transaction has been aborted due to `PostgresError:",
+    `The transaction "${name}" has been aborted due to \`PostgresError:`,
   );
   assertEquals(CLIENT.current_transaction, null);
 });
