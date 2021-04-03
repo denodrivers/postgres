@@ -30,6 +30,12 @@ export class PacketReader {
     return slice;
   }
 
+  readAllBytes(): Uint8Array {
+    const slice = this.buffer.slice(this.offset);
+    this.offset = this.buffer.length;
+    return slice;
+  }
+
   readString(length: number): string {
     const bytes = this.readBytes(length);
     return this.decoder.decode(bytes);

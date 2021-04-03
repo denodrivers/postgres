@@ -3,6 +3,7 @@ import {
   getClearConfiguration,
   getMainConfiguration,
   getMd5Configuration,
+  getScramSha256Configuration,
 } from "./config.ts";
 import { Client, PostgresError } from "../mod.ts";
 
@@ -35,6 +36,12 @@ Deno.test("Handles bad authentication correctly", async function () {
 
 Deno.test("MD5 authentication (no tls)", async () => {
   const client = new Client(getMd5Configuration());
+  await client.connect();
+  await client.end();
+});
+
+Deno.test("SCRAM-SHA-256 authentication (no tls)", async () => {
+  const client = new Client(getScramSha256Configuration());
   await client.connect();
   await client.end();
 });

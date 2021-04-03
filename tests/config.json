@@ -1,12 +1,24 @@
 {
-  "applicationName": "deno_postgres",
-  "database": "postgres",
-  "hostname": "postgres",
-  "password": "postgres",
-  "port": 5432,
-  "users": {
-    "clear": "clear",
-    "main": "postgres",
-    "md5": "md5"
+  "postgres": {
+    "applicationName": "deno_postgres",
+    "database": "postgres",
+    "hostname": "postgres",
+    "password": "postgres",
+    "port": 5432,
+    "users": {
+      "clear": "clear",
+      "main": "postgres",
+      "md5": "md5"
+    }
+  },
+  "postgres_scram": {
+    "applicationName": "deno_postgres",
+    "database": "postgres",
+    "hostname": "postgres_scram",
+    "password": "postgres",
+    "port": 5432,
+    "users": {
+      "scram": "scram"
+    }
   }
 }
