@@ -244,7 +244,7 @@ testClient(async function transaction() {
     0,
     "Rollback was not succesful inside transaction",
   );
-  await transaction.end();
+  await transaction.commit();
   assertEquals(
     CLIENT.current_transaction,
     null,
@@ -263,7 +263,7 @@ testClient(async function transactionLock() {
     "This connection is currently locked",
     "The connection is not being locked by the transaction",
   );
-  await transaction.end();
+  await transaction.commit();
 
   await CLIENT.queryArray`SELECT 1`;
   assertEquals(
@@ -372,7 +372,7 @@ testClient(async function transactionSavepoints() {
     `SELECT Y FROM X`;
   assertEquals(query_5, [{ y: 1 }]);
 
-  await transaction.end();
+  await transaction.commit();
 });
 
 testClient(async function transactionSavepointValidations() {
@@ -430,7 +430,7 @@ testClient(async function transactionSavepointValidations() {
     `There is no "unexistent" savepoint registered in this transaction`,
   );
 
-  await transaction.end();
+  await transaction.commit();
 });
 
 testClient(async function transactionOperationsThrowIfTransactionNotBegun() {
@@ -447,7 +447,7 @@ testClient(async function transactionOperationsThrowIfTransactionNotBegun() {
     `This client already has an ongoing transaction "x"`,
   );
 
-  await transaction_x.end();
+  await transaction_x.commit();
   await transaction_y.begin();
   await assertThrowsAsync(
     () => transaction_y.begin(),
@@ -455,9 +455,9 @@ testClient(async function transactionOperationsThrowIfTransactionNotBegun() {
     "This transaction is already open",
   );
 
-  await transaction_y.end();
+  await transaction_y.commit();
   await assertThrowsAsync(
-    () => transaction_y.end(),
+    () => transaction_y.commit(),
     undefined,
     `This transaction has not been started yet, make sure to use the "begin" method to do so`,
   );

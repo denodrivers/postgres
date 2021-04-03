@@ -309,7 +309,7 @@ class Transaction {
    * const transaction = new Transaction("transaction_name");
    * await transaction.begin(); // Session is locked, transaction operations are now safe
    * // Important operations
-   * await transaction.end(); // Session is unlocked, external operations can now take place
+   * await transaction.commit(); // Session is unlocked, external operations can now take place
    * ```
    * https://www.postgresql.org/docs/13/sql-begin.html
    */
@@ -330,7 +330,7 @@ class Transaction {
       await this.#client.queryArray`BEGIN`;
     } catch (e) {
       if (e instanceof PostgresError) {
-        await this.end();
+        await this.commit();
         throw new TransactionError(this.name, e);
       } else {
         throw e;
@@ -341,7 +341,6 @@ class Transaction {
 
   // TODO
   // Add chain option
-  // Explain differences between end method
   /**
    * The commit method will make permanent all changes made to the database in the
    * current transaction
@@ -361,24 +360,6 @@ class Transaction {
 
     try {
       await this.queryArray`COMMIT`;
-      this.#releaseClient();
-    } catch (e) {
-      if (e instanceof PostgresError) {
-        await this.end();
-        throw new TransactionError(this.name, e);
-      } else {
-        throw e;
-      }
-    }
-  }
-
-  // TODO
-  // Remove method, since it's esentially an alternative to commit
-  async end() {
-    this.#assertTransactionOpen();
-
-    try {
-      await this.queryArray`END`;
     } catch (e) {
       if (e instanceof PostgresError) {
         throw new TransactionError(this.name, e);
@@ -453,7 +434,7 @@ class Transaction {
       // deno-lint-ignore no-unreachable
       if (e instanceof PostgresError) {
         // deno-lint-ignore no-unreachable
-        await this.end();
+        await this.commit();
         // deno-lint-ignore no-unreachable
         throw new TransactionError(this.name, e);
       } else {
@@ -548,7 +529,7 @@ class Transaction {
       // deno-lint-ignore no-unreachable
       if (e instanceof PostgresError) {
         // deno-lint-ignore no-unreachable
-        await this.end();
+        await this.commit();
         // deno-lint-ignore no-unreachable
         throw new TransactionError(this.name, e);
       } else {
@@ -622,7 +603,7 @@ class Transaction {
       await this.queryArray`ROLLBACK`;
     } catch (e) {
       if (e instanceof PostgresError) {
-        await this.end();
+        await this.commit();
         throw new TransactionError(this.name, e);
       } else {
         throw e;
@@ -697,7 +678,7 @@ class Transaction {
         await savepoint.update();
       } catch (e) {
         if (e instanceof PostgresError) {
-          await this.end();
+          await this.commit();
           throw new TransactionError(this.name, e);
         } else {
           throw e;
@@ -718,7 +699,7 @@ class Transaction {
         await savepoint.update();
       } catch (e) {
         if (e instanceof PostgresError) {
-          await this.end();
+          await this.commit();
           throw new TransactionError(this.name, e);
         } else {
           throw e;
