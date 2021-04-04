@@ -269,9 +269,72 @@ class Savepoint {
 }
 
 // TODO
-// Add transaction options
-// Add transaction docs
+// Add snapshot option
+// Add deferred option
 // Explain how failed operations automatically release the client
+/**
+ * Transactions are a powerful feature that guarantees safe operations by allowing you to control
+ * the outcome of a series of statements and undo, reset, and step back said operations to
+ * your liking
+ * 
+ * In order to create a transaction, use the `createTransaction` method in your client as follows:
+ * 
+ * ```ts
+ * const transaction = client.createTransaction("my_transaction_name");
+ * await transaction.begin();
+ * // All statements between begin and commit will happen inside the transaction
+ * await transaction.commit(); // All changes are saved
+ * ```
+ * 
+ * All statements that fail in query execution will cause the current transaction to abort and release
+ * the client without applying any of the changes that took place inside it
+ * 
+ * ```ts
+ * await transaction.begin();
+ * await transaction.queryArray`INSERT INTO MY_TABLE (X) VALUES ${"some_value"}`;
+ * try {
+ *   await transaction.queryArray`SELECT []`; // Invalid syntax, transaction aborted, changes won't be applied
+ * }catch(e){
+ *   await transaction.commit(); // Will throw, current transaction has already finished
+ * }
+ * ```
+ * 
+ * This however, only happens if the error is of execution in nature, validation errors won't abort
+ * the transaction
+ * 
+ * ```ts
+ * await transaction.begin();
+ * await transaction.queryArray`INSERT INTO MY_TABLE (X) VALUES ${"some_value"}`;
+ * try {
+ *   await transaction.rollback("unexistent_savepoint"); // Validation error
+ * }catch(e){
+ *   await transaction.commit(); // Transaction will end, changes will be saved
+ * }
+ * ```
+ * 
+ * A transaction has many options to ensure modifications made to the database are safe and
+ * have the expected outcome, which is a hard thing to accomplish in a database with many concurrent users,
+ * and it does so by allowing you to set local levels of isolation to the transaction you are about to begin
+ * 
+ * Each transaction can execute with the following levels of isolation:
+ * 
+ * - Read committed: This is the normal behavior of a transaction. External changes to the database
+ *   will be visible inside the transaction once they are committed
+ * - Repeatable read: This isolates the transaction in a way that any external changes to the data we are reading
+ *   won't be visible inside the transaction until it has finished
+ * - Serializable: This isolation level prevents the current transaction from making persistent changes
+ *   if the data they were reading at the beginning of the transaction has been modified (recommended)
+ * 
+ * Additionally, each transaction allows you to set two levels of access to the data:
+ * 
+ * - Read write: This is the default mode, it allows you to execute all commands you have access to normally
+ * - Read only: Disables all commands that can make changes to the database. Main use for the read only mode
+ *   is to in conjuction with the repeatable read isolation, ensuring the data you are reading does not change
+ *   during the transaction, specially useful for data extraction
+ * 
+ * https://www.postgresql.org/docs/13/tutorial-transactions.html
+ * https://www.postgresql.org/docs/13/sql-set-transaction.html
+ */
 class Transaction {
   #client: QueryClient;
   #savepoints: Savepoint[] = [];
@@ -578,7 +641,7 @@ class Transaction {
    * await transaction.queryArray`UPDATE MY_TABLE SET X = 0`; // Oops, update without where
    * await transaction.rollback(savepoint); // "before_disaster" would work as well
    * // Everything that happened between the savepoint and the rollback gets undone
-   * await transaction.end(); // Commits all other changes
+   * await transaction.commit(); // Commits all other changes
    * ```
    * 
    * The rollback method allows you to specify a "chain" option, that allows you to not only undo the current transaction
