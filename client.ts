@@ -268,6 +268,13 @@ class Savepoint {
   }
 }
 
+type IsolationLevel = "read_committed" | "repeatable_read" | "serializable";
+
+type TransactionOptions = {
+  // deno-lint-ignore camelcase
+  isolation_level?: IsolationLevel;
+};
+
 // TODO
 // Add snapshot option
 // Add deferred option
@@ -337,13 +344,20 @@ class Savepoint {
  */
 class Transaction {
   #client: QueryClient;
+  #isolation_level: IsolationLevel;
   #savepoints: Savepoint[] = [];
 
   constructor(
     public name: string,
+    options: TransactionOptions | undefined,
     client: QueryClient,
   ) {
     this.#client = client;
+    this.#isolation_level = options?.isolation_level ?? "read_committed";
+  }
+
+  get isolation_level() {
+    return this.#isolation_level;
   }
 
   get savepoints() {
@@ -373,7 +387,7 @@ class Transaction {
    * The begin method will officially begin the transaction, and it must be called before
    * any query or transaction operation is executed in order to lock the session
    * ```ts
-   * const transaction = new Transaction("transaction_name");
+   * const transaction = client.createTransaction("transaction_name");
    * await transaction.begin(); // Session is locked, transaction operations are now safe
    * // Important operations
    * await transaction.commit(); // Session is unlocked, external operations can now take place
@@ -393,16 +407,32 @@ class Transaction {
       );
     }
 
+    // deno-lint-ignore camelcase
+    let isolation_level;
+    switch (this.#isolation_level) {
+      case "read_committed": {
+        isolation_level = "READ COMMITTED";
+        break;
+      }
+      case "repeatable_read": {
+        isolation_level = "REPEATABLE READ";
+        break;
+      }
+      case "serializable": {
+        isolation_level = "SERIALIZABLE";
+      }
+    }
+
     try {
-      await this.#client.queryArray`BEGIN`;
+      await this.#client.queryArray(`BEGIN ISOLATION LEVEL ${isolation_level}`);
     } catch (e) {
       if (e instanceof PostgresError) {
-        await this.commit();
         throw new TransactionError(this.name, e);
       } else {
         throw e;
       }
     }
+
     this.#client.current_transaction = this.name;
   }
 
@@ -867,8 +897,10 @@ export class Client extends QueryClient {
     await this._connection.startup();
   }
 
-  createTransaction(name: string): Transaction {
-    return new Transaction(name, this);
+  // TODO
+  // Add docs here
+  createTransaction(name: string, options?: TransactionOptions): Transaction {
+    return new Transaction(name, options, this);
   }
 
   async end(): Promise<void> {
