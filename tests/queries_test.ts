@@ -305,6 +305,51 @@ testClient(async function transactionIsolationLevelRepeatableRead() {
   }
 });
 
+testClient(async function transactionIsolationLevelSerializable() {
+  await CLIENT_2.connect();
+
+  try {
+    await CLIENT.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
+    await CLIENT.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
+    await CLIENT.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
+    // deno-lint-ignore camelcase
+    const transaction_rr = CLIENT.createTransaction(
+      "transactionIsolationLevelRepeatableRead",
+      { isolation_level: "serializable" },
+    );
+    await transaction_rr.begin();
+
+    // This locks the current value of the test table
+    await transaction_rr.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
+
+    // Modify data outside the transaction
+    await CLIENT_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
+
+    assertThrowsAsync(
+      () => transaction_rr.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 3`,
+      undefined,
+      undefined,
+      "A serializable transaction should throw if the data read in the transaction has been modified externally",
+    );
+
+    await transaction_rr.commit();
+
+    // deno-lint-ignore camelcase
+    const { rows: query_3 } = await CLIENT.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
+    assertEquals(
+      query_3,
+      [{ x: 2 }],
+      "Main session should be able to observe changes after transaction ended",
+    );
+
+    await CLIENT.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
+  } finally {
+    await CLIENT_2.end();
+  }
+});
+
 testClient(async function transactionLock() {
   const transaction = CLIENT.createTransaction("x");
 
