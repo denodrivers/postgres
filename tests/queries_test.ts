@@ -326,14 +326,12 @@ testClient(async function transactionIsolationLevelSerializable() {
     // Modify data outside the transaction
     await CLIENT_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
 
-    assertThrowsAsync(
+    await assertThrowsAsync(
       () => transaction_rr.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 3`,
       undefined,
       undefined,
       "A serializable transaction should throw if the data read in the transaction has been modified externally",
     );
-
-    await transaction_rr.commit();
 
     // deno-lint-ignore camelcase
     const { rows: query_3 } = await CLIENT.queryObject<{ x: number }>
@@ -348,6 +346,23 @@ testClient(async function transactionIsolationLevelSerializable() {
   } finally {
     await CLIENT_2.end();
   }
+});
+
+testClient(async function transactionReadOnly() {
+  await CLIENT.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
+  await CLIENT.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
+  const transaction = CLIENT.createTransaction("transactionReadOnly", {
+    read_only: true,
+  });
+  await transaction.begin();
+
+  await assertThrowsAsync(
+    () => transaction.queryArray`DELETE FROM FOR_TRANSACTION_TEST`,
+    undefined,
+    "cannot execute DELETE in a read-only transaction",
+  );
+
+  await CLIENT.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
 });
 
 testClient(async function transactionLock() {

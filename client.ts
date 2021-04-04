@@ -273,6 +273,8 @@ type IsolationLevel = "read_committed" | "repeatable_read" | "serializable";
 type TransactionOptions = {
   // deno-lint-ignore camelcase
   isolation_level?: IsolationLevel;
+  // deno-lint-ignore camelcase
+  read_only?: boolean;
 };
 
 // TODO
@@ -345,6 +347,7 @@ type TransactionOptions = {
 class Transaction {
   #client: QueryClient;
   #isolation_level: IsolationLevel;
+  #read_only: boolean;
   #savepoints: Savepoint[] = [];
 
   constructor(
@@ -354,6 +357,7 @@ class Transaction {
   ) {
     this.#client = client;
     this.#isolation_level = options?.isolation_level ?? "read_committed";
+    this.#read_only = options?.read_only ?? false;
   }
 
   get isolation_level() {
@@ -420,11 +424,25 @@ class Transaction {
       }
       case "serializable": {
         isolation_level = "SERIALIZABLE";
+        break;
       }
+      default:
+        throw new Error(
+          `Unexpected isolation level "${this.#isolation_level}"`,
+        );
+    }
+
+    let permissions;
+    if (this.#read_only) {
+      permissions = "READ ONLY";
+    } else {
+      permissions = "READ WRITE";
     }
 
     try {
-      await this.#client.queryArray(`BEGIN ISOLATION LEVEL ${isolation_level}`);
+      await this.#client.queryArray(
+        `BEGIN ${permissions} ISOLATION LEVEL ${isolation_level}`,
+      );
     } catch (e) {
       if (e instanceof PostgresError) {
         throw new TransactionError(this.name, e);
