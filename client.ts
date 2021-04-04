@@ -275,6 +275,7 @@ type TransactionOptions = {
   isolation_level?: IsolationLevel;
   // deno-lint-ignore camelcase
   read_only?: boolean;
+  snapshot?: string;
 };
 
 // TODO
@@ -328,18 +329,41 @@ type TransactionOptions = {
  * Each transaction can execute with the following levels of isolation:
  * 
  * - Read committed: This is the normal behavior of a transaction. External changes to the database
- *   will be visible inside the transaction once they are committed
+ *   will be visible inside the transaction once they are committed.
+ * 
  * - Repeatable read: This isolates the transaction in a way that any external changes to the data we are reading
  *   won't be visible inside the transaction until it has finished
+ *   ```ts
+ *   const transaction = await client.createTransaction("my_transaction", { isolation_level: "repeatable_read" });
+ *   ```
+ * 
  * - Serializable: This isolation level prevents the current transaction from making persistent changes
  *   if the data they were reading at the beginning of the transaction has been modified (recommended)
+ *   ```ts
+ *   const transaction = await client.createTransaction("my_transaction", { isolation_level: "serializable" });
+ *   ```
  * 
  * Additionally, each transaction allows you to set two levels of access to the data:
  * 
  * - Read write: This is the default mode, it allows you to execute all commands you have access to normally
+ * 
  * - Read only: Disables all commands that can make changes to the database. Main use for the read only mode
  *   is to in conjuction with the repeatable read isolation, ensuring the data you are reading does not change
  *   during the transaction, specially useful for data extraction
+ *   ```ts
+ *   const transaction = await client.createTransaction("my_transaction", { read_only: true });
+ *   ```
+ * 
+ * Last but not least, transactions allow you to share starting point snapshots between them.
+ * For example, if you initialized a repeatable read transaction before a particularly sensible change
+ * in the database, and you would like to start several transactions with that same before the change state
+ * you can do the following:
+ * 
+ * ```ts
+   * const snapshot = await transaction_1.getSnapshot();
+   * const transaction_2 = client_2.createTransaction("new_transaction", { isolation_level: "repeatable_read", snapshot });
+   * // transaction_2 now shares the same starting state that transaction_1 had
+   * ```
  * 
  * https://www.postgresql.org/docs/13/tutorial-transactions.html
  * https://www.postgresql.org/docs/13/sql-set-transaction.html
@@ -349,6 +373,7 @@ class Transaction {
   #isolation_level: IsolationLevel;
   #read_only: boolean;
   #savepoints: Savepoint[] = [];
+  #snapshot?: string;
 
   constructor(
     public name: string,
@@ -358,6 +383,7 @@ class Transaction {
     this.#client = client;
     this.#isolation_level = options?.isolation_level ?? "read_committed";
     this.#read_only = options?.read_only ?? false;
+    this.#snapshot = options?.snapshot;
   }
 
   get isolation_level() {
@@ -439,9 +465,14 @@ class Transaction {
       permissions = "READ WRITE";
     }
 
+    let snapshot = "";
+    if (this.#snapshot) {
+      snapshot = `SET TRANSACTION SNAPSHOT '${this.#snapshot}'`;
+    }
+
     try {
       await this.#client.queryArray(
-        `BEGIN ${permissions} ISOLATION LEVEL ${isolation_level}`,
+        `BEGIN ${permissions} ISOLATION LEVEL ${isolation_level};${snapshot}`,
       );
     } catch (e) {
       if (e instanceof PostgresError) {
@@ -496,6 +527,25 @@ class Transaction {
     if (!chain) {
       this.#releaseClient();
     }
+  }
+
+  /**
+   * This method returns the snapshot id of the on going transaction, allowing you to share
+   * the snapshot state between two transactions
+   * 
+   * ```ts
+   * const snapshot = await transaction_1.getSnapshot();
+   * const transaction_2 = client_2.createTransaction("new_transaction", { isolation_level: "repeatable_read", snapshot });
+   * // transaction_2 now shares the same starting state that transaction_1 had
+   * ```
+   * https://www.postgresql.org/docs/13/functions-admin.html#FUNCTIONS-SNAPSHOT-SYNCHRONIZATION
+   */
+  async getSnapshot(): Promise<string> {
+    this.#assertTransactionOpen();
+
+    const { rows } = await this.queryObject<{ snapshot: string }>
+      `SELECT PG_EXPORT_SNAPSHOT() AS SNAPSHOT;`;
+    return rows[0].snapshot;
   }
 
   /**

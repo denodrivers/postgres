@@ -365,6 +365,63 @@ testClient(async function transactionReadOnly() {
   await CLIENT.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
 });
 
+testClient(async function transactionSnapshot() {
+  await CLIENT_2.connect();
+
+  try {
+    await CLIENT.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
+    await CLIENT.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
+    await CLIENT.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
+    // deno-lint-ignore camelcase
+    const transaction_1 = CLIENT.createTransaction(
+      "transactionSnapshot1",
+      { isolation_level: "repeatable_read" },
+    );
+    await transaction_1.begin();
+
+    // This locks the current value of the test table
+    await transaction_1.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
+
+    // Modify data outside the transaction
+    await CLIENT_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
+
+    // deno-lint-ignore camelcase
+    const { rows: query_1 } = await transaction_1.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
+    assertEquals(
+      query_1,
+      [{ x: 1 }],
+      "External changes shouldn't affect repeatable read transaction",
+    );
+
+    const snapshot = await transaction_1.getSnapshot();
+
+    // deno-lint-ignore camelcase
+    const transaction_2 = CLIENT_2.createTransaction(
+      "transactionSnapshot2",
+      { isolation_level: "repeatable_read", snapshot },
+    );
+    await transaction_2.begin();
+
+    // deno-lint-ignore camelcase
+    const { rows: query_2 } = await transaction_2.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
+    assertEquals(
+      query_2,
+      [{ x: 1 }],
+      "External changes shouldn't affect repeatable read transaction with previous snapshot",
+    );
+
+    await transaction_1.commit();
+    await transaction_2.commit();
+
+    await CLIENT.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
+  } finally {
+    await CLIENT_2.end();
+  }
+});
+
 testClient(async function transactionLock() {
   const transaction = CLIENT.createTransaction("x");
 
