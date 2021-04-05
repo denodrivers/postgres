@@ -395,9 +395,7 @@ the transaction, everytime you create a transaction the client you use will get
 a lock that prevent it from executing unsafe operations.
 
 ```ts
-const transaction = my_client.createTransaction("transaction_1", {
-  isolation_level: "repeatable_read",
-});
+const transaction = my_client.createTransaction("transaction_1");
 
 await transaction.begin();
 await transaction.queryArray`UPDATE TABLE X SET Y = 1`;
@@ -421,16 +419,163 @@ without locking the main client.
 const client_1 = await pool.connect();
 const client_2 = await pool.connect();
 
-const transaction = client_1.createTransaction("transaction_1", {
-  isolation_level: "repeatable_read",
-});
+const transaction = client_1.createTransaction("transaction_1");
 
-await client_1.begin();
-await client_1.queryArray`UPDATE TABLE X SET Y = 1`;
+await transaction.begin();
+await transaction.queryArray`UPDATE TABLE X SET Y = 1`;
 // Code that is meant to be executed concurrently, will run normally
 await client_2.queryArray`DELETE TABLE Z`;
-await client_1.commit();
+await transaction.commit();
 
 await client_1.release();
 await client_2.release();
 ```
+
+#### Transaction options
+
+PostgreSQL provides many options to customize the behavior of transactions, such
+as isolation level, read modes and startup snapshot. All this options can be set
+up when you startup a transaction by passing a second argument to the
+`startTransaction` method
+
+```ts
+const transaction = client.createTransaction("ts_1", {
+  isolation_level: "serializable",
+  read_only: true,
+  snapshot: "snapshot_code",
+});
+```
+
+##### Isolation Level
+
+Setting an isolation level protects your transaction from operations that took
+place _after_ the transaction had begun.
+
+To demonstrate the importance of this options, the following demonstration will
+show the effects of a modification to the database while a transaction takes
+place.
+
+The following is a sensible transaction that loads a table with a very important
+test results and the students that passed said test.
+
+This is a long running operation, and in the meanwhile someone is tasked to
+cleanup the results from the tests table because it's taking too much space in
+the database.
+
+If the transaction were to be executed as it follows, the test results would be
+lost before the graduated students could be extracted from the original table,
+causing a mismatch in the data.
+
+```ts
+const client_1 = await pool.connect();
+const client_2 = await pool.connect();
+
+const transaction = client_1.createTransaction("transaction_1");
+
+await transaction.begin();
+
+await transaction.queryArray
+  `CREATE TABLE TEST_RESULTS (USER_ID INTEGER, GRADE NUMERIC(10,2))`;
+await transaction.queryArray`CREATE TABLE GRADUATED_STUDENTS (USER_ID INTEGER)`;
+
+// This operation takes several minutes
+await transaction.queryArray`INSERT INTO TEST_RESULTS
+  SELECT
+    USER_ID, GRADE
+  FROM TESTS
+  WHERE TEST_TYPE = 'final_test'`;
+
+// A third party, whose task is to clean up the test results
+// executes this query while the operation above still takes place
+await client_2.queryArray`DELETE FROM TESTS WHERE TEST_TYPE = 'final_test'`;
+
+// Test information is gone, no data will be loaded into the graduated students table
+await transaction.queryArray`INSERT INTO GRADUATED_STUDENTS
+  SELECT
+    USER_ID
+  FROM TESTS
+  WHERE TEST_TYPE = 'final_test'
+  AND GRADE >= 3.0`;
+
+await transaction.commit();
+
+await client_1.release();
+await client_2.release();
+```
+
+In order to ensure scenarios like the above don't happen, Postgres provides the
+following levels of transaction isolation:
+
+- Read committed: This is the normal behavior of a transaction. External changes
+  to the database will be visible inside the transaction once they are
+  committed.
+
+- Repeatable read: This isolates the transaction in a way that any external
+  changes to the data we are reading won't be visible inside the transaction
+  until it has finished
+  ```ts
+  const client_1 = await pool.connect();
+  const client_2 = await pool.connect();
+
+  const transaction = await client_1.createTransaction("isolated_transaction", {
+    isolation_level: "repeatable_read",
+  });
+
+  await transaction.begin();
+  // This locks the current value of IMPORTANT_TABLE
+  // Up to this point, all other external changes will be included
+  const { rows: query_1 } = await transaction.queryObject<{ password: string }>
+    `SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
+  const password_1 = rows[0].password;
+
+  // Concurrent operation executed by a different user in a different part of the code
+  await client_2.queryArray
+    `UPDATE IMPORTANT_TABLE SET PASSWORD = 'something_else' WHERE ID = ${the_same_id}`;
+
+  const { rows: query_2 } = await transaction.queryObject<{ password: string }>
+    `SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
+  const password_2 = rows[0].password;
+
+  // Database state is not updated while the transaction is on going
+  assertEquals(password_1, password_2);
+
+  // Transaction finishes, changes executed outside the transaction are now visible
+  await transaction.commit();
+
+  await client_1.release();
+  await client_2.release();
+  ```
+
+- Serializable: Just like the repeatable read mode, all external changes won't
+  be visible until the transaction has finished. However this also prevents the
+  current transaction from making persistent changes if the data they were
+  reading at the beginning of the transaction has been modified (recommended)
+  ```ts
+  const client_1 = await pool.connect();
+  const client_2 = await pool.connect();
+
+  const transaction = await client_1.createTransaction("isolated_transaction", {
+    isolation_level: "serializable",
+  });
+
+  await transaction.begin();
+  // This locks the current value of IMPORTANT_TABLE
+  // Up to this point, all other external changes will be included
+  await transaction.queryObject<{ password: string }>
+    `SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
+
+  // Concurrent operation executed by a different user in a different part of the code
+  await client_2.queryArray
+    `UPDATE IMPORTANT_TABLE SET PASSWORD = 'something_else' WHERE ID = ${the_same_id}`;
+
+  // This statement will throw
+  // Data to modify was modified ouside of the transaction
+  // User may not be aware of the changes
+  await transaction.queryArray
+    `UPDATE IMPORTANT_TABLE SET PASSWORD = 'shiny_new_password' WHERE ID = ${the_same_id}`;
+
+  // Transaction is aborted, no need to end it
+
+  await client_1.release();
+  await client_2.release();
+  ```
