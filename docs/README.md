@@ -6,6 +6,10 @@
 [![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://doc.deno.land/https/deno.land/x/postgres@v0.9.0/mod.ts)
 ![License](https://img.shields.io/github/license/denodrivers/postgres?color=yellowgreen&label=License&style=flat-square)
 
+`deno-postgres` is a lightweight PostgreSQL driver for Deno focused on user
+experience. It provides abstractions for most common operations such as typed
+queries, prepared statements, connection pools and transactions.
+
 ```ts
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 
@@ -226,7 +230,7 @@ However, a limitation of template strings is that you can't pass any parameters
 provided by the `QueryOptions` interface, so the only options you have available
 are really `text` and `args` to execute your query
 
-### Generic Parameters
+#### Generic Parameters
 
 Both the `queryArray` and `queryObject` functions have a generic implementation
 that allow users to type the result of the query
@@ -263,7 +267,7 @@ that allow users to type the result of the query
 }
 ```
 
-### Object query
+#### Object query
 
 The `queryObject` function allows you to return the results of the executed
 query as a set objects, allowing easy management with interface like types.
@@ -357,4 +361,76 @@ Other aspects to take into account when using the `fields` argument:
     },
   );
 }
+```
+
+### Transactions
+
+A lot of effort was put into abstracting Transactions in the library, and the
+final result is an API that is both simple to use and offers all of the options
+and features that you would get by executing SQL statements, plus and extra
+layer of abstraction that helps you catch mistakes ahead of time.
+
+#### Creating a transaction
+
+Both simple clients and connection pools are capable of creating transactions,
+and they work in a similar fashion internally.
+
+```ts
+const transaction = my_client.createTransaction("transaction_1", {
+  isolation_level: "repeatable_read",
+});
+
+await transaction.begin();
+// Safe operations that can be rolled back if the result is not the expected
+await transaction.queryArray`UPDATE TABLE X SET Y = 1`;
+// All changes are saved
+await transaction.commit();
+```
+
+Due to how SQL transactions work, everytime you create a transaction, all
+queries you execute before ending it will get executed inside the transaction
+context, in order to prevent this problem where possible persistent changes to
+the database get rolled back even when they were meant to be executed outside
+the transaction, everytime you create a transaction the client you use will get
+a lock that prevent it from executing unsafe operations.
+
+```ts
+const transaction = my_client.createTransaction("transaction_1", {
+  isolation_level: "repeatable_read",
+});
+
+await transaction.begin();
+await transaction.queryArray`UPDATE TABLE X SET Y = 1`;
+// Oops, the client is locked out, this operation will throw
+await my_client.queryArray`DELETE TABLE X`;
+// Client is released after the transaction ends
+await transaction.commit();
+
+// Operations in the main client can now be executed normally
+await client.queryArray`DELETE TABLE X`;
+```
+
+For this very reason however, if you are using transactions in an application
+with concurrent access, like an API, it is recommended that you don't use the
+Client API at all. If you do so, the client will be blocked from executing other
+queries until the transaction has finished. Instead of that, use a connection
+pool, that way all your operations will be executed in a different context
+without locking the main client.
+
+```ts
+const client_1 = await pool.connect();
+const client_2 = await pool.connect();
+
+const transaction = client_1.createTransaction("transaction_1", {
+  isolation_level: "repeatable_read",
+});
+
+await client_1.begin();
+await client_1.queryArray`UPDATE TABLE X SET Y = 1`;
+// Code that is meant to be executed concurrently, will run normally
+await client_2.queryArray`DELETE TABLE Z`;
+await client_1.commit();
+
+await client_1.release();
+await client_2.release();
 ```
