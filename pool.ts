@@ -15,6 +15,8 @@ import {
   ResultType,
 } from "./query/query.ts";
 
+// TODO
+// Remove query execution methods from main pool
 export class Pool extends QueryClient {
   private _connectionParams: ConnectionParams;
   private _connections!: Array<Connection>;
