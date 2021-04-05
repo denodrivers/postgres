@@ -398,8 +398,9 @@ are meant to do persistent changes to the database to get executed inside this
 context, making them susceptible to be rolled back or executed alongside
 unwanted operations. We will call this kind of queries **unsafe operations**.
 
-Everytime you create a transaction the client you use will get a lock that
-prevent it from executing unsafe operations.
+Everytime you create a transaction the client you use will get a lock, with the
+purpose of blocking any external queries from running while a transaction takes
+course, effectively avoiding all unsafe operations from taking place.
 
 ```ts
 const transaction = my_client.createTransaction("transaction_1");
