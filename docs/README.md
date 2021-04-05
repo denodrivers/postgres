@@ -392,15 +392,15 @@ await transaction.commit();
 ##### Transaction locks
 
 Due to how SQL transactions work, everytime you begin a transaction, all queries
-your session executes before ending it will execute inside that transaction
-context. This is a problem for query execution since it might cause queries that
-are meant to do persistent changes to the database to get executed inside this
-context, making them susceptible to be rolled back or executed alongside
-unwanted operations. We will call this kind of queries **unsafe operations**.
+you do in your session executes will run inside that transaction context. This
+is a problem for query execution since it might cause queries that are meant to
+do persistent changes to the database to live inside this context, making them
+susceptible to be rolled back unintentionally. We will call this kind of queries
+**unsafe operations**.
 
 Everytime you create a transaction the client you use will get a lock, with the
 purpose of blocking any external queries from running while a transaction takes
-course, effectively avoiding all unsafe operations from taking place.
+course, effectively avoiding all unsafe operations.
 
 ```ts
 const transaction = my_client.createTransaction("transaction_1");
