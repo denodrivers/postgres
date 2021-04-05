@@ -387,6 +387,10 @@ await transaction.queryArray`UPDATE TABLE X SET Y = 1`;
 await transaction.commit();
 ```
 
+#### Transaction vs Direct client operations
+
+##### Transaction locks
+
 Due to how SQL transactions work, everytime you create a transaction, all
 queries you execute before ending it will get executed inside the transaction
 context, in order to prevent this problem where possible persistent changes to
@@ -431,6 +435,80 @@ await client_1.release();
 await client_2.release();
 ```
 
+##### Transaction errors
+
+When you are inside a Transaction block in PostgreSQL, reaching an error is
+terminal for the transaction. Executing the following in PostgreSQL will cause
+all changes to be undone and the transaction to become unusable until it has
+ended.
+
+```sql
+BEGIN;
+
+UPDATE MY_TABLE SET NAME = 'Nicolas';
+SELECT []; -- Syntax error, transaction will abort
+SELECT ID FROM MY_TABLE; -- Will attempt to execute, but will fail cause transaction was aborted
+
+COMMIT; -- Transaction will end, but no changes to MY_TABLE will be made
+```
+
+However, due to how JavaScript works we can handle this kinds of errors in a
+more fashionable way. All failed queries inside a transaction will automatically
+end it and release the main client.
+
+```ts
+/**
+ * This function will return a boolean regarding the transaction completion status
+ */
+function executeMyTransaction() {
+  try {
+    const transaction = client.createTransaction("abortable");
+    await transaction.begin();
+
+    await transaction.queryArray`UPDATE MY_TABLE SET NAME = 'Nicolas'`;
+    await transaction.queryArray`SELECT []`; // Error will be thrown, transaction will be aborted
+    await transaction.queryArray`SELECT ID FROM MY_TABLE`; // Won't even attempt to execute
+
+    await transaction.commit(); // Don't even need it, transaction was already ended
+  } catch (e) {
+    return false;
+  }
+
+  return true;
+}
+```
+
+This limits only to database related errors though, regular errors won't end the
+connection and may allow the user to execute a different code path. This is
+specially good for ahead of time validation errors such as the ones found in the
+rollback and savepoint features.
+
+```ts
+const transaction = client.createTransaction("abortable");
+await transaction.begin();
+
+let savepoint;
+try{
+  // Oops, savepoints can't start with a number
+  // Validation error, transaction won't be ended
+  savepoint = await transaction.savepoint("1");
+}catch(e){
+  // We validate the error was not related to transaction execution
+  if(!(e instance of TransactionError)){
+    // We create a good savepoint we can use
+    savepoint = await transaction.savepoint("a_valid_name");
+  }else{
+    throw e;
+  }
+}
+
+// Transaction is still open and good to go
+await transaction.queryArray`UPDATE MY_TABLE SET NAME = 'Nicolas'`;
+await transaction.rollback(savepoint); // Undo changes after the savepoint creation
+
+await transaction.commit();
+```
+
 #### Transaction options
 
 PostgreSQL provides many options to customize the behavior of transactions, such
@@ -451,16 +529,10 @@ const transaction = client.createTransaction("ts_1", {
 Setting an isolation level protects your transaction from operations that took
 place _after_ the transaction had begun.
 
-To demonstrate the importance of this options, the following demonstration will
-show the effects of a modification to the database while a transaction takes
-place.
-
-The following is a sensible transaction that loads a table with a very important
-test results and the students that passed said test.
-
-This is a long running operation, and in the meanwhile someone is tasked to
-cleanup the results from the tests table because it's taking too much space in
-the database.
+The following is a demonstration. A sensible transaction that loads a table with
+some very important test results and the students that passed said test. This is
+a long running operation, and in the meanwhile someone is tasked to cleanup the
+results from the tests table because it's taking too much space in the database.
 
 If the transaction were to be executed as it follows, the test results would be
 lost before the graduated students could be extracted from the original table,
@@ -569,7 +641,7 @@ following levels of transaction isolation:
     `UPDATE IMPORTANT_TABLE SET PASSWORD = 'something_else' WHERE ID = ${the_same_id}`;
 
   // This statement will throw
-  // Data to modify was modified ouside of the transaction
+  // Target was modified outside of the transaction
   // User may not be aware of the changes
   await transaction.queryArray
     `UPDATE IMPORTANT_TABLE SET PASSWORD = 'shiny_new_password' WHERE ID = ${the_same_id}`;
