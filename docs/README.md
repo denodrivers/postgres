@@ -391,10 +391,10 @@ await transaction.commit();
 
 ##### Transaction locks
 
-Due to how SQL transactions work, everytime you begin a transaction, all queries
-you do in your session executes will run inside that transaction context. This
-is a problem for query execution since it might cause queries that are meant to
-do persistent changes to the database to live inside this context, making them
+Due to how SQL transactions work, everytime you begin a transaction all queries
+you do in your session will run inside that transaction context. This is a
+problem for query execution since it might cause queries that are meant to do
+persistent changes to the database to live inside this context, making them
 susceptible to be rolled back unintentionally. We will call this kind of queries
 **unsafe operations**.
 
@@ -417,7 +417,7 @@ await client.queryArray`DELETE TABLE X`;
 ```
 
 For this very reason however, if you are using transactions in an application
-with concurrent access, like an API, it is recommended that you don't use the
+with concurrent access like an API, it is recommended that you don't use the
 Client API at all. If you do so, the client will be blocked from executing other
 queries until the transaction has finished. Instead of that, use a connection
 pool, that way all your operations will be executed in a different context
@@ -517,8 +517,7 @@ await transaction.commit();
 
 PostgreSQL provides many options to customize the behavior of transactions, such
 as isolation level, read modes and startup snapshot. All this options can be set
-up when you startup a transaction by passing a second argument to the
-`startTransaction` method
+by passing a second argument to the `startTransaction` method
 
 ```ts
 const transaction = client.createTransaction("ts_1", {
@@ -612,7 +611,7 @@ following levels of transaction isolation:
     `SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
   const password_2 = rows[0].password;
 
-  // Database state is not updated while the transaction is on going
+  // Database state is not updated while the transaction is ongoing
   assertEquals(password_1, password_2);
 
   // Transaction finishes, changes executed outside the transaction are now visible
