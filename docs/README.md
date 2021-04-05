@@ -387,16 +387,19 @@ await transaction.queryArray`UPDATE TABLE X SET Y = 1`;
 await transaction.commit();
 ```
 
-#### Transaction vs Direct client operations
+#### Transaction operations vs client operations
 
 ##### Transaction locks
 
-Due to how SQL transactions work, everytime you create a transaction, all
-queries you execute before ending it will get executed inside the transaction
-context, in order to prevent this problem where possible persistent changes to
-the database get rolled back even when they were meant to be executed outside
-the transaction, everytime you create a transaction the client you use will get
-a lock that prevent it from executing unsafe operations.
+Due to how SQL transactions work, everytime you begin a transaction, all queries
+your session executes before ending it will execute inside that transaction
+context. This is a problem for query execution since it might cause queries that
+are meant to do persistent changes to the database to get executed inside this
+context, making them susceptible to be rolled back or executed alongside
+unwanted operations. We will call this kind of queries **unsafe operations**.
+
+Everytime you create a transaction the client you use will get a lock that
+prevent it from executing unsafe operations.
 
 ```ts
 const transaction = my_client.createTransaction("transaction_1");
