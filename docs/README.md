@@ -658,8 +658,8 @@ following levels of transaction isolation:
 ##### Read modes
 
 In many cases, and specially when allowing third parties to access data inside
-our database it might be a good choice to prevent queries from modifying the
-database in the course of the transaction. You can disable this write privileges
+your database it might be a good choice to prevent queries from modifying the
+database in the course of the transaction. You can revoke this write privileges
 by setting `read_only: true` in the transaction options. The default for all
 transactions will be to enable write permission.
 
@@ -684,5 +684,38 @@ const new_transaction = client.createTransaction("new_transaction", {
   isolation_level: "repeatable_read",
   snapshot,
 });
-// transaction_2 now shares the same starting state that ongoing_transaction had
+// new_transaction now shares the same starting state that ongoing_transaction had
 ```
+
+#### Transaction features
+
+##### Commit / Chained commit
+
+Commiting a transaction will persist all changes made inside it, releasing the client from which the transaction spawned in the process.
+
+```ts
+const transaction = client.createTransaction("successful_transaction");
+await transaction.begin();
+await transaction.queryArray`TRUNCATE TABLE DELETE_ME`;
+await transaction.queryArray`INSERT INTO DELETE_ME VALUES (1)`;
+await transaction.commit(); // All changes are persisted, client is released
+```
+
+You can however, decide to start this transaction again with the same options, and though
+you can easily accomplish that by using `transaction.begin()` after commiting the changes,
+the commit method has an option that allows us to start a new transaction right after this commit takes place.
+
+```ts
+const transaction = client.createTransaction("successful_transaction");
+await transaction.begin();
+await transaction.queryArray`TRUNCATE TABLE DELETE_ME`;
+await transaction.commit({ chain: true }); // Changes are committed
+// Still inside the transaction
+// Rolling back or aborting here won't affect the previous operation
+await transaction.queryArray`INSERT INTO DELETE_ME VALUES (1)`;
+await transaction.commit(); // Changes are committed, client is released
+````
+
+##### Savepoints / Release / Update / List
+
+##### Rollback / Chained rollback
