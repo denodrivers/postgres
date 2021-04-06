@@ -654,3 +654,35 @@ following levels of transaction isolation:
   await client_1.release();
   await client_2.release();
   ```
+
+##### Read modes
+
+In many cases, and specially when allowing third parties to access data inside
+our database it might be a good choice to prevent queries from modifying the
+database in the course of the transaction. You can disable this write privileges
+by setting `read_only: true` in the transaction options. The default for all
+transactions will be to enable write permission.
+
+```ts
+const transaction = await client.createTransaction("my_transaction", {
+  read_only: true,
+});
+```
+
+##### Snapshots
+
+One of the most interesting features that Postgres transactions have it's the
+ability to share starting point snapshots between them. For example, if you
+initialized a repeatable read transaction before a particularly sensible change
+in the database, and you would like to start several transactions with that same
+before-the-change state you can do the following:
+
+```ts
+const snapshot = await ongoing_transaction.getSnapshot();
+
+const new_transaction = client.createTransaction("new_transaction", {
+  isolation_level: "repeatable_read",
+  snapshot,
+});
+// transaction_2 now shares the same starting state that ongoing_transaction had
+```
