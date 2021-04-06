@@ -689,9 +689,11 @@ const new_transaction = client.createTransaction("new_transaction", {
 
 #### Transaction features
 
-##### Commit / Chained commit
+##### Commit
 
-Commiting a transaction will persist all changes made inside it, releasing the client from which the transaction spawned in the process.
+Committing a transaction will persist all changes made inside it, releasing the
+client from which the transaction spawned and allowing for normal operations to
+take place.
 
 ```ts
 const transaction = client.createTransaction("successful_transaction");
@@ -701,21 +703,103 @@ await transaction.queryArray`INSERT INTO DELETE_ME VALUES (1)`;
 await transaction.commit(); // All changes are persisted, client is released
 ```
 
-You can however, decide to start this transaction again with the same options, and though
-you can easily accomplish that by using `transaction.begin()` after commiting the changes,
-the commit method has an option that allows us to start a new transaction right after this commit takes place.
+However, what if we intended to commit the previous changes without ending the
+transaction? The `commit` method provides a `chain` option that allows us to
+continue in the transaction after the changes have been persisted as
+demonstrated here:
 
 ```ts
 const transaction = client.createTransaction("successful_transaction");
 await transaction.begin();
+
 await transaction.queryArray`TRUNCATE TABLE DELETE_ME`;
 await transaction.commit({ chain: true }); // Changes are committed
+
 // Still inside the transaction
 // Rolling back or aborting here won't affect the previous operation
 await transaction.queryArray`INSERT INTO DELETE_ME VALUES (1)`;
 await transaction.commit(); // Changes are committed, client is released
-````
+```
 
-##### Savepoints / Release / Update / List
+##### Savepoints
 
-##### Rollback / Chained rollback
+Savepoints are a powerful feature that allows us to keep track of transaction
+operations, and if we want to, undo said specific changes without having to
+reset the whole transaction.
+
+```ts
+const transaction = client.createTransaction("successful_transaction");
+await transaction.begin();
+
+await transaction.queryArray`INSERT INTO DONT_DELETE_ME VALUES (1)`;
+const savepoint = await transaction.savepoint("before_delete");
+
+await transaction.queryArray`TRUNCATE TABLE DONT_DELETE_ME`; // Oops, I didn't mean that
+await transaction.rollback(savepoint); // Truncate is undone, insert is still applied
+
+// Transaction goes on as usual
+await transaction.commit();
+```
+
+A savepoint can also have multiple positions inside a transaction, and we can
+accomplish that by using the `update` method of a savepoint.
+
+```ts
+await transaction.queryArray`INSERT INTO DONT_DELETE_ME VALUES (1)`;
+const savepoint = await transaction.savepoint("before_delete");
+
+await transaction.queryArray`TRUNCATE TABLE DONT_DELETE_ME`;
+await savepoint.update(savepoint); // If I rollback savepoint now, it won't undo the truncate
+```
+
+However, if we wanted to undo one of these updates we could use the `release`
+method in the savepoint to undo the last update and access the previous point of
+that savepoint.
+
+```ts
+await transaction.queryArray`INSERT INTO DONT_DELETE_ME VALUES (1)`;
+const savepoint = await transaction.savepoint("before_delete");
+
+await transaction.queryArray`TRUNCATE TABLE DONT_DELETE_ME`;
+await savepoint.update(savepoint); // Actually, I didn't meant this
+
+await savepoint.release(); // The savepoint is again the first one we set
+await transaction.rollback(savepoint); // Truncate gets undone
+```
+
+##### Rollback
+
+A rollback allows the user to end the transaction without persisting the changes
+made to the database, preventing that way any unwanted operation to take place.
+
+```ts
+const transaction = client.createTransaction("rolled_back_transaction");
+await transaction.queryArray`TRUNCATE TABLE DONT_DELETE_ME`; // Oops, wrong table
+await transaction.rollback(); // No changes are applied, transaction ends
+```
+
+You can also localize those changes to be undone using the savepoint feature as
+explained above in the `Savepoint` documentation.
+
+```ts
+const transaction = client.createTransaction(
+  "partially_rolled_back_transaction",
+);
+await transaction.savepoint("undo");
+await transaction.queryArray`TRUNCATE TABLE DONT_DELETE_ME`; // Oops, wrong table
+await transaction.rollback("undo"); // Truncate is rolled back, transaction continues
+await transaction.end();
+```
+
+If we intended to rollback all changes but still continue in the current
+transaction, we can use the `chain` option in a similar fashion to how we would
+do it in the `commit` method.
+
+```ts
+const transaction = client.createTransaction("rolled_back_transaction");
+await transaction.queryArray`INSERT INTO DONT_DELETE_ME VALUES (1)`;
+await transaction.queryArray`TRUNCATE TABLE DONT_DELETE_ME`;
+await transaction.rollback({ chain: true }); // All changes get undone
+await transaction.queryArray`INSERT INTO DONT_DELETE_ME VALUES (2)`; // Still inside the transaction
+await transaction.end();
+```
