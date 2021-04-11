@@ -117,38 +117,96 @@ await client.connect()
 
 For stronger management and scalability, you can use **pools**:
 
-```typescript
-import { Pool } from "https://deno.land/x/postgres/mod.ts";
-import { PoolClient } from "https://deno.land/x/postgres/client.ts";
-
+```ts
 const POOL_CONNECTIONS = 20;
 const dbPool = new Pool({
-  user: "user",
-  password: "password",
   database: "database",
   hostname: "hostname",
+  password: "password",
   port: 5432,
+  user: "user",
 }, POOL_CONNECTIONS);
 
-async function runQuery(query: string) {
-  const client: PoolClient = await dbPool.connect();
-  const dbResult = await client.queryObject(query);
-  client.release();
-  return dbResult;
-}
-
-await runQuery("SELECT ID, NAME FROM users;"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
-await runQuery("SELECT ID, NAME FROM users WHERE id = '1';"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+const client = await dbPool.connect(); // 19 connections are still available
+await client.queryArray`UPDATE X SET Y = 'Z'`;
+await client.release(); // This connection is now available for use again
 ```
-
-This improves performance, as creating a whole new connection for each query can
-be an expensive operation. With pools, you can keep the connections open to be
-re-used when requested using the `connect()` method. So one of the active
-connections will be used instead of creating a new one.
 
 The number of pools is up to you, but a pool of 20 is good for small
 applications, this can differ based on how active your application is. Increase
 or decrease where necessary.
+
+#### Clients vs connection pools
+
+Each pool eagerly creates as many connections as requested, allowing you to
+execute several queries concurrently. This also improves performance, since
+creating a whole new connection for each query can be an expensive operation,
+making pools stand out from clients when dealing with concurrent, reusable
+connections.
+
+```ts
+// Open 4 connections at once
+const pool = new Pool(db_params, 4);
+
+// This connections are already open, so there will be no overhead here
+const pool_client_1 = await pool.connect();
+const pool_client_2 = await pool.connect();
+const pool_client_3 = await pool.connect();
+const pool_client_4 = await pool.connect();
+
+// Each one of these will have to open a new connection and they won't be
+// reusable after the client is closed
+const client_1 = new Client(db_params);
+await client_1.connect();
+const client_2 = new Client(db_params);
+await client_2.connect();
+const client_3 = new Client(db_params);
+await client_3.connect();
+const client_4 = new Client(db_params);
+await client_4.connect();
+```
+
+#### Lazy pools
+
+Another good option is to create such connections on demand and have them
+available after creation. That way, one of the available connections will be
+used instead of creating a new one. You can do this by indicating the pool to
+start each connection lazily.
+
+```ts
+const pool = new Pool(db_params, 4, true); // `true` indicates lazy connections
+
+// A new connection is created when requested
+const client_1 = await pool.connect();
+client_1.release();
+
+// No new connection is created, previously initialized one is available
+const client_2 = await pool.connect();
+
+// A new connection is created because all the other ones are in use
+const client_3 = await pool.connect();
+
+await client_2.release();
+await client_3.release();
+```
+
+#### Pools made simple
+
+The following example is a simple abstraction over pools that allow you to
+execute one query and release the used client after returning the result in a
+single function call
+
+```ts
+async function runQuery(query: string) {
+  const client = await pool.connect();
+  const result = await client.queryObject(query);
+  client.release();
+  return result;
+}
+
+await runQuery("SELECT ID, NAME FROM users"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+await runQuery("SELECT ID, NAME FROM users WHERE id = '1'"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+```
 
 ## API
 

@@ -1,48 +1,50 @@
 import { Deferred, deferred } from "../deps.ts";
 
 export class DeferredStack<T> {
-  private _array: Array<T>;
-  private _queue: Array<Deferred<T>>;
-  private _maxSize: number;
-  private _size: number;
+  #array: Array<T>;
+  #creator?: () => Promise<T>;
+  #max_size: number;
+  #queue: Array<Deferred<T>>;
+  #size: number;
 
   constructor(
     max?: number,
     ls?: Iterable<T>,
-    private _creator?: () => Promise<T>,
+    creator?: () => Promise<T>,
   ) {
-    this._maxSize = max || 10;
-    this._array = ls ? [...ls] : [];
-    this._size = this._array.length;
-    this._queue = [];
+    this.#array = ls ? [...ls] : [];
+    this.#creator = creator;
+    this.#max_size = max || 10;
+    this.#queue = [];
+    this.#size = this.#array.length;
+  }
+
+  get available(): number {
+    return this.#array.length;
   }
 
   async pop(): Promise<T> {
-    if (this._array.length > 0) {
-      return this._array.pop()!;
-    } else if (this._size < this._maxSize && this._creator) {
-      this._size++;
-      return await this._creator();
+    if (this.#array.length > 0) {
+      return this.#array.pop()!;
+    } else if (this.#size < this.#max_size && this.#creator) {
+      this.#size++;
+      return await this.#creator();
     }
     const d = deferred<T>();
-    this._queue.push(d);
+    this.#queue.push(d);
     await d;
-    return this._array.pop()!;
+    return this.#array.pop()!;
   }
 
   push(value: T): void {
-    this._array.push(value);
-    if (this._queue.length > 0) {
-      const d = this._queue.shift()!;
+    this.#array.push(value);
+    if (this.#queue.length > 0) {
+      const d = this.#queue.shift()!;
       d.resolve();
     }
   }
 
   get size(): number {
-    return this._size;
-  }
-
-  get available(): number {
-    return this._array.length;
+    return this.#size;
   }
 }
