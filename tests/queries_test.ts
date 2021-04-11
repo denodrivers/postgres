@@ -48,8 +48,8 @@ function testClient(
     }
   }
 
-  Deno.test({ fn: clientWrapper, name });
-  Deno.test({ fn: poolWrapper, name });
+  Deno.test({ fn: clientWrapper, name: `Client: ${name}` });
+  Deno.test({ fn: poolWrapper, name: `Pool: ${name}` });
 }
 
 testClient("simpleQuery", async function (generateClient) {
@@ -284,539 +284,530 @@ testClient("templateStringQueryArray", async function (generateClient) {
   assertEquals(rows[0], [value_1, value_2]);
 });
 
-// testClient("transaction", async function (generateClient) {
-//   const client = await generateClient();
-
-//   // deno-lint-ignore camelcase
-//   const transaction_name = "x";
-//   const transaction = client.createTransaction(transaction_name);
-
-//   await transaction.begin();
-//   assertEquals(
-//     client.current_transaction,
-//     transaction_name,
-//     "Client is locked out during transaction",
-//   );
-//   await transaction.queryArray`CREATE TEMP TABLE TEST (X INTEGER)`;
-//   const savepoint = await transaction.savepoint("table_creation");
-//   await transaction.queryArray`INSERT INTO TEST (X) VALUES (1)`;
-//   // deno-lint-ignore camelcase
-//   const query_1 = await transaction.queryObject<{ x: number }>
-//     `SELECT X FROM TEST`;
-//   assertEquals(
-//     query_1.rows[0].x,
-//     1,
-//     "Operation was not executed inside transaction",
-//   );
-//   await transaction.rollback(savepoint);
-//   // deno-lint-ignore camelcase
-//   const query_2 = await transaction.queryObject<{ x: number }>
-//     `SELECT X FROM TEST`;
-//   assertEquals(
-//     query_2.rowCount,
-//     0,
-//     "Rollback was not succesful inside transaction",
-//   );
-//   await transaction.commit();
-//   assertEquals(
-//     client.current_transaction,
-//     null,
-//     "Client was not released after transaction",
-//   );
-// });
-
-// testClient(
-//   "transactionIsolationLevelRepeatableRead",
-//   async function (generateClient) {
-//     const client = await generateClient();
-
-//     await CLIENT_2.connect();
-
-//     try {
-//       await client.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
-//       await client.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
-//       await client.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
-//       // deno-lint-ignore camelcase
-//       const transaction_rr = client.createTransaction(
-//         "transactionIsolationLevelRepeatableRead",
-//         { isolation_level: "repeatable_read" },
-//       );
-//       await transaction_rr.begin();
-
-//       // This locks the current value of the test table
-//       await transaction_rr.queryObject<{ x: number }>
-//         `SELECT X FROM FOR_TRANSACTION_TEST`;
-
-//       // Modify data outside the transaction
-//       await CLIENT_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
-//       // deno-lint-ignore camelcase
-//       const { rows: query_1 } = await CLIENT_2.queryObject<{ x: number }>
-//         `SELECT X FROM FOR_TRANSACTION_TEST`;
-//       assertEquals(query_1, [{ x: 2 }]);
-
-//       // deno-lint-ignore camelcase
-//       const { rows: query_2 } = await transaction_rr.queryObject<
-//         { x: number }
-//       >`SELECT X FROM FOR_TRANSACTION_TEST`;
-//       assertEquals(
-//         query_2,
-//         [{ x: 1 }],
-//         "Repeatable read transaction should not be able to observe changes that happened after the transaction start",
-//       );
-
-//       await transaction_rr.commit();
-
-//       // deno-lint-ignore camelcase
-//       const { rows: query_3 } = await client.queryObject<{ x: number }>
-//         `SELECT X FROM FOR_TRANSACTION_TEST`;
-//       assertEquals(
-//         query_3,
-//         [{ x: 2 }],
-//         "Main session should be able to observe changes after transaction ended",
-//       );
-
-//       await client.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
-//     } finally {
-//       await CLIENT_2.end();
-//     }
-//   },
-// );
-
-// testClient(
-//   "transactionIsolationLevelSerializable",
-//   async function (generateClient) {
-//     const client = await generateClient();
-
-//     await CLIENT_2.connect();
-
-//     try {
-//       await client.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
-//       await client.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
-//       await client.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
-//       // deno-lint-ignore camelcase
-//       const transaction_rr = client.createTransaction(
-//         "transactionIsolationLevelRepeatableRead",
-//         { isolation_level: "serializable" },
-//       );
-//       await transaction_rr.begin();
-
-//       // This locks the current value of the test table
-//       await transaction_rr.queryObject<{ x: number }>
-//         `SELECT X FROM FOR_TRANSACTION_TEST`;
-
-//       // Modify data outside the transaction
-//       await CLIENT_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
-
-//       await assertThrowsAsync(
-//         () => transaction_rr.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 3`,
-//         undefined,
-//         undefined,
-//         "A serializable transaction should throw if the data read in the transaction has been modified externally",
-//       );
-
-//       // deno-lint-ignore camelcase
-//       const { rows: query_3 } = await client.queryObject<{ x: number }>
-//         `SELECT X FROM FOR_TRANSACTION_TEST`;
-//       assertEquals(
-//         query_3,
-//         [{ x: 2 }],
-//         "Main session should be able to observe changes after transaction ended",
-//       );
-
-//       await client.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
-//     } finally {
-//       await CLIENT_2.end();
-//     }
-//   },
-// );
-
-// testClient("transactionReadOnly", async function (generateClient) {
-//   const client = await generateClient();
-
-//   await client.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
-//   await client.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
-//   const transaction = client.createTransaction("transactionReadOnly", {
-//     read_only: true,
-//   });
-//   await transaction.begin();
-
-//   await assertThrowsAsync(
-//     () => transaction.queryArray`DELETE FROM FOR_TRANSACTION_TEST`,
-//     undefined,
-//     "cannot execute DELETE in a read-only transaction",
-//   );
-
-//   await client.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
-// });
-
-// testClient("transactionSnapshot", async function (generateClient) {
-//   const client = await generateClient();
-
-//   await CLIENT_2.connect();
-
-//   try {
-//     await client.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
-//     await client.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
-//     await client.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
-//     // deno-lint-ignore camelcase
-//     const transaction_1 = client.createTransaction(
-//       "transactionSnapshot1",
-//       { isolation_level: "repeatable_read" },
-//     );
-//     await transaction_1.begin();
-
-//     // This locks the current value of the test table
-//     await transaction_1.queryObject<{ x: number }>
-//       `SELECT X FROM FOR_TRANSACTION_TEST`;
-
-//     // Modify data outside the transaction
-//     await CLIENT_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
-
-//     // deno-lint-ignore camelcase
-//     const { rows: query_1 } = await transaction_1.queryObject<{ x: number }>
-//       `SELECT X FROM FOR_TRANSACTION_TEST`;
-//     assertEquals(
-//       query_1,
-//       [{ x: 1 }],
-//       "External changes shouldn't affect repeatable read transaction",
-//     );
-
-//     const snapshot = await transaction_1.getSnapshot();
-
-//     // deno-lint-ignore camelcase
-//     const transaction_2 = CLIENT_2.createTransaction(
-//       "transactionSnapshot2",
-//       { isolation_level: "repeatable_read", snapshot },
-//     );
-//     await transaction_2.begin();
-
-//     // deno-lint-ignore camelcase
-//     const { rows: query_2 } = await transaction_2.queryObject<{ x: number }>
-//       `SELECT X FROM FOR_TRANSACTION_TEST`;
-//     assertEquals(
-//       query_2,
-//       [{ x: 1 }],
-//       "External changes shouldn't affect repeatable read transaction with previous snapshot",
-//     );
-
-//     await transaction_1.commit();
-//     await transaction_2.commit();
-
-//     await client.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
-//   } finally {
-//     await CLIENT_2.end();
-//   }
-// });
-
-// testClient("transactionLock", async function (generateClient) {
-//   const client = await generateClient();
-
-//   const transaction = client.createTransaction("x");
-
-//   await transaction.begin();
-//   await transaction.queryArray`SELECT 1`;
-//   await assertThrowsAsync(
-//     () => client.queryArray`SELECT 1`,
-//     undefined,
-//     "This connection is currently locked",
-//     "The connection is not being locked by the transaction",
-//   );
-//   await transaction.commit();
-
-//   await client.queryArray`SELECT 1`;
-//   assertEquals(
-//     client.current_transaction,
-//     null,
-//     "Client was not released after transaction",
-//   );
-// });
-
-// testClient("transactionCommitChain", async function (generateClient) {
-//   const client = await generateClient();
-
-//   const name = "transactionCommitChain";
-//   const transaction = client.createTransaction(name);
-
-//   await transaction.begin();
-
-//   await transaction.commit({ chain: true });
-//   assertEquals(
-//     client.current_transaction,
-//     name,
-//     "Client shouldn't have been released on chained commit",
-//   );
-
-//   await transaction.commit();
-//   assertEquals(
-//     client.current_transaction,
-//     null,
-//     "Client was not released after transaction ended",
-//   );
-// });
-
-// testClient(
-//   "transactionLockIsReleasedOnSavepointLessRollback",
-//   async function (generateClient) {
-//     const client = await generateClient();
-
-//     const name = "transactionLockIsReleasedOnRollback";
-//     const transaction = client.createTransaction(name);
-
-//     await client.queryArray`CREATE TEMP TABLE MY_TEST (X INTEGER)`;
-//     await transaction.begin();
-//     await transaction.queryArray`INSERT INTO MY_TEST (X) VALUES (1)`;
-//     // deno-lint-ignore camelcase
-//     const { rows: query_1 } = await transaction.queryObject<{ x: number }>
-//       `SELECT X FROM MY_TEST`;
-//     assertEquals(query_1, [{ x: 1 }]);
-
-//     await transaction.rollback({ chain: true });
-
-//     assertEquals(
-//       client.current_transaction,
-//       name,
-//       "Client shouldn't have been released after chained rollback",
-//     );
-
-//     await transaction.rollback();
-
-//     // deno-lint-ignore camelcase
-//     const { rowCount: query_2 } = await client.queryObject<{ x: number }>
-//       `SELECT X FROM MY_TEST`;
-//     assertEquals(query_2, 0);
-
-//     assertEquals(
-//       client.current_transaction,
-//       null,
-//       "Client was not released after rollback",
-//     );
-//   },
-// );
-
-// testClient("transactionRollbackValidations", async function (generateClient) {
-//   const client = await generateClient();
-
-//   const transaction = client.createTransaction(
-//     "transactionRollbackValidations",
-//   );
-//   await transaction.begin();
-
-//   await assertThrowsAsync(
-//     // @ts-ignore This is made to check the two properties aren't passed at once
-//     () => transaction.rollback({ savepoint: "unexistent", chain: true }),
-//     undefined,
-//     "The chain option can't be used alongside a savepoint on a rollback operation",
-//   );
-
-//   await transaction.commit();
-// });
-
-// testClient(
-//   "transactionLockIsReleasedOnUnrecoverableError",
-//   async function (generateClient) {
-//     const client = await generateClient();
-
-//     const name = "transactionLockIsReleasedOnUnrecoverableError";
-//     const transaction = client.createTransaction(name);
-
-//     await transaction.begin();
-//     await assertThrowsAsync(
-//       () => transaction.queryArray`SELECT []`,
-//       undefined,
-//       `The transaction "${name}" has been aborted due to \`PostgresError:`,
-//     );
-//     assertEquals(client.current_transaction, null);
-
-//     await transaction.begin();
-//     await assertThrowsAsync(
-//       () => transaction.queryObject`SELECT []`,
-//       undefined,
-//       `The transaction "${name}" has been aborted due to \`PostgresError:`,
-//     );
-//     assertEquals(client.current_transaction, null);
-//   },
-// );
-
-// testClient("transactionSavepoints", async function (generateClient) {
-//   const client = await generateClient();
-
-//   // deno-lint-ignore camelcase
-//   const savepoint_name = "a1";
-//   const transaction = client.createTransaction("x");
-
-//   await transaction.begin();
-//   await transaction.queryArray`CREATE TEMP TABLE X (Y INT)`;
-//   await transaction.queryArray`INSERT INTO X VALUES (1)`;
-//   // deno-lint-ignore camelcase
-//   const { rows: query_1 } = await transaction.queryObject<{ y: number }>
-//     `SELECT Y FROM X`;
-//   assertEquals(query_1, [{ y: 1 }]);
-
-//   const savepoint = await transaction.savepoint(savepoint_name);
-
-//   await transaction.queryArray`DELETE FROM X`;
-//   // deno-lint-ignore camelcase
-//   const { rowCount: query_2 } = await transaction.queryObject<{ y: number }>
-//     `SELECT Y FROM X`;
-//   assertEquals(query_2, 0);
-
-//   await savepoint.update();
-
-//   await transaction.queryArray`INSERT INTO X VALUES (2)`;
-//   // deno-lint-ignore camelcase
-//   const { rows: query_3 } = await transaction.queryObject<{ y: number }>
-//     `SELECT Y FROM X`;
-//   assertEquals(query_3, [{ y: 2 }]);
-
-//   await transaction.rollback(savepoint);
-//   // deno-lint-ignore camelcase
-//   const { rowCount: query_4 } = await transaction.queryObject<{ y: number }>
-//     `SELECT Y FROM X`;
-//   assertEquals(query_4, 0);
-
-//   assertEquals(
-//     savepoint.instances,
-//     2,
-//     "An incorrect number of instances were created for a transaction savepoint",
-//   );
-//   await savepoint.release();
-//   assertEquals(
-//     savepoint.instances,
-//     1,
-//     "The instance for the savepoint was not released",
-//   );
-
-//   // This checks that the savepoint can be called by name as well
-//   await transaction.rollback(savepoint_name);
-//   // deno-lint-ignore camelcase
-//   const { rows: query_5 } = await transaction.queryObject<{ y: number }>
-//     `SELECT Y FROM X`;
-//   assertEquals(query_5, [{ y: 1 }]);
-
-//   await transaction.commit();
-// });
-
-// testClient("transactionSavepointValidations", async function (generateClient) {
-//   const client = await generateClient();
-
-//   const transaction = client.createTransaction("x");
-//   await transaction.begin();
-
-//   await assertThrowsAsync(
-//     () => transaction.savepoint("1"),
-//     undefined,
-//     "The savepoint name can't begin with a number",
-//   );
-
-//   await assertThrowsAsync(
-//     () =>
-//       transaction.savepoint(
-//         "this_savepoint_is_going_to_be_longer_than_sixty_three_characters",
-//       ),
-//     undefined,
-//     "The savepoint name can't be longer than 63 characters",
-//   );
-
-//   await assertThrowsAsync(
-//     () => transaction.savepoint("+"),
-//     undefined,
-//     "The savepoint name can only contain alphanumeric characters",
-//   );
-
-//   const savepoint = await transaction.savepoint("ABC1");
-//   assertEquals(savepoint.name, "abc1");
-
-//   assertEquals(
-//     savepoint,
-//     await transaction.savepoint("abc1"),
-//     "Creating a savepoint with the same name should return the original one",
-//   );
-//   await savepoint.release();
-
-//   await savepoint.release();
-
-//   await assertThrowsAsync(
-//     () => savepoint.release(),
-//     undefined,
-//     "This savepoint has no instances to release",
-//   );
-
-//   await assertThrowsAsync(
-//     () => transaction.rollback(savepoint),
-//     undefined,
-//     `There are no savepoints of "abc1" left to rollback to`,
-//   );
-
-//   await assertThrowsAsync(
-//     () => transaction.rollback("UNEXISTENT"),
-//     undefined,
-//     `There is no "unexistent" savepoint registered in this transaction`,
-//   );
-
-//   await transaction.commit();
-// });
-
-// testClient(
-//   "transactionOperationsThrowIfTransactionNotBegun",
-//   async function (generateClient) {
-//     const client = await generateClient();
-
-//     // deno-lint-ignore camelcase
-//     const transaction_x = client.createTransaction("x");
-//     // deno-lint-ignore camelcase
-//     const transaction_y = client.createTransaction("y");
-
-//     await transaction_x.begin();
-
-//     await assertThrowsAsync(
-//       () => transaction_y.begin(),
-//       undefined,
-//       `This client already has an ongoing transaction "x"`,
-//     );
-
-//     await transaction_x.commit();
-//     await transaction_y.begin();
-//     await assertThrowsAsync(
-//       () => transaction_y.begin(),
-//       undefined,
-//       "This transaction is already open",
-//     );
-
-//     await transaction_y.commit();
-//     await assertThrowsAsync(
-//       () => transaction_y.commit(),
-//       undefined,
-//       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
-//     );
-
-//     await assertThrowsAsync(
-//       () => transaction_y.commit(),
-//       undefined,
-//       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
-//     );
-
-//     await assertThrowsAsync(
-//       () => transaction_y.queryArray`SELECT 1`,
-//       undefined,
-//       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
-//     );
-
-//     await assertThrowsAsync(
-//       () => transaction_y.queryObject`SELECT 1`,
-//       undefined,
-//       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
-//     );
-
-//     await assertThrowsAsync(
-//       () => transaction_y.rollback(),
-//       undefined,
-//       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
-//     );
-
-//     await assertThrowsAsync(
-//       () => transaction_y.savepoint("SOME"),
-//       undefined,
-//       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
-//     );
-//   },
-// );
+testClient("transaction", async function (generateClient) {
+  const client = await generateClient();
+
+  // deno-lint-ignore camelcase
+  const transaction_name = "x";
+  const transaction = client.createTransaction(transaction_name);
+
+  await transaction.begin();
+  assertEquals(
+    client.current_transaction,
+    transaction_name,
+    "Client is locked out during transaction",
+  );
+  await transaction.queryArray`CREATE TEMP TABLE TEST (X INTEGER)`;
+  const savepoint = await transaction.savepoint("table_creation");
+  await transaction.queryArray`INSERT INTO TEST (X) VALUES (1)`;
+  // deno-lint-ignore camelcase
+  const query_1 = await transaction.queryObject<{ x: number }>
+    `SELECT X FROM TEST`;
+  assertEquals(
+    query_1.rows[0].x,
+    1,
+    "Operation was not executed inside transaction",
+  );
+  await transaction.rollback(savepoint);
+  // deno-lint-ignore camelcase
+  const query_2 = await transaction.queryObject<{ x: number }>
+    `SELECT X FROM TEST`;
+  assertEquals(
+    query_2.rowCount,
+    0,
+    "Rollback was not succesful inside transaction",
+  );
+  await transaction.commit();
+  assertEquals(
+    client.current_transaction,
+    null,
+    "Client was not released after transaction",
+  );
+});
+
+testClient(
+  "transactionIsolationLevelRepeatableRead",
+  async function (generateClient) {
+    // deno-lint-ignore camelcase
+    const client_1 = await generateClient();
+    // deno-lint-ignore camelcase
+    const client_2 = await generateClient();
+
+    await client_1.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
+    await client_1.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
+    await client_1.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
+    // deno-lint-ignore camelcase
+    const transaction_rr = client_1.createTransaction(
+      "transactionIsolationLevelRepeatableRead",
+      { isolation_level: "repeatable_read" },
+    );
+    await transaction_rr.begin();
+
+    // This locks the current value of the test table
+    await transaction_rr.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
+
+    // Modify data outside the transaction
+    await client_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
+    // deno-lint-ignore camelcase
+    const { rows: query_1 } = await client_2.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
+    assertEquals(query_1, [{ x: 2 }]);
+
+    // deno-lint-ignore camelcase
+    const { rows: query_2 } = await transaction_rr.queryObject<
+      { x: number }
+    >`SELECT X FROM FOR_TRANSACTION_TEST`;
+    assertEquals(
+      query_2,
+      [{ x: 1 }],
+      "Repeatable read transaction should not be able to observe changes that happened after the transaction start",
+    );
+
+    await transaction_rr.commit();
+
+    // deno-lint-ignore camelcase
+    const { rows: query_3 } = await client_1.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
+    assertEquals(
+      query_3,
+      [{ x: 2 }],
+      "Main session should be able to observe changes after transaction ended",
+    );
+
+    await client_1.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
+  },
+);
+
+testClient(
+  "transactionIsolationLevelSerializable",
+  async function (generateClient) {
+    // deno-lint-ignore camelcase
+    const client_1 = await generateClient();
+    // deno-lint-ignore camelcase
+    const client_2 = await generateClient();
+
+    await client_1.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
+    await client_1.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
+    await client_1.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
+    // deno-lint-ignore camelcase
+    const transaction_rr = client_1.createTransaction(
+      "transactionIsolationLevelRepeatableRead",
+      { isolation_level: "serializable" },
+    );
+    await transaction_rr.begin();
+
+    // This locks the current value of the test table
+    await transaction_rr.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
+
+    // Modify data outside the transaction
+    await client_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
+
+    await assertThrowsAsync(
+      () => transaction_rr.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 3`,
+      undefined,
+      undefined,
+      "A serializable transaction should throw if the data read in the transaction has been modified externally",
+    );
+
+    // deno-lint-ignore camelcase
+    const { rows: query_3 } = await client_1.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
+    assertEquals(
+      query_3,
+      [{ x: 2 }],
+      "Main session should be able to observe changes after transaction ended",
+    );
+
+    await client_1.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
+  },
+);
+
+testClient("transactionReadOnly", async function (generateClient) {
+  const client = await generateClient();
+
+  await client.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
+  await client.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
+  const transaction = client.createTransaction("transactionReadOnly", {
+    read_only: true,
+  });
+  await transaction.begin();
+
+  await assertThrowsAsync(
+    () => transaction.queryArray`DELETE FROM FOR_TRANSACTION_TEST`,
+    undefined,
+    "cannot execute DELETE in a read-only transaction",
+  );
+
+  await client.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
+});
+
+testClient("transactionSnapshot", async function (generateClient) {
+  // deno-lint-ignore camelcase
+  const client_1 = await generateClient();
+  // deno-lint-ignore camelcase
+  const client_2 = await generateClient();
+
+  await client_1.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
+  await client_1.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
+  await client_1.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
+  // deno-lint-ignore camelcase
+  const transaction_1 = client_1.createTransaction(
+    "transactionSnapshot1",
+    { isolation_level: "repeatable_read" },
+  );
+  await transaction_1.begin();
+
+  // This locks the current value of the test table
+  await transaction_1.queryObject<{ x: number }>
+    `SELECT X FROM FOR_TRANSACTION_TEST`;
+
+  // Modify data outside the transaction
+  await client_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
+
+  // deno-lint-ignore camelcase
+  const { rows: query_1 } = await transaction_1.queryObject<{ x: number }>
+    `SELECT X FROM FOR_TRANSACTION_TEST`;
+  assertEquals(
+    query_1,
+    [{ x: 1 }],
+    "External changes shouldn't affect repeatable read transaction",
+  );
+
+  const snapshot = await transaction_1.getSnapshot();
+
+  // deno-lint-ignore camelcase
+  const transaction_2 = client_2.createTransaction(
+    "transactionSnapshot2",
+    { isolation_level: "repeatable_read", snapshot },
+  );
+  await transaction_2.begin();
+
+  // deno-lint-ignore camelcase
+  const { rows: query_2 } = await transaction_2.queryObject<{ x: number }>
+    `SELECT X FROM FOR_TRANSACTION_TEST`;
+  assertEquals(
+    query_2,
+    [{ x: 1 }],
+    "External changes shouldn't affect repeatable read transaction with previous snapshot",
+  );
+
+  await transaction_1.commit();
+  await transaction_2.commit();
+
+  await client_1.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
+});
+
+testClient("transactionLock", async function (generateClient) {
+  const client = await generateClient();
+
+  const transaction = client.createTransaction("x");
+
+  await transaction.begin();
+  await transaction.queryArray`SELECT 1`;
+  await assertThrowsAsync(
+    () => client.queryArray`SELECT 1`,
+    undefined,
+    "This connection is currently locked",
+    "The connection is not being locked by the transaction",
+  );
+  await transaction.commit();
+
+  await client.queryArray`SELECT 1`;
+  assertEquals(
+    client.current_transaction,
+    null,
+    "Client was not released after transaction",
+  );
+});
+
+testClient("transactionCommitChain", async function (generateClient) {
+  const client = await generateClient();
+
+  const name = "transactionCommitChain";
+  const transaction = client.createTransaction(name);
+
+  await transaction.begin();
+
+  await transaction.commit({ chain: true });
+  assertEquals(
+    client.current_transaction,
+    name,
+    "Client shouldn't have been released on chained commit",
+  );
+
+  await transaction.commit();
+  assertEquals(
+    client.current_transaction,
+    null,
+    "Client was not released after transaction ended",
+  );
+});
+
+testClient(
+  "transactionLockIsReleasedOnSavepointLessRollback",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    const name = "transactionLockIsReleasedOnRollback";
+    const transaction = client.createTransaction(name);
+
+    await client.queryArray`CREATE TEMP TABLE MY_TEST (X INTEGER)`;
+    await transaction.begin();
+    await transaction.queryArray`INSERT INTO MY_TEST (X) VALUES (1)`;
+    // deno-lint-ignore camelcase
+    const { rows: query_1 } = await transaction.queryObject<{ x: number }>
+      `SELECT X FROM MY_TEST`;
+    assertEquals(query_1, [{ x: 1 }]);
+
+    await transaction.rollback({ chain: true });
+
+    assertEquals(
+      client.current_transaction,
+      name,
+      "Client shouldn't have been released after chained rollback",
+    );
+
+    await transaction.rollback();
+
+    // deno-lint-ignore camelcase
+    const { rowCount: query_2 } = await client.queryObject<{ x: number }>
+      `SELECT X FROM MY_TEST`;
+    assertEquals(query_2, 0);
+
+    assertEquals(
+      client.current_transaction,
+      null,
+      "Client was not released after rollback",
+    );
+  },
+);
+
+testClient("transactionRollbackValidations", async function (generateClient) {
+  const client = await generateClient();
+
+  const transaction = client.createTransaction(
+    "transactionRollbackValidations",
+  );
+  await transaction.begin();
+
+  await assertThrowsAsync(
+    // @ts-ignore This is made to check the two properties aren't passed at once
+    () => transaction.rollback({ savepoint: "unexistent", chain: true }),
+    undefined,
+    "The chain option can't be used alongside a savepoint on a rollback operation",
+  );
+
+  await transaction.commit();
+});
+
+testClient(
+  "transactionLockIsReleasedOnUnrecoverableError",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    const name = "transactionLockIsReleasedOnUnrecoverableError";
+    const transaction = client.createTransaction(name);
+
+    await transaction.begin();
+    await assertThrowsAsync(
+      () => transaction.queryArray`SELECT []`,
+      undefined,
+      `The transaction "${name}" has been aborted due to \`PostgresError:`,
+    );
+    assertEquals(client.current_transaction, null);
+
+    await transaction.begin();
+    await assertThrowsAsync(
+      () => transaction.queryObject`SELECT []`,
+      undefined,
+      `The transaction "${name}" has been aborted due to \`PostgresError:`,
+    );
+    assertEquals(client.current_transaction, null);
+  },
+);
+
+testClient("transactionSavepoints", async function (generateClient) {
+  const client = await generateClient();
+
+  // deno-lint-ignore camelcase
+  const savepoint_name = "a1";
+  const transaction = client.createTransaction("x");
+
+  await transaction.begin();
+  await transaction.queryArray`CREATE TEMP TABLE X (Y INT)`;
+  await transaction.queryArray`INSERT INTO X VALUES (1)`;
+  // deno-lint-ignore camelcase
+  const { rows: query_1 } = await transaction.queryObject<{ y: number }>
+    `SELECT Y FROM X`;
+  assertEquals(query_1, [{ y: 1 }]);
+
+  const savepoint = await transaction.savepoint(savepoint_name);
+
+  await transaction.queryArray`DELETE FROM X`;
+  // deno-lint-ignore camelcase
+  const { rowCount: query_2 } = await transaction.queryObject<{ y: number }>
+    `SELECT Y FROM X`;
+  assertEquals(query_2, 0);
+
+  await savepoint.update();
+
+  await transaction.queryArray`INSERT INTO X VALUES (2)`;
+  // deno-lint-ignore camelcase
+  const { rows: query_3 } = await transaction.queryObject<{ y: number }>
+    `SELECT Y FROM X`;
+  assertEquals(query_3, [{ y: 2 }]);
+
+  await transaction.rollback(savepoint);
+  // deno-lint-ignore camelcase
+  const { rowCount: query_4 } = await transaction.queryObject<{ y: number }>
+    `SELECT Y FROM X`;
+  assertEquals(query_4, 0);
+
+  assertEquals(
+    savepoint.instances,
+    2,
+    "An incorrect number of instances were created for a transaction savepoint",
+  );
+  await savepoint.release();
+  assertEquals(
+    savepoint.instances,
+    1,
+    "The instance for the savepoint was not released",
+  );
+
+  // This checks that the savepoint can be called by name as well
+  await transaction.rollback(savepoint_name);
+  // deno-lint-ignore camelcase
+  const { rows: query_5 } = await transaction.queryObject<{ y: number }>
+    `SELECT Y FROM X`;
+  assertEquals(query_5, [{ y: 1 }]);
+
+  await transaction.commit();
+});
+
+testClient("transactionSavepointValidations", async function (generateClient) {
+  const client = await generateClient();
+
+  const transaction = client.createTransaction("x");
+  await transaction.begin();
+
+  await assertThrowsAsync(
+    () => transaction.savepoint("1"),
+    undefined,
+    "The savepoint name can't begin with a number",
+  );
+
+  await assertThrowsAsync(
+    () =>
+      transaction.savepoint(
+        "this_savepoint_is_going_to_be_longer_than_sixty_three_characters",
+      ),
+    undefined,
+    "The savepoint name can't be longer than 63 characters",
+  );
+
+  await assertThrowsAsync(
+    () => transaction.savepoint("+"),
+    undefined,
+    "The savepoint name can only contain alphanumeric characters",
+  );
+
+  const savepoint = await transaction.savepoint("ABC1");
+  assertEquals(savepoint.name, "abc1");
+
+  assertEquals(
+    savepoint,
+    await transaction.savepoint("abc1"),
+    "Creating a savepoint with the same name should return the original one",
+  );
+  await savepoint.release();
+
+  await savepoint.release();
+
+  await assertThrowsAsync(
+    () => savepoint.release(),
+    undefined,
+    "This savepoint has no instances to release",
+  );
+
+  await assertThrowsAsync(
+    () => transaction.rollback(savepoint),
+    undefined,
+    `There are no savepoints of "abc1" left to rollback to`,
+  );
+
+  await assertThrowsAsync(
+    () => transaction.rollback("UNEXISTENT"),
+    undefined,
+    `There is no "unexistent" savepoint registered in this transaction`,
+  );
+
+  await transaction.commit();
+});
+
+testClient(
+  "transactionOperationsThrowIfTransactionNotBegun",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    // deno-lint-ignore camelcase
+    const transaction_x = client.createTransaction("x");
+    // deno-lint-ignore camelcase
+    const transaction_y = client.createTransaction("y");
+
+    await transaction_x.begin();
+
+    await assertThrowsAsync(
+      () => transaction_y.begin(),
+      undefined,
+      `This client already has an ongoing transaction "x"`,
+    );
+
+    await transaction_x.commit();
+    await transaction_y.begin();
+    await assertThrowsAsync(
+      () => transaction_y.begin(),
+      undefined,
+      "This transaction is already open",
+    );
+
+    await transaction_y.commit();
+    await assertThrowsAsync(
+      () => transaction_y.commit(),
+      undefined,
+      `This transaction has not been started yet, make sure to use the "begin" method to do so`,
+    );
+
+    await assertThrowsAsync(
+      () => transaction_y.commit(),
+      undefined,
+      `This transaction has not been started yet, make sure to use the "begin" method to do so`,
+    );
+
+    await assertThrowsAsync(
+      () => transaction_y.queryArray`SELECT 1`,
+      undefined,
+      `This transaction has not been started yet, make sure to use the "begin" method to do so`,
+    );
+
+    await assertThrowsAsync(
+      () => transaction_y.queryObject`SELECT 1`,
+      undefined,
+      `This transaction has not been started yet, make sure to use the "begin" method to do so`,
+    );
+
+    await assertThrowsAsync(
+      () => transaction_y.rollback(),
+      undefined,
+      `This transaction has not been started yet, make sure to use the "begin" method to do so`,
+    );
+
+    await assertThrowsAsync(
+      () => transaction_y.savepoint("SOME"),
+      undefined,
+      `This transaction has not been started yet, make sure to use the "begin" method to do so`,
+    );
+  },
+);
