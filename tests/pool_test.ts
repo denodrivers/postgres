@@ -1,22 +1,20 @@
 import { assertEquals, assertThrowsAsync, delay } from "./test_deps.ts";
 import { Pool } from "../pool.ts";
-import { DEFAULT_SETUP } from "./constants.ts";
 import { getMainConfiguration } from "./config.ts";
 
 function testPool(
   t: (pool: Pool) => void | Promise<void>,
   lazy?: boolean,
 ) {
-  // constructing Pool instantiates the connections,
-  // so this has to be constructed for each test.
   const fn = async () => {
     const POOL = new Pool(getMainConfiguration(), 10, lazy);
+    // If the connection is not lazy, create a client to await
+    // for initialization
+    if (!lazy) {
+      const client = await POOL.connect();
+      await client.release();
+    }
     try {
-      for (const q of DEFAULT_SETUP) {
-        const client = await POOL.connect();
-        await client.queryArray(q);
-        await client.release();
-      }
       await t(POOL);
     } finally {
       await POOL.end();
@@ -25,77 +23,6 @@ function testPool(
   const name = t.name;
   Deno.test({ fn, name });
 }
-
-testPool(async function simpleQuery(POOL) {
-  const client = await POOL.connect();
-  const result = await client.queryArray`SELECT * FROM ids`;
-  assertEquals(result.rows.length, 2);
-  await client.release();
-});
-
-testPool(async function parametrizedQuery(POOL) {
-  const client = await POOL.connect();
-  const result = await client.queryObject(
-    "SELECT * FROM ids WHERE id < $1",
-    2,
-  );
-  assertEquals(result.rows, [{ id: 1 }]);
-  await client.release();
-});
-
-testPool(async function aliasedObjectQuery(POOL) {
-  const client = await POOL.connect();
-  const result = await client.queryObject({
-    text: "SELECT ARRAY[1, 2, 3], 'DATA'",
-    fields: ["IDS", "type"],
-  });
-
-  assertEquals(result.rows, [{ ids: [1, 2, 3], type: "DATA" }]);
-  await client.release();
-});
-
-testPool(async function objectQueryThrowsOnRepeatedFields(POOL) {
-  const client = await POOL.connect();
-  await assertThrowsAsync(
-    async () => {
-      await client.queryObject({
-        text: "SELECT 1",
-        fields: ["FIELD_1", "FIELD_1"],
-      });
-    },
-    TypeError,
-    "The fields provided for the query must be unique",
-  )
-    .finally(() => client.release());
-});
-
-testPool(async function objectQueryThrowsOnNotMatchingFields(POOL) {
-  const client = await POOL.connect();
-  await assertThrowsAsync(
-    async () => {
-      await client.queryObject({
-        text: "SELECT 1",
-        fields: ["FIELD_1", "FIELD_2"],
-      });
-    },
-    RangeError,
-    "The fields provided for the query don't match the ones returned as a result (1 expected, 2 received)",
-  )
-    .finally(() => client.release());
-});
-
-testPool(async function nativeType(POOL) {
-  const client = await POOL.connect();
-  const result = await client.queryArray<[Date]>("SELECT * FROM timestamps");
-  const row = result.rows[0];
-
-  const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
-
-  assertEquals(row[0].toUTCString(), new Date(expectedDate).toUTCString());
-
-  await client.queryArray("INSERT INTO timestamps(dt) values($1)", new Date());
-  await client.release();
-});
 
 testPool(
   async function lazyPool(POOL) {
