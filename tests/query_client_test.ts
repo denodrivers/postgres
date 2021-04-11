@@ -3,14 +3,6 @@ import { assert, assertEquals, assertThrowsAsync } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
 import { PoolClient, QueryClient } from "../client.ts";
 
-function generateClient() {
-  return new Client(getMainConfiguration());
-}
-
-function generatePool() {
-  return new Pool(getMainConfiguration(), 10);
-}
-
 function testClient(
   name: string,
   t: (getClient: () => Promise<QueryClient>) => void | Promise<void>,
@@ -19,7 +11,7 @@ function testClient(
     const clients: Client[] = [];
     try {
       await t(async () => {
-        const client = generateClient();
+        const client = new Client(getMainConfiguration());
         await client.connect();
         clients.push(client);
         return client;
@@ -32,7 +24,7 @@ function testClient(
   }
 
   async function poolWrapper() {
-    const pool = generatePool();
+    const pool = new Pool(getMainConfiguration(), 10);
     const clients: PoolClient[] = [];
     try {
       await t(async () => {
@@ -52,14 +44,14 @@ function testClient(
   Deno.test({ fn: poolWrapper, name: `Pool: ${name}` });
 }
 
-testClient("simpleQuery", async function (generateClient) {
+testClient("Simple query", async function (generateClient) {
   const client = await generateClient();
 
   const result = await client.queryArray("SELECT UNNEST(ARRAY[1, 2])");
   assertEquals(result.rows.length, 2);
 });
 
-testClient("parametrizedQuery", async function (generateClient) {
+testClient("Prepared statements", async function (generateClient) {
   const client = await generateClient();
 
   const result = await client.queryObject(
@@ -69,7 +61,7 @@ testClient("parametrizedQuery", async function (generateClient) {
   assertEquals(result.rows, [{ id: 1 }]);
 });
 
-testClient("objectQuery", async function (generateClient) {
+testClient("Object query", async function (generateClient) {
   const client = await generateClient();
 
   const result = await client.queryObject(
@@ -79,19 +71,22 @@ testClient("objectQuery", async function (generateClient) {
   assertEquals(result.rows, [{ id: [1, 2, 3], type: "DATA" }]);
 });
 
-testClient("aliasedObjectQuery", async function (generateClient) {
-  const client = await generateClient();
+testClient(
+  "Object query are mapped to user provided fields",
+  async function (generateClient) {
+    const client = await generateClient();
 
-  const result = await client.queryObject({
-    text: "SELECT ARRAY[1, 2, 3], 'DATA'",
-    fields: ["ID", "type"],
-  });
+    const result = await client.queryObject({
+      text: "SELECT ARRAY[1, 2, 3], 'DATA'",
+      fields: ["ID", "type"],
+    });
 
-  assertEquals(result.rows, [{ id: [1, 2, 3], type: "DATA" }]);
-});
+    assertEquals(result.rows, [{ id: [1, 2, 3], type: "DATA" }]);
+  },
+);
 
 testClient(
-  "objectQueryThrowsOnRepeatedFields",
+  "Object query throws if user provided fields aren't unique",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -109,7 +104,7 @@ testClient(
 );
 
 testClient(
-  "objectQueryThrowsOnNotMatchingFields",
+  "Object query throws if result columns don't match the user provided fields",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -126,7 +121,7 @@ testClient(
   },
 );
 
-testClient("handleDebugNotice", async function (generateClient) {
+testClient("Handling of debug notices", async function (generateClient) {
   const client = await generateClient();
 
   // Create temporary function
@@ -142,7 +137,7 @@ testClient("handleDebugNotice", async function (generateClient) {
 
 // This query doesn't recreate the table and outputs
 // a notice instead
-testClient("handleQueryNotice", async function (generateClient) {
+testClient("Handling of query notices", async function (generateClient) {
   const client = await generateClient();
 
   await client.queryArray(
@@ -167,7 +162,7 @@ testClient("nativeType", async function (generateClient) {
   assertEquals(row[0].toUTCString(), new Date(expectedDate).toUTCString());
 });
 
-testClient("binaryType", async function (generateClient) {
+testClient("Binary data is parsed correctly", async function (generateClient) {
   const client = await generateClient();
 
   // deno-lint-ignore camelcase
@@ -186,7 +181,7 @@ testClient("binaryType", async function (generateClient) {
   assertEquals(result_2[0][0], expectedBytes);
 });
 
-testClient("resultMetadata", async function (generateClient) {
+testClient("Result object metadata", async function (generateClient) {
   const client = await generateClient();
 
   await client.queryArray`CREATE TEMP TABLE METADATA (VALUE INTEGER)`;
@@ -250,29 +245,21 @@ testClient("resultMetadata", async function (generateClient) {
   assertEquals(result.rowCount, 1);
 });
 
-testClient("handleNameTooLongError", async function (generateClient) {
+testClient("Long column alias is truncated", async function (generateClient) {
   const client = await generateClient();
 
-  const result = await client.queryObject(`
+  const { rows: result, warnings } = await client.queryObject(`
     SELECT 1 AS "very_very_very_very_very_very_very_very_very_very_very_long_name"
   `);
-  assertEquals(result.rows, [
+
+  assertEquals(result, [
     { "very_very_very_very_very_very_very_very_very_very_very_long_nam": 1 },
   ]);
+
+  assert(warnings[0].message.includes("will be truncated"));
 });
 
-testClient("templateStringQueryObject", async function (generateClient) {
-  const client = await generateClient();
-
-  const value = { x: "A", y: "B" };
-
-  const { rows } = await client.queryObject<{ x: string; y: string }>
-    `SELECT ${value.x} AS X, ${value.y} AS Y`;
-
-  assertEquals(rows[0], value);
-});
-
-testClient("templateStringQueryArray", async function (generateClient) {
+testClient("Query array with template string", async function (generateClient) {
   const client = await generateClient();
 
   // deno-lint-ignore camelcase
@@ -284,7 +271,21 @@ testClient("templateStringQueryArray", async function (generateClient) {
   assertEquals(rows[0], [value_1, value_2]);
 });
 
-testClient("transaction", async function (generateClient) {
+testClient(
+  "Query object with template string",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    const value = { x: "A", y: "B" };
+
+    const { rows } = await client.queryObject<{ x: string; y: string }>
+      `SELECT ${value.x} AS X, ${value.y} AS Y`;
+
+    assertEquals(rows[0], value);
+  },
+);
+
+testClient("Transaction", async function (generateClient) {
   const client = await generateClient();
 
   // deno-lint-ignore camelcase
@@ -326,7 +327,7 @@ testClient("transaction", async function (generateClient) {
 });
 
 testClient(
-  "transactionIsolationLevelRepeatableRead",
+  "Transaction with repeatable read isolation level",
   async function (generateClient) {
     // deno-lint-ignore camelcase
     const client_1 = await generateClient();
@@ -380,7 +381,7 @@ testClient(
 );
 
 testClient(
-  "transactionIsolationLevelSerializable",
+  "Transaction with serializable isolation level",
   async function (generateClient) {
     // deno-lint-ignore camelcase
     const client_1 = await generateClient();
@@ -424,7 +425,7 @@ testClient(
   },
 );
 
-testClient("transactionReadOnly", async function (generateClient) {
+testClient("Transaction read only", async function (generateClient) {
   const client = await generateClient();
 
   await client.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
@@ -443,7 +444,7 @@ testClient("transactionReadOnly", async function (generateClient) {
   await client.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
 });
 
-testClient("transactionSnapshot", async function (generateClient) {
+testClient("Transaction snapshot", async function (generateClient) {
   // deno-lint-ignore camelcase
   const client_1 = await generateClient();
   // deno-lint-ignore camelcase
@@ -499,7 +500,7 @@ testClient("transactionSnapshot", async function (generateClient) {
   await client_1.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
 });
 
-testClient("transactionLock", async function (generateClient) {
+testClient("Transaction locks client", async function (generateClient) {
   const client = await generateClient();
 
   const transaction = client.createTransaction("x");
@@ -522,7 +523,7 @@ testClient("transactionLock", async function (generateClient) {
   );
 });
 
-testClient("transactionCommitChain", async function (generateClient) {
+testClient("Transaction commit chain", async function (generateClient) {
   const client = await generateClient();
 
   const name = "transactionCommitChain";
@@ -546,7 +547,7 @@ testClient("transactionCommitChain", async function (generateClient) {
 });
 
 testClient(
-  "transactionLockIsReleasedOnSavepointLessRollback",
+  "Transaction lock is released on savepoint-less rollback",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -584,7 +585,7 @@ testClient(
   },
 );
 
-testClient("transactionRollbackValidations", async function (generateClient) {
+testClient("Transaction rollback validations", async function (generateClient) {
   const client = await generateClient();
 
   const transaction = client.createTransaction(
@@ -603,7 +604,7 @@ testClient("transactionRollbackValidations", async function (generateClient) {
 });
 
 testClient(
-  "transactionLockIsReleasedOnUnrecoverableError",
+  "Transaction lock is released after unrecoverable error",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -628,7 +629,7 @@ testClient(
   },
 );
 
-testClient("transactionSavepoints", async function (generateClient) {
+testClient("Transaction savepoints", async function (generateClient) {
   const client = await generateClient();
 
   // deno-lint-ignore camelcase
@@ -687,68 +688,71 @@ testClient("transactionSavepoints", async function (generateClient) {
   await transaction.commit();
 });
 
-testClient("transactionSavepointValidations", async function (generateClient) {
-  const client = await generateClient();
+testClient(
+  "Transaction savepoint validations",
+  async function (generateClient) {
+    const client = await generateClient();
 
-  const transaction = client.createTransaction("x");
-  await transaction.begin();
+    const transaction = client.createTransaction("x");
+    await transaction.begin();
 
-  await assertThrowsAsync(
-    () => transaction.savepoint("1"),
-    undefined,
-    "The savepoint name can't begin with a number",
-  );
+    await assertThrowsAsync(
+      () => transaction.savepoint("1"),
+      undefined,
+      "The savepoint name can't begin with a number",
+    );
 
-  await assertThrowsAsync(
-    () =>
-      transaction.savepoint(
-        "this_savepoint_is_going_to_be_longer_than_sixty_three_characters",
-      ),
-    undefined,
-    "The savepoint name can't be longer than 63 characters",
-  );
+    await assertThrowsAsync(
+      () =>
+        transaction.savepoint(
+          "this_savepoint_is_going_to_be_longer_than_sixty_three_characters",
+        ),
+      undefined,
+      "The savepoint name can't be longer than 63 characters",
+    );
 
-  await assertThrowsAsync(
-    () => transaction.savepoint("+"),
-    undefined,
-    "The savepoint name can only contain alphanumeric characters",
-  );
+    await assertThrowsAsync(
+      () => transaction.savepoint("+"),
+      undefined,
+      "The savepoint name can only contain alphanumeric characters",
+    );
 
-  const savepoint = await transaction.savepoint("ABC1");
-  assertEquals(savepoint.name, "abc1");
+    const savepoint = await transaction.savepoint("ABC1");
+    assertEquals(savepoint.name, "abc1");
 
-  assertEquals(
-    savepoint,
-    await transaction.savepoint("abc1"),
-    "Creating a savepoint with the same name should return the original one",
-  );
-  await savepoint.release();
+    assertEquals(
+      savepoint,
+      await transaction.savepoint("abc1"),
+      "Creating a savepoint with the same name should return the original one",
+    );
+    await savepoint.release();
 
-  await savepoint.release();
+    await savepoint.release();
 
-  await assertThrowsAsync(
-    () => savepoint.release(),
-    undefined,
-    "This savepoint has no instances to release",
-  );
+    await assertThrowsAsync(
+      () => savepoint.release(),
+      undefined,
+      "This savepoint has no instances to release",
+    );
 
-  await assertThrowsAsync(
-    () => transaction.rollback(savepoint),
-    undefined,
-    `There are no savepoints of "abc1" left to rollback to`,
-  );
+    await assertThrowsAsync(
+      () => transaction.rollback(savepoint),
+      undefined,
+      `There are no savepoints of "abc1" left to rollback to`,
+    );
 
-  await assertThrowsAsync(
-    () => transaction.rollback("UNEXISTENT"),
-    undefined,
-    `There is no "unexistent" savepoint registered in this transaction`,
-  );
+    await assertThrowsAsync(
+      () => transaction.rollback("UNEXISTENT"),
+      undefined,
+      `There is no "unexistent" savepoint registered in this transaction`,
+    );
 
-  await transaction.commit();
-});
+    await transaction.commit();
+  },
+);
 
 testClient(
-  "transactionOperationsThrowIfTransactionNotBegun",
+  "Transaction operations throw if transaction has not been initialized",
   async function (generateClient) {
     const client = await generateClient();
 
