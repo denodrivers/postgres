@@ -170,6 +170,26 @@ testPool(async function manyQueries(POOL) {
   assertEquals(result, expected);
 });
 
+testPool(async function reconnectAfterPoolEnd(POOL) {
+  await POOL.end();
+  assertEquals(POOL.available, 0);
+
+  const client = await POOL.connect();
+  await client.queryArray`SELECT 1`;
+  await client.release();
+  assertEquals(POOL.available, 10);
+});
+
+testPool(async function reconnectAfterLazyPoolEnd(POOL) {
+  await POOL.end();
+  assertEquals(POOL.available, 0);
+
+  const client = await POOL.connect();
+  await client.queryArray`SELECT 1`;
+  await client.release();
+  assertEquals(POOL.available, 1);
+}, true);
+
 testPool(async function transaction(POOL) {
   const client = await POOL.connect();
   // deno-lint-ignore camelcase
