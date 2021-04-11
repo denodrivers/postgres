@@ -10,9 +10,9 @@ import { DeferredStack } from "./connection/deferred.ts";
 
 /**
  * Connection pools are a powerful resource to execute parallel queries and
- * to save up time in connection initialization. It is highly recommended that all
- * applications that require concurrent access use a connection pool to stablish
- * connection with their PostgreSQL database
+ * save up time in connection initialization. It is highly recommended that all
+ * applications that require concurrent access use a pool to communicate
+ * with their PostgreSQL database
  * 
  * ```ts
  * const pool = new Pool({
@@ -34,9 +34,10 @@ import { DeferredStack } from "./connection/deferred.ts";
  * available connections in the Pool
  * 
  * ```ts
- * // Creates a pool with 10 available connections
+ * // Creates a pool with 10 max available connections
+ * // No connections are started until requested
  * // Connection with the database won't be established until the user requires it
- * const pool = new Pool(connection_params, 10, false);
+ * const pool = new Pool(connection_params, 10, true);
  * 
  * // Connection is created here, will be available from now on
  * const client_1 = await pool.connect();
@@ -80,7 +81,7 @@ export class Pool {
   /**
    * The number of open connections available for use
    * 
-   * Lazy initialized pools won't have any open connections by default
+   * Lazily initialized pools won't have any open connections by default
    */
   get available(): number {
     if (this.#available_connections == null) {
@@ -155,7 +156,7 @@ export class Pool {
   }
 
   #initialize = async (): Promise<void> => {
-    const initSize = this.#lazy ? 1 : this.#max_size;
+    const initSize = this.#lazy ? 0 : this.#max_size;
     const connections = Array.from(
       { length: initSize },
       () => this.#createConnection(),
