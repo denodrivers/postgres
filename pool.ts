@@ -31,11 +31,10 @@ import { DeferredStack } from "./connection/deferred.ts";
  * You can also opt to not initialize all your connections at once by passing the `lazy`
  * option when instantiating your pool, this is useful to reduce startup time. In
  * addition to this, the pool won't start the connection unless there isn't any already
- * available connections in the Pool
+ * available connections in the pool
  * 
  * ```ts
  * // Creates a pool with 10 max available connections
- * // No connections are started until requested
  * // Connection with the database won't be established until the user requires it
  * const pool = new Pool(connection_params, 10, true);
  * 
