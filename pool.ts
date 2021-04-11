@@ -17,103 +17,80 @@ import {
 
 // TODO
 // Remove query execution methods from main pool
-export class Pool extends QueryClient {
-  private _connectionParams: ConnectionParams;
-  private _connections!: Array<Connection>;
-  private _availableConnections!: DeferredStack<Connection>;
-  private _maxSize: number;
+export class Pool {
+  #connectionParams: ConnectionParams;
+  // TODO
+  // Cleanup initialization
+  #connections!: Array<Connection>;
+  #availableConnections!: DeferredStack<Connection>;
+  #maxSize: number;
+  // TODO
+  // Initialization should probably have a startup
   public ready: Promise<void>;
-  private _lazy: boolean;
+  #lazy: boolean;
 
   constructor(
     connectionParams: ConnectionOptions | ConnectionString | undefined,
     maxSize: number,
     lazy?: boolean,
   ) {
-    super();
-    this._connectionParams = createParams(connectionParams);
-    this._maxSize = maxSize;
-    this._lazy = !!lazy;
-    this.ready = this._startup();
-  }
-
-  _executeQuery(query: Query<ResultType.ARRAY>): Promise<QueryArrayResult>;
-  _executeQuery(query: Query<ResultType.OBJECT>): Promise<QueryObjectResult>;
-  _executeQuery(query: Query<ResultType>): Promise<QueryResult> {
-    return this._execute(query);
+    this.#connectionParams = createParams(connectionParams);
+    this.#maxSize = maxSize;
+    this.#lazy = !!lazy;
+    this.ready = this.#startup();
   }
 
   private async _createConnection(): Promise<Connection> {
-    const connection = new Connection(this._connectionParams);
+    const connection = new Connection(this.#connectionParams);
     await connection.startup();
     return connection;
   }
 
   /** pool max size */
   get maxSize(): number {
-    return this._maxSize;
+    return this.#maxSize;
   }
 
   /** number of connections created */
   get size(): number {
-    if (this._availableConnections == null) {
+    if (this.#availableConnections == null) {
       return 0;
     }
-    return this._availableConnections.size;
+    return this.#availableConnections.size;
   }
 
   /** number of available connections */
   get available(): number {
-    if (this._availableConnections == null) {
+    if (this.#availableConnections == null) {
       return 0;
     }
-    return this._availableConnections.available;
+    return this.#availableConnections.available;
   }
 
-  private async _startup(): Promise<void> {
-    const initSize = this._lazy ? 1 : this._maxSize;
+  #startup = async (): Promise<void> => {
+    const initSize = this.#lazy ? 1 : this.#maxSize;
     const connecting = [...Array(initSize)].map(async () =>
       await this._createConnection()
     );
-    this._connections = await Promise.all(connecting);
-    this._availableConnections = new DeferredStack(
-      this._maxSize,
-      this._connections,
+    this.#connections = await Promise.all(connecting);
+    this.#availableConnections = new DeferredStack(
+      this.#maxSize,
+      this.#connections,
       this._createConnection.bind(this),
     );
-  }
-
-  private async _execute(
-    query: Query<ResultType.ARRAY>,
-  ): Promise<QueryArrayResult>;
-  private async _execute(
-    query: Query<ResultType.OBJECT>,
-  ): Promise<QueryObjectResult>;
-  private async _execute(
-    query: Query<ResultType>,
-  ): Promise<QueryResult> {
-    await this.ready;
-    const connection = await this._availableConnections.pop();
-    try {
-      return await connection.query(query);
-    } catch (error) {
-      throw error;
-    } finally {
-      this._availableConnections.push(connection);
-    }
-  }
+  };
 
   async connect(): Promise<PoolClient> {
     await this.ready;
-    const connection = await this._availableConnections.pop();
-    const release = () => this._availableConnections.push(connection);
+    const connection = await this.#availableConnections.pop();
+    const release = () => this.#availableConnections.push(connection);
     return new PoolClient(connection, release);
   }
 
   async end(): Promise<void> {
     await this.ready;
     while (this.available > 0) {
-      const conn = await this._availableConnections.pop();
+      const conn = await this.#availableConnections.pop();
       await conn.end();
     }
   }

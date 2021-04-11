@@ -5,7 +5,6 @@ import { getMainConfiguration } from "./config.ts";
 
 function testPool(
   t: (pool: Pool) => void | Promise<void>,
-  setupQueries?: Array<string> | null,
   lazy?: boolean,
 ) {
   // constructing Pool instantiates the connections,
@@ -13,8 +12,10 @@ function testPool(
   const fn = async () => {
     const POOL = new Pool(getMainConfiguration(), 10, lazy);
     try {
-      for (const q of setupQueries || DEFAULT_SETUP) {
-        await POOL.queryArray(q);
+      for (const q of DEFAULT_SETUP) {
+        const client = await POOL.connect();
+        await client.queryArray(q);
+        await client.release();
       }
       await t(POOL);
     } finally {
@@ -26,75 +27,103 @@ function testPool(
 }
 
 testPool(async function simpleQuery(POOL) {
-  const result = await POOL.queryArray("SELECT * FROM ids;");
+  const client = await POOL.connect();
+  const result = await client.queryArray`SELECT * FROM ids`;
   assertEquals(result.rows.length, 2);
+  await client.release();
 });
 
 testPool(async function parametrizedQuery(POOL) {
-  const result = await POOL.queryObject("SELECT * FROM ids WHERE id < $1;", 2);
+  const client = await POOL.connect();
+  const result = await client.queryObject(
+    "SELECT * FROM ids WHERE id < $1",
+    2,
+  );
   assertEquals(result.rows, [{ id: 1 }]);
+  await client.release();
 });
 
 testPool(async function aliasedObjectQuery(POOL) {
-  const result = await POOL.queryObject({
+  const client = await POOL.connect();
+  const result = await client.queryObject({
     text: "SELECT ARRAY[1, 2, 3], 'DATA'",
     fields: ["IDS", "type"],
   });
 
   assertEquals(result.rows, [{ ids: [1, 2, 3], type: "DATA" }]);
+  await client.release();
 });
 
 testPool(async function objectQueryThrowsOnRepeatedFields(POOL) {
+  const client = await POOL.connect();
   await assertThrowsAsync(
     async () => {
-      await POOL.queryObject({
+      await client.queryObject({
         text: "SELECT 1",
         fields: ["FIELD_1", "FIELD_1"],
       });
     },
     TypeError,
     "The fields provided for the query must be unique",
-  );
+  )
+    .finally(() => client.release());
 });
 
 testPool(async function objectQueryThrowsOnNotMatchingFields(POOL) {
+  const client = await POOL.connect();
   await assertThrowsAsync(
     async () => {
-      await POOL.queryObject({
+      await client.queryObject({
         text: "SELECT 1",
         fields: ["FIELD_1", "FIELD_2"],
       });
     },
     RangeError,
     "The fields provided for the query don't match the ones returned as a result (1 expected, 2 received)",
-  );
+  )
+    .finally(() => client.release());
 });
 
 testPool(async function nativeType(POOL) {
-  const result = await POOL.queryArray<[Date]>("SELECT * FROM timestamps;");
+  const client = await POOL.connect();
+  const result = await client.queryArray<[Date]>("SELECT * FROM timestamps");
   const row = result.rows[0];
 
   const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
 
   assertEquals(row[0].toUTCString(), new Date(expectedDate).toUTCString());
 
-  await POOL.queryArray("INSERT INTO timestamps(dt) values($1);", new Date());
+  await client.queryArray("INSERT INTO timestamps(dt) values($1)", new Date());
+  await client.release();
 });
 
 testPool(
   async function lazyPool(POOL) {
-    await POOL.queryArray("SELECT 1;");
+    // deno-lint-ignore camelcase
+    const client_1 = await POOL.connect();
+    await client_1.queryArray("SELECT 1");
+    await client_1.release();
     assertEquals(POOL.available, 1);
-    const p = POOL.queryArray("SELECT pg_sleep(0.1) is null, -1 AS id;");
+
+    // deno-lint-ignore camelcase
+    const client_2 = await POOL.connect();
+    const p = client_2.queryArray("SELECT pg_sleep(0.1) is null, -1 AS id");
     await delay(1);
     assertEquals(POOL.available, 0);
     assertEquals(POOL.size, 1);
     await p;
+    await client_2.release();
     assertEquals(POOL.available, 1);
 
-    const qsThunks = [...Array(25)].map((_, i) =>
-      POOL.queryArray("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
-    );
+    const qsThunks = [...Array(25)].map(async (_, i) => {
+      const client = await POOL.connect();
+      const query = await client.queryArray(
+        "SELECT pg_sleep(0.1) is null, $1::text as id",
+        i,
+      );
+      await client.release();
+      return query;
+    });
     const qsPromises = Promise.all(qsThunks);
     await delay(1);
     assertEquals(POOL.available, 0);
@@ -106,33 +135,29 @@ testPool(
     const expected = [...Array(25)].map((_, i) => i.toString());
     assertEquals(result, expected);
   },
-  null,
   true,
 );
 
-/**
- * @see https://github.com/bartlomieju/deno-postgres/issues/59
- */
-testPool(async function returnedConnectionOnErrorOccurs(POOL) {
-  assertEquals(POOL.available, 10);
-  await assertThrowsAsync(async () => {
-    await POOL.queryArray("SELECT * FROM notexists");
-  });
-  assertEquals(POOL.available, 10);
-});
-
 testPool(async function manyQueries(POOL) {
   assertEquals(POOL.available, 10);
-  const p = POOL.queryArray("SELECT pg_sleep(0.1) is null, -1 AS id;");
+  const client = await POOL.connect();
+  const p = client.queryArray("SELECT pg_sleep(0.1) is null, -1 AS id");
   await delay(1);
   assertEquals(POOL.available, 9);
   assertEquals(POOL.size, 10);
   await p;
+  await client.release();
   assertEquals(POOL.available, 10);
 
-  const qsThunks = [...Array(25)].map((_, i) =>
-    POOL.queryArray("SELECT pg_sleep(0.1) is null, $1::text as id;", i)
-  );
+  const qsThunks = [...Array(25)].map(async (_, i) => {
+    const client = await POOL.connect();
+    const query = await client.queryArray(
+      "SELECT pg_sleep(0.1) is null, $1::text as id",
+      i,
+    );
+    await client.release();
+    return query;
+  });
   const qsPromises = Promise.all(qsThunks);
   await delay(1);
   assertEquals(POOL.available, 0);
