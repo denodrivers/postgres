@@ -120,11 +120,11 @@ For stronger management and scalability, you can use **pools**:
 ```ts
 const POOL_CONNECTIONS = 20;
 const dbPool = new Pool({
-  user: "user",
-  password: "password",
   database: "database",
   hostname: "hostname",
+  password: "password",
   port: 5432,
+  user: "user",
 }, POOL_CONNECTIONS);
 
 const client = await dbPool.connect(); // 19 connections are still available
@@ -132,14 +132,20 @@ await client.queryArray`UPDATE X SET Y = 'Z'`;
 await client.release(); // This connection is now available for use again
 ```
 
+The number of pools is up to you, but a pool of 20 is good for small
+applications, this can differ based on how active your application is. Increase
+or decrease where necessary.
+
 #### Clients vs connection pools
 
-Each pool creates as many connections as requested, allowing you to execute
-several queries concurrently. This also improves performance, as creating a
-whole new connection for each query can be an expensive operation, as would be
-the case if you were using **clients**.
+Each pool eagerly creates as many connections as requested, allowing you to
+execute several queries concurrently. This also improves performance, since
+creating a whole new connection for each query can be an expensive operation,
+making pools stand out from clients when dealing with concurrent, reusable
+connections.
 
 ```ts
+// Open 4 connections at once
 const pool = new Pool(db_params, 4);
 
 // This connections are already open, so there will be no overhead here
@@ -163,12 +169,12 @@ await client_4.connect();
 #### Lazy pools
 
 Another good option is to create such connections on demand and have them
-available after creation. So one of the active connections will be used instead
-of creating a new one. You can do this by indicating the pool to create each
-connection lazily.
+available after creation. That way, one of the available connections will be
+used instead of creating a new one. You can do this by indicating the pool to
+start each connection lazily.
 
 ```ts
-const pool = new Pool(db_params, 4, true); // True indicates lazy connections
+const pool = new Pool(db_params, 4, true); // `true` indicates lazy connections
 
 // A new connection is created when requested
 const client_1 = await pool.connect();
@@ -183,10 +189,6 @@ const client_3 = await pool.connect();
 await client_2.release();
 await client_3.release();
 ```
-
-The number of pools is up to you, but a pool of 20 is good for small
-applications, this can differ based on how active your application is. Increase
-or decrease where necessary.
 
 #### Pools made simple
 
