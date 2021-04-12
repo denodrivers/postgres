@@ -119,8 +119,9 @@ await client.queryArray`UPDATE MY_TABLE SET MY_FIELD = 0`;
 await client.end();
 ```
 
-The basic client does not provide any concurrency features, meaning that in order
-to execute two queries simultaneously, you would need to create two different clients.
+The basic client does not provide any concurrency features, meaning that in
+order to execute two queries simultaneously, you would need to create two
+different clients.
 
 ```ts
 const client_1 = new Client(connection_parameters);
@@ -133,7 +134,7 @@ client_1.queryArray`DELETE FROM MY_TABLE`;
 const client_2 = new Client(connection_parameters);
 await client_2.connect();
 // `client_2` will execute it's queries in parallel to `client_1`
-const {rows: result} = await client_2.queryArray`SELECT * FROM MY_TABLE`;
+const { rows: result } = await client_2.queryArray`SELECT * FROM MY_TABLE`;
 
 await client_1.end();
 await client_2.end();
