@@ -292,15 +292,57 @@ export abstract class QueryClient {
   }
 }
 
+// TODO
+// Check for client connection and re-connection
+/**
+ * Clients allow you to communicate with your PostgreSQL database and execute SQL
+ * statements asynchronously
+ * 
+ * ```ts
+ * const client = new Client(connection_parameters);
+ * await client.connect();
+ * await client.queryArray`UPDATE MY_TABLE SET MY_FIELD = 0`;
+ * await client.end();
+ * ```
+ * 
+ * A client will execute all their queries in a sequencial fashion,
+ * for concurrency capabilities check out connection pools
+ * 
+ * ```ts
+ * const client_1 = new Client(connection_parameters);
+ * await client_1.connect();
+ * // Even if operations are not awaited, they will be executed in the order they were
+ * // scheduled
+ * client_1.queryArray`UPDATE MY_TABLE SET MY_FIELD = 0`;
+ * client_1.queryArray`DELETE FROM MY_TABLE`;
+ * 
+ * const client_2 = new Client(connection_parameters);
+ * await client_2.connect();
+ * // `client_2` will execute it's queries in parallel to `client_1`
+ * const {rows: result} = await client_2.queryArray`SELECT * FROM MY_TABLE`;
+ * 
+ * await client_1.end();
+ * await client_2.end();
+ * ```
+ */
 export class Client extends QueryClient {
   constructor(config?: ConnectionOptions | ConnectionString) {
     super(new Connection(createParams(config)));
   }
 
+  /**
+   * Every client must initialize their connection previously to the
+   * execution of any statement
+   */
   async connect(): Promise<void> {
     await this.connection.startup();
   }
 
+  /**
+   * Ending a connection will close your PostgreSQL connection, and delete
+   * all non-persistent data that may have been created in the course of the
+   * session
+   */
   async end(): Promise<void> {
     await this.connection.end();
     this.transaction = null;

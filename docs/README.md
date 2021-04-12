@@ -104,14 +104,48 @@ don't have an estimated time of when that might happen.
 
 ### Clients
 
-You are free to create your clients like so:
+Clients are the most basic block for establishing communication with your
+database. They provide abstractions over queries, transactions and connection
+management. In `deno-postgres`, similar clients such as the transaction and pool
+client inherit it's functionality from the basic client, so the available
+methods will be very similar across implementations.
 
-```typescript
-const client = new Client({
-  ...
-})
-await client.connect()
+You can create a new client by providing the required connection parameters:
+
+```ts
+const client = new Client(connection_parameters);
+await client.connect();
+await client.queryArray`UPDATE MY_TABLE SET MY_FIELD = 0`;
+await client.end();
 ```
+
+The basic client does not provide any concurrency features, meaning that in
+order to execute two queries simultaneously, you would need to create two
+different clients that can communicate with your database without conflicting
+with each other.
+
+```ts
+const client_1 = new Client(connection_parameters);
+await client_1.connect();
+// Even if operations are not awaited, they will be executed in the order they were
+// scheduled
+client_1.queryArray`UPDATE MY_TABLE SET MY_FIELD = 0`;
+client_1.queryArray`DELETE FROM MY_TABLE`;
+
+const client_2 = new Client(connection_parameters);
+await client_2.connect();
+// `client_2` will execute it's queries in parallel to `client_1`
+const { rows: result } = await client_2.queryArray`SELECT * FROM MY_TABLE`;
+
+await client_1.end();
+await client_2.end();
+```
+
+Ending a client will cause it to destroy it's connection with the database,
+forcing you to reconnect in order to execute operations again. In Postgres,
+connections are a synonym for session, which means that temporal operations such
+as the creation of temporal tables or the use of the `PG_TEMP` schema will not
+be persisted after your connection is terminated.
 
 ### Pools
 
