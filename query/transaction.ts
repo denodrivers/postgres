@@ -13,7 +13,7 @@ import {
 import { isTemplateString } from "../utils.ts";
 import { PostgresError, TransactionError } from "../connection/warning.ts";
 
-class Savepoint {
+export class Savepoint {
   /**
    * This is the count of the current savepoint instances in the transaction
    */
