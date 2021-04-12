@@ -35,7 +35,7 @@ export class ConnectionParamsError extends Error {
   }
 }
 
-interface TLSOptions {
+export interface TLSOptions {
   /**
    * This will force the connection to run over TLS
    * If the server doesn't support TLS, the connection will fail
