@@ -19,19 +19,28 @@ import { Transaction, TransactionOptions } from "./query/transaction.ts";
 import { isTemplateString } from "./utils.ts";
 
 export abstract class QueryClient {
-  protected _current_transaction: string | null = null;
+  protected connection: Connection;
+  protected transaction: string | null = null;
 
-  abstract get current_transaction(): string | null;
+  constructor(connection: Connection) {
+    this.connection = connection;
+  }
 
-  protected abstract executeQuery<T extends Array<unknown>>(
-    _query: Query<ResultType.ARRAY>,
+  get current_transaction(): string | null {
+    return this.transaction;
+  }
+
+  protected executeQuery<T extends Array<unknown>>(
+    query: Query<ResultType.ARRAY>,
   ): Promise<QueryArrayResult<T>>;
-  protected abstract executeQuery<T extends Record<string, unknown>>(
-    _query: Query<ResultType.OBJECT>,
+  protected executeQuery<T extends Record<string, unknown>>(
+    query: Query<ResultType.OBJECT>,
   ): Promise<QueryObjectResult<T>>;
-  protected abstract executeQuery(
-    _query: Query<ResultType>,
-  ): Promise<QueryResult>;
+  protected executeQuery(
+    query: Query<ResultType>,
+  ): Promise<QueryResult> {
+    return this.connection.query(query);
+  }
 
   /**
    * Transactions are a powerful feature that guarantees safe operations by allowing you to control
@@ -119,6 +128,7 @@ export abstract class QueryClient {
    * https://www.postgresql.org/docs/13/tutorial-transactions.html
    * https://www.postgresql.org/docs/13/sql-set-transaction.html
    */
+
   createTransaction(name: string, options?: TransactionOptions): Transaction {
     return new Transaction(
       name,
@@ -127,7 +137,7 @@ export abstract class QueryClient {
       // Bind context so function can be passed as is
       this.executeQuery.bind(this),
       (name: string | null) => {
-        this._current_transaction = name;
+        this.transaction = name;
       },
     );
   }
@@ -283,63 +293,30 @@ export abstract class QueryClient {
 }
 
 export class Client extends QueryClient {
-  #connection: Connection;
-
   constructor(config?: ConnectionOptions | ConnectionString) {
-    super();
-    this.#connection = new Connection(createParams(config));
+    super(new Connection(createParams(config)));
   }
 
   async connect(): Promise<void> {
-    await this.#connection.startup();
-  }
-
-  get current_transaction() {
-    return this._current_transaction;
+    await this.connection.startup();
   }
 
   async end(): Promise<void> {
-    await this.#connection.end();
-    this._current_transaction = null;
-  }
-
-  protected executeQuery(
-    query: Query<ResultType.ARRAY>,
-  ): Promise<QueryArrayResult>;
-  protected executeQuery(
-    query: Query<ResultType.OBJECT>,
-  ): Promise<QueryObjectResult>;
-  protected executeQuery(query: Query<ResultType>): Promise<QueryResult> {
-    return this.#connection.query(query);
+    await this.connection.end();
+    this.transaction = null;
   }
 }
 
 export class PoolClient extends QueryClient {
-  #connection: Connection;
   #release: () => void;
 
   constructor(connection: Connection, releaseCallback: () => void) {
-    super();
-    this.#connection = connection;
+    super(connection);
     this.#release = releaseCallback;
-  }
-
-  get current_transaction() {
-    return this._current_transaction;
-  }
-
-  protected executeQuery(
-    query: Query<ResultType.ARRAY>,
-  ): Promise<QueryArrayResult>;
-  protected executeQuery(
-    query: Query<ResultType.OBJECT>,
-  ): Promise<QueryObjectResult>;
-  protected executeQuery(query: Query<ResultType>): Promise<QueryResult> {
-    return this.#connection.query(query);
   }
 
   async release(): Promise<void> {
     await this.#release();
-    this._current_transaction = null;
+    this.transaction = null;
   }
 }
