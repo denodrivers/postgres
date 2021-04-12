@@ -19,7 +19,7 @@ import { Transaction, TransactionOptions } from "./query/transaction.ts";
 import { isTemplateString } from "./utils.ts";
 
 export class QueryClient {
-  _current_transaction: string | null = null;
+  protected _current_transaction: string | null = null;
 
   get current_transaction(): string | null {
     return null;
@@ -31,15 +31,15 @@ export class QueryClient {
    * It's sole purpose is to be a common interface implementations can use
    * regardless of their internal structure
    */
-  _executeQuery<T extends Array<unknown>>(
+  protected executeQuery<T extends Array<unknown>>(
     _query: Query<ResultType.ARRAY>,
   ): Promise<QueryArrayResult<T>>;
-  _executeQuery<T extends Record<string, unknown>>(
+  protected executeQuery<T extends Record<string, unknown>>(
     _query: Query<ResultType.OBJECT>,
   ): Promise<QueryObjectResult<T>>;
-  _executeQuery(_query: Query<ResultType>): Promise<QueryResult> {
+  protected executeQuery(_query: Query<ResultType>): Promise<QueryResult> {
     throw new Error(
-      `"${this._executeQuery.name}" hasn't been implemented for class "${this.constructor.name}"`,
+      `"${this.executeQuery.name}" hasn't been implemented for class "${this.constructor.name}"`,
     );
   }
 
@@ -134,6 +134,9 @@ export class QueryClient {
       name,
       options,
       this,
+      // TODO
+      // Remove this after private methods become available
+      this.executeQuery.bind(this),
       (name: string | null) => {
         this._current_transaction = name;
       },
@@ -200,7 +203,7 @@ export class QueryClient {
       query = new Query(query_template_or_config, ResultType.ARRAY);
     }
 
-    return this._executeQuery(query);
+    return this.executeQuery(query);
   }
 
   /**
@@ -286,23 +289,16 @@ export class QueryClient {
       );
     }
 
-    return this._executeQuery<T>(query);
+    return this.executeQuery<T>(query);
   }
 }
 
 export class Client extends QueryClient {
   #connection: Connection;
-  _current_transaction: string | null = null;
 
   constructor(config?: ConnectionOptions | ConnectionString) {
     super();
     this.#connection = new Connection(createParams(config));
-  }
-
-  _executeQuery(query: Query<ResultType.ARRAY>): Promise<QueryArrayResult>;
-  _executeQuery(query: Query<ResultType.OBJECT>): Promise<QueryObjectResult>;
-  _executeQuery(query: Query<ResultType>): Promise<QueryResult> {
-    return this.#connection.query(query);
   }
 
   async connect(): Promise<void> {
@@ -317,11 +313,20 @@ export class Client extends QueryClient {
     await this.#connection.end();
     this._current_transaction = null;
   }
+
+  protected executeQuery(
+    query: Query<ResultType.ARRAY>,
+  ): Promise<QueryArrayResult>;
+  protected executeQuery(
+    query: Query<ResultType.OBJECT>,
+  ): Promise<QueryObjectResult>;
+  protected executeQuery(query: Query<ResultType>): Promise<QueryResult> {
+    return this.#connection.query(query);
+  }
 }
 
 export class PoolClient extends QueryClient {
   #connection: Connection;
-  _current_transaction: string | null = null;
   #release: () => void;
 
   constructor(connection: Connection, releaseCallback: () => void) {
@@ -334,9 +339,13 @@ export class PoolClient extends QueryClient {
     return this._current_transaction;
   }
 
-  _executeQuery(query: Query<ResultType.ARRAY>): Promise<QueryArrayResult>;
-  _executeQuery(query: Query<ResultType.OBJECT>): Promise<QueryObjectResult>;
-  _executeQuery(query: Query<ResultType>): Promise<QueryResult> {
+  protected executeQuery(
+    query: Query<ResultType.ARRAY>,
+  ): Promise<QueryArrayResult>;
+  protected executeQuery(
+    query: Query<ResultType.OBJECT>,
+  ): Promise<QueryObjectResult>;
+  protected executeQuery(query: Query<ResultType>): Promise<QueryResult> {
     return this.#connection.query(query);
   }
 
