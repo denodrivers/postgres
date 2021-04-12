@@ -6,7 +6,8 @@ export { Pool } from "./pool.ts";
 // Remove the following reexports after https://doc.deno.land
 // supports two level depth exports
 export type {
-  ConnectionParams,
+  ConnectionOptions,
+  ConnectionString,
   TLSOptions,
 } from "./connection/connection_params.ts";
 export { PoolClient, QueryClient } from "./client.ts";
