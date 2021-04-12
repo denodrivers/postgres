@@ -18,30 +18,20 @@ import {
 import { Transaction, TransactionOptions } from "./query/transaction.ts";
 import { isTemplateString } from "./utils.ts";
 
-export class QueryClient {
+export abstract class QueryClient {
   protected _current_transaction: string | null = null;
 
-  get current_transaction(): string | null {
-    return null;
-  }
+  abstract get current_transaction(): string | null;
 
-  /**
-   * This function is meant to be replaced when being extended
-   * 
-   * It's sole purpose is to be a common interface implementations can use
-   * regardless of their internal structure
-   */
-  protected executeQuery<T extends Array<unknown>>(
+  protected abstract executeQuery<T extends Array<unknown>>(
     _query: Query<ResultType.ARRAY>,
   ): Promise<QueryArrayResult<T>>;
-  protected executeQuery<T extends Record<string, unknown>>(
+  protected abstract executeQuery<T extends Record<string, unknown>>(
     _query: Query<ResultType.OBJECT>,
   ): Promise<QueryObjectResult<T>>;
-  protected executeQuery(_query: Query<ResultType>): Promise<QueryResult> {
-    throw new Error(
-      `"${this.executeQuery.name}" hasn't been implemented for class "${this.constructor.name}"`,
-    );
-  }
+  protected abstract executeQuery(
+    _query: Query<ResultType>,
+  ): Promise<QueryResult>;
 
   /**
    * Transactions are a powerful feature that guarantees safe operations by allowing you to control
@@ -134,8 +124,7 @@ export class QueryClient {
       name,
       options,
       this,
-      // TODO
-      // Remove this after private methods become available
+      // Bind context so function can be passed as is
       this.executeQuery.bind(this),
       (name: string | null) => {
         this._current_transaction = name;

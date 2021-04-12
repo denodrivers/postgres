@@ -102,6 +102,7 @@ export type TransactionOptions = {
 
 export class Transaction {
   #client: QueryClient;
+  #executeQuery: (_query: Query<ResultType>) => Promise<QueryResult>;
   #isolation_level: IsolationLevel;
   #read_only: boolean;
   #savepoints: Savepoint[] = [];
@@ -118,8 +119,7 @@ export class Transaction {
     update_client_lock_callback: (name: string | null) => void,
   ) {
     this.#client = client;
-    // @ts-ignore Remove this after private methods become available
-    this.executeQuery = execute_query_callback;
+    this.#executeQuery = execute_query_callback;
     this.#isolation_level = options?.isolation_level ?? "read_committed";
     this.#read_only = options?.read_only ?? false;
     this.#snapshot = options?.snapshot;
@@ -265,15 +265,6 @@ export class Transaction {
     }
   }
 
-  protected executeQuery<T extends Array<unknown>>(
-    _query: Query<ResultType.ARRAY>,
-  ): Promise<QueryArrayResult<T>>;
-  protected executeQuery<T extends Record<string, unknown>>(
-    _query: Query<ResultType.OBJECT>,
-  ): Promise<QueryObjectResult<T>>;
-  // @ts-ignore Remove this after private methods become available
-  protected executeQuery(_query: Query<ResultType>): Promise<QueryResult> {}
-
   /**
    * This method will search for the provided savepoint name and return a
    * reference to the requested savepoint, otherwise it will return undefined
@@ -367,7 +358,7 @@ export class Transaction {
     }
 
     try {
-      return await this.executeQuery<T>(query);
+      return await this.#executeQuery(query) as QueryArrayResult<T>;
     } catch (e) {
       // deno-lint-ignore no-unreachable
       if (e instanceof PostgresError) {
@@ -462,7 +453,7 @@ export class Transaction {
     }
 
     try {
-      return await this.executeQuery<T>(query);
+      return await this.#executeQuery(query) as QueryObjectResult<T>;
     } catch (e) {
       // deno-lint-ignore no-unreachable
       if (e instanceof PostgresError) {
