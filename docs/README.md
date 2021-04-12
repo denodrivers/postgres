@@ -110,7 +110,7 @@ management. In `deno-postgres`, similar clients such as the transaction and pool
 client inherit it's functionality from the basic client, so the available
 methods will be very similar across implementations.
 
-You can create a new client by providing the connection parameters
+You can create a new client by providing the required connection parameters:
 
 ```ts
 const client = new Client(connection_parameters);
@@ -121,7 +121,8 @@ await client.end();
 
 The basic client does not provide any concurrency features, meaning that in
 order to execute two queries simultaneously, you would need to create two
-different clients.
+different clients that can communicate with your database without conflicting
+with each other.
 
 ```ts
 const client_1 = new Client(connection_parameters);
