@@ -1,10 +1,4 @@
-import {
-  assertEquals,
-  decodeBase64,
-  encodeBase64,
-  formatDate,
-  parseDate,
-} from "./test_deps.ts";
+import { assertEquals, base64, formatDate, parseDate } from "./test_deps.ts";
 import { Client } from "../mod.ts";
 import { getMainConfiguration } from "./config.ts";
 import { getTestClient } from "./helpers.ts";
@@ -507,7 +501,7 @@ testClient(async function boolArray() {
 
 const CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 function randomBase64(): string {
-  return encodeBase64(
+  return base64.encode(
     Array.from(
       { length: Math.ceil(Math.random() * 256) },
       () => CHARS[Math.floor(Math.random() * CHARS.length)],
@@ -516,13 +510,14 @@ function randomBase64(): string {
 }
 
 testClient(async function bytea() {
-  const base64 = randomBase64();
+  // deno-lint-ignore camelcase
+  const base64_string = randomBase64();
 
   const result = await CLIENT.queryArray(
-    `SELECT decode('${base64}','base64')`,
+    `SELECT decode('${base64_string}','base64')`,
   );
 
-  assertEquals(result.rows[0][0], decodeBase64(base64));
+  assertEquals(result.rows[0][0], base64.decode(base64_string));
 });
 
 testClient(async function byteaArray() {
@@ -539,7 +534,7 @@ testClient(async function byteaArray() {
 
   assertEquals(
     result.rows[0][0],
-    strings.map(decodeBase64),
+    strings.map(base64.decode),
   );
 });
 
