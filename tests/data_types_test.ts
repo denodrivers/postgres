@@ -292,12 +292,9 @@ testClient(async function bigintArray() {
 });
 
 testClient(async function numeric() {
-  // TODO: Remove
-  // This is a bug of 1.9.0
-  // deno-lint-ignore no-unused-vars
-  const numeric = "1234567890.1234567890";
-  const result = await CLIENT.queryArray(`SELECT $1::numeric`, numeric);
-  assertEquals(result.rows[0][0], numeric);
+  const number = "1234567890.1234567890";
+  const result = await CLIENT.queryArray(`SELECT $1::numeric`, number);
+  assertEquals(result.rows[0][0], number);
 });
 
 testClient(async function numericArray() {
@@ -383,12 +380,10 @@ testClient(async function varcharNestedArray() {
 });
 
 testClient(async function uuid() {
-  // TODO: Remove
-  // This is a bug of 1.9.0
-  // deno-lint-ignore no-unused-vars
-  const uuid = "c4792ecb-c00a-43a2-bd74-5b0ed551c599";
-  const result = await CLIENT.queryArray(`SELECT $1::uuid`, uuid);
-  assertEquals(result.rows, [[uuid]]);
+  // deno-lint-ignore camelcase
+  const uuid_text = "c4792ecb-c00a-43a2-bd74-5b0ed551c599";
+  const result = await CLIENT.queryArray(`SELECT $1::uuid`, uuid_text);
+  assertEquals(result.rows[0][0], uuid_text);
 });
 
 testClient(async function uuidArray() {
@@ -449,10 +444,8 @@ testClient(async function bpcharNestedArray() {
 });
 
 testClient(async function jsonArray() {
-  // TODO: Remove
-  // This is a bug of 1.9.0
-  // deno-lint-ignore no-unused-vars
-  const jsonArray = await CLIENT.queryArray(
+  // deno-lint-ignore camelcase
+  const json_array = await CLIENT.queryArray(
     `SELECT ARRAY_AGG(A) FROM  (
       SELECT JSON_BUILD_OBJECT( 'X', '1' ) AS A
       UNION ALL
@@ -460,7 +453,7 @@ testClient(async function jsonArray() {
     )	A`,
   );
 
-  assertEquals(jsonArray.rows[0][0], [{ X: "1" }, { Y: "2" }]);
+  assertEquals(json_array.rows[0][0], [{ X: "1" }, { Y: "2" }]);
 
   const jsonArrayNested = await CLIENT.queryArray(
     `SELECT ARRAY[ARRAY[ARRAY_AGG(A), ARRAY_AGG(A)], ARRAY[ARRAY_AGG(A), ARRAY_AGG(A)]] FROM  (
@@ -577,16 +570,13 @@ testClient(async function timeArray() {
 });
 
 testClient(async function timestamp() {
-  // TODO: Remove
-  // This is a bug of 1.9.0
-  // deno-lint-ignore no-unused-vars
-  const timestamp = "1999-01-08 04:05:06";
+  const date = "1999-01-08 04:05:06";
   const result = await CLIENT.queryArray<[Timestamp]>(
     `SELECT $1::TIMESTAMP, 'INFINITY'::TIMESTAMP`,
-    timestamp,
+    date,
   );
 
-  assertEquals(result.rows[0], [new Date(timestamp), Infinity]);
+  assertEquals(result.rows[0], [new Date(date), Infinity]);
 });
 
 testClient(async function timestampArray() {
@@ -713,17 +703,15 @@ testClient(async function tidArray() {
 });
 
 testClient(async function date() {
-  // TODO: Remove
-  // This is a bug of 1.9.0
-  // deno-lint-ignore no-unused-vars
-  const date = "2020-01-01";
+  // deno-lint-ignore camelcase
+  const date_text = "2020-01-01";
 
   const result = await CLIENT.queryArray<[Timestamp, Timestamp]>(
     "SELECT $1::DATE, 'Infinity'::Date",
-    date,
+    date_text,
   );
 
-  assertEquals(result.rows[0], [parseDate(date, "yyyy-MM-dd"), Infinity]);
+  assertEquals(result.rows[0], [parseDate(date_text, "yyyy-MM-dd"), Infinity]);
 });
 
 testClient(async function dateArray() {
