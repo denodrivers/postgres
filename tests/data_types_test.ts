@@ -1,10 +1,4 @@
-import {
-  assertEquals,
-  decodeBase64,
-  encodeBase64,
-  formatDate,
-  parseDate,
-} from "./test_deps.ts";
+import { assertEquals, base64, formatDate, parseDate } from "./test_deps.ts";
 import { Client } from "../mod.ts";
 import { getMainConfiguration } from "./config.ts";
 import { getTestClient } from "./helpers.ts";
@@ -51,16 +45,16 @@ const CLIENT = new Client(getMainConfiguration());
 const testClient = getTestClient(CLIENT, SETUP);
 
 testClient(async function inet() {
-  const inet = "127.0.0.1";
+  const url = "127.0.0.1";
   await CLIENT.queryArray(
     "INSERT INTO data_types (inet_t) VALUES($1)",
-    inet,
+    url,
   );
   const selectRes = await CLIENT.queryArray(
     "SELECT inet_t FROM data_types WHERE inet_t=$1",
-    inet,
+    url,
   );
-  assertEquals(selectRes.rows[0][0], inet);
+  assertEquals(selectRes.rows[0][0], url);
 });
 
 testClient(async function inetArray() {
@@ -78,16 +72,17 @@ testClient(async function inetNestedArray() {
 });
 
 testClient(async function macaddr() {
-  const macaddr = "08:00:2b:01:02:03";
+  const address = "08:00:2b:01:02:03";
+
   await CLIENT.queryArray(
     "INSERT INTO data_types (macaddr_t) VALUES($1)",
-    macaddr,
+    address,
   );
   const selectRes = await CLIENT.queryArray(
     "SELECT macaddr_t FROM data_types WHERE macaddr_t=$1",
-    macaddr,
+    address,
   );
-  assertEquals(selectRes.rows, [[macaddr]]);
+  assertEquals(selectRes.rows[0][0], address);
 });
 
 testClient(async function macaddrArray() {
@@ -108,16 +103,16 @@ testClient(async function macaddrNestedArray() {
 });
 
 testClient(async function cidr() {
-  const cidr = "192.168.100.128/25";
+  const host = "192.168.100.128/25";
   await CLIENT.queryArray(
     "INSERT INTO data_types (cidr_t) VALUES($1)",
-    cidr,
+    host,
   );
   const selectRes = await CLIENT.queryArray(
     "SELECT cidr_t FROM data_types WHERE cidr_t=$1",
-    cidr,
+    host,
   );
-  assertEquals(selectRes.rows, [[cidr]]);
+  assertEquals(selectRes.rows[0][0], host);
 });
 
 testClient(async function cidrArray() {
@@ -297,9 +292,9 @@ testClient(async function bigintArray() {
 });
 
 testClient(async function numeric() {
-  const numeric = "1234567890.1234567890";
-  const result = await CLIENT.queryArray(`SELECT $1::numeric`, numeric);
-  assertEquals(result.rows, [[numeric]]);
+  const number = "1234567890.1234567890";
+  const result = await CLIENT.queryArray(`SELECT $1::numeric`, number);
+  assertEquals(result.rows[0][0], number);
 });
 
 testClient(async function numericArray() {
@@ -385,9 +380,10 @@ testClient(async function varcharNestedArray() {
 });
 
 testClient(async function uuid() {
-  const uuid = "c4792ecb-c00a-43a2-bd74-5b0ed551c599";
-  const result = await CLIENT.queryArray(`SELECT $1::uuid`, uuid);
-  assertEquals(result.rows, [[uuid]]);
+  // deno-lint-ignore camelcase
+  const uuid_text = "c4792ecb-c00a-43a2-bd74-5b0ed551c599";
+  const result = await CLIENT.queryArray(`SELECT $1::uuid`, uuid_text);
+  assertEquals(result.rows[0][0], uuid_text);
 });
 
 testClient(async function uuidArray() {
@@ -448,7 +444,8 @@ testClient(async function bpcharNestedArray() {
 });
 
 testClient(async function jsonArray() {
-  const jsonArray = await CLIENT.queryArray(
+  // deno-lint-ignore camelcase
+  const json_array = await CLIENT.queryArray(
     `SELECT ARRAY_AGG(A) FROM  (
       SELECT JSON_BUILD_OBJECT( 'X', '1' ) AS A
       UNION ALL
@@ -456,7 +453,7 @@ testClient(async function jsonArray() {
     )	A`,
   );
 
-  assertEquals(jsonArray.rows[0][0], [{ X: "1" }, { Y: "2" }]);
+  assertEquals(json_array.rows[0][0], [{ X: "1" }, { Y: "2" }]);
 
   const jsonArrayNested = await CLIENT.queryArray(
     `SELECT ARRAY[ARRAY[ARRAY_AGG(A), ARRAY_AGG(A)], ARRAY[ARRAY_AGG(A), ARRAY_AGG(A)]] FROM  (
@@ -497,7 +494,7 @@ testClient(async function boolArray() {
 
 const CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 function randomBase64(): string {
-  return encodeBase64(
+  return base64.encode(
     Array.from(
       { length: Math.ceil(Math.random() * 256) },
       () => CHARS[Math.floor(Math.random() * CHARS.length)],
@@ -506,13 +503,14 @@ function randomBase64(): string {
 }
 
 testClient(async function bytea() {
-  const base64 = randomBase64();
+  // deno-lint-ignore camelcase
+  const base64_string = randomBase64();
 
   const result = await CLIENT.queryArray(
-    `SELECT decode('${base64}','base64')`,
+    `SELECT decode('${base64_string}','base64')`,
   );
 
-  assertEquals(result.rows[0][0], decodeBase64(base64));
+  assertEquals(result.rows[0][0], base64.decode(base64_string));
 });
 
 testClient(async function byteaArray() {
@@ -529,7 +527,7 @@ testClient(async function byteaArray() {
 
   assertEquals(
     result.rows[0][0],
-    strings.map(decodeBase64),
+    strings.map(base64.decode),
   );
 });
 
@@ -572,13 +570,13 @@ testClient(async function timeArray() {
 });
 
 testClient(async function timestamp() {
-  const timestamp = "1999-01-08 04:05:06";
+  const date = "1999-01-08 04:05:06";
   const result = await CLIENT.queryArray<[Timestamp]>(
     `SELECT $1::TIMESTAMP, 'INFINITY'::TIMESTAMP`,
-    timestamp,
+    date,
   );
 
-  assertEquals(result.rows[0], [new Date(timestamp), Infinity]);
+  assertEquals(result.rows[0], [new Date(date), Infinity]);
 });
 
 testClient(async function timestampArray() {
@@ -705,14 +703,15 @@ testClient(async function tidArray() {
 });
 
 testClient(async function date() {
-  const date = "2020-01-01";
+  // deno-lint-ignore camelcase
+  const date_text = "2020-01-01";
 
   const result = await CLIENT.queryArray<[Timestamp, Timestamp]>(
     "SELECT $1::DATE, 'Infinity'::Date",
-    date,
+    date_text,
   );
 
-  assertEquals(result.rows[0], [parseDate(date, "yyyy-MM-dd"), Infinity]);
+  assertEquals(result.rows[0], [parseDate(date_text, "yyyy-MM-dd"), Infinity]);
 });
 
 testClient(async function dateArray() {

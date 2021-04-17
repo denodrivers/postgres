@@ -1,4 +1,4 @@
-FROM hayd/alpine-deno:1.7.1
+FROM hayd/alpine-deno:1.9.0
 WORKDIR /app
 
 # Install wait utility
