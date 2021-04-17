@@ -213,9 +213,9 @@ export class Query<T extends ResultType> {
   public text: string;
 
   //deno-lint-ignore camelcase
-  constructor(config: QueryObjectConfig, result_type: T);
+  constructor(_config: QueryObjectConfig, _result_type: T);
   //deno-lint-ignore camelcase
-  constructor(text: string, result_type: T, ...args: unknown[]);
+  constructor(_text: string, _result_type: T, ..._args: unknown[]);
   constructor(
     //deno-lint-ignore camelcase
     config_or_text: string | QueryObjectConfig,
