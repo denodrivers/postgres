@@ -261,12 +261,14 @@ export class Connection {
      * */
     if (await this.serverAcceptsTLS()) {
       try {
-        if (typeof Deno.startTls === "undefined") {
+        if ("startTls" in Deno) {
+          // @ts-ignore This API should be available on unstable
+          this.#conn = await Deno.startTls(this.#conn, { hostname });
+        } else {
           throw new Error(
             "You need to execute Deno with the `--unstable` argument in order to stablish a TLS connection",
           );
         }
-        this.#conn = await Deno.startTls(this.#conn, { hostname });
       } catch (e) {
         if (!enforceTLS) {
           console.error(
