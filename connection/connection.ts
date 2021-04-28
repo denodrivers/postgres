@@ -146,7 +146,7 @@ const encoder = new TextEncoder();
 export class Connection {
   #bufReader!: BufReader;
   #bufWriter!: BufWriter;
-  #conn!: Deno.Conn<Deno.NetAddr>;
+  #conn!: Deno.Conn;
   connected = false;
   #packetWriter = new PacketWriter();
   // TODO
