@@ -124,6 +124,19 @@ Deno.test("INSERT works correctly", async () => {
 });
 ```
 
+## Deno compatibility
+
+Due to a not intended breaking change in Deno 1.9.0, two versions of
+`deno-postgres` require a specific version of Deno in order to work correctly,
+the following is a compatibility table that ranges from Deno 1.8 to Deno 1.9 and
+above indicating possible compatibility problems
+
+| Deno version | Min driver version | Max driver version |
+| ------------ | ------------------ | ------------------ |
+| 1.8.x        | 0.5.0              | 0.10.0             |
+| 1.9.0        | 0.11.0             | 0.11.1             |
+| 1.9.1 and up | 0.11.2             |                    |
+
 ## Contributing guidelines
 
 When contributing to repository make sure to:
