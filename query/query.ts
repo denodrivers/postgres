@@ -22,7 +22,7 @@ export enum ResultType {
 
 /**
  * This function transforms template string arguments into a query
- * 
+ *
  * ```ts
  * ["SELECT NAME FROM TABLE WHERE ID = ", " AND DATE < "]
  * // "SELECT NAME FROM TABLE WHERE ID = $1 AND DATE < $2"
@@ -51,11 +51,13 @@ export interface QueryConfig {
 export interface QueryObjectConfig extends QueryConfig {
   /**
    * This parameter superseeds query column names
-   * 
+   *
    * When specified, this names will be asigned to the results
    * of the query in the order they were provided
+   *
+   * Fields must be unique and be in the range of (a-zA-Z0-9_), otherwise the query will throw before execution
    * 
-   * Fields must be unique (case is not taken into consideration)
+   * A field can not start with a number, just like JavaScript variables
    */
   fields?: string[];
 }
@@ -65,12 +67,12 @@ export interface QueryObjectConfig extends QueryConfig {
 // to a query
 /**
  * https://www.postgresql.org/docs/current/sql-prepare.html
- * 
+ *
  * This arguments will be appended to the prepared statement passed
  * as query
- * 
+ *
  * They will take the position according to the order in which they were provided
- * 
+ *
  * ```ts
  * await my_client.queryArray(
  *  "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
@@ -239,9 +241,14 @@ export class Query<T extends ResultType> {
       // the result of the query
       if (fields) {
         //deno-lint-ignore camelcase
-        const clean_fields = fields.map((field) =>
-          field.toString().toLowerCase()
+        const clean_fields = fields.filter((field) =>
+          /^[a-zA-Z_][a-zA-Z0-9_]+$/.test(field)
         );
+        if (fields.length !== clean_fields.length) {
+          throw new TypeError(
+            "The fields provided for the query must contain only letters and underscores",
+          );
+        }
 
         if ((new Set(clean_fields)).size !== clean_fields.length) {
           throw new TypeError(

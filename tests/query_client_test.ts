@@ -51,16 +51,6 @@ testClient("Simple query", async function (generateClient) {
   assertEquals(result.rows.length, 2);
 });
 
-testClient("Prepared statements", async function (generateClient) {
-  const client = await generateClient();
-
-  const result = await client.queryObject(
-    "SELECT ID FROM ( SELECT UNNEST(ARRAY[1, 2]) AS ID ) A WHERE ID < $1",
-    2,
-  );
-  assertEquals(result.rows, [{ id: 1 }]);
-});
-
 testClient("Object query", async function (generateClient) {
   const client = await generateClient();
 
@@ -71,55 +61,15 @@ testClient("Object query", async function (generateClient) {
   assertEquals(result.rows, [{ id: [1, 2, 3], type: "DATA" }]);
 });
 
-testClient(
-  "Object query are mapped to user provided fields",
-  async function (generateClient) {
-    const client = await generateClient();
+testClient("Prepared statements", async function (generateClient) {
+  const client = await generateClient();
 
-    const result = await client.queryObject({
-      text: "SELECT ARRAY[1, 2, 3], 'DATA'",
-      fields: ["ID", "type"],
-    });
-
-    assertEquals(result.rows, [{ id: [1, 2, 3], type: "DATA" }]);
-  },
-);
-
-testClient(
-  "Object query throws if user provided fields aren't unique",
-  async function (generateClient) {
-    const client = await generateClient();
-
-    await assertThrowsAsync(
-      async () => {
-        await client.queryObject({
-          text: "SELECT 1",
-          fields: ["FIELD_1", "FIELD_1"],
-        });
-      },
-      TypeError,
-      "The fields provided for the query must be unique",
-    );
-  },
-);
-
-testClient(
-  "Object query throws if result columns don't match the user provided fields",
-  async function (generateClient) {
-    const client = await generateClient();
-
-    await assertThrowsAsync(
-      async () => {
-        await client.queryObject({
-          text: "SELECT 1",
-          fields: ["FIELD_1", "FIELD_2"],
-        });
-      },
-      RangeError,
-      "The fields provided for the query don't match the ones returned as a result (1 expected, 2 received)",
-    );
-  },
-);
+  const result = await client.queryObject(
+    "SELECT ID FROM ( SELECT UNNEST(ARRAY[1, 2]) AS ID ) A WHERE ID < $1",
+    2,
+  );
+  assertEquals(result.rows, [{ id: 1 }]);
+});
 
 testClient("Handling of debug notices", async function (generateClient) {
   const client = await generateClient();
@@ -272,6 +222,96 @@ testClient("Query array with template string", async function (generateClient) {
 });
 
 testClient(
+  "Object query are mapped to user provided fields",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    const result = await client.queryObject({
+      text: "SELECT ARRAY[1, 2, 3], 'DATA'",
+      fields: ["ID", "type"],
+    });
+
+    assertEquals(result.rows, [{ ID: [1, 2, 3], type: "DATA" }]);
+  },
+);
+
+testClient(
+  "Object query throws if user provided fields aren't unique",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    await assertThrowsAsync(
+      async () => {
+        await client.queryObject({
+          text: "SELECT 1",
+          fields: ["FIELD_1", "FIELD_1"],
+        });
+      },
+      TypeError,
+      "The fields provided for the query must be unique",
+    );
+  },
+);
+
+testClient(
+  "Object query throws if user provided fields aren't valid",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    await assertThrowsAsync(
+      async () => {
+        await client.queryObject({
+          text: "SELECT 1",
+          fields: ["123_"],
+        });
+      },
+      TypeError,
+      "The fields provided for the query must contain only letters and underscores",
+    );
+
+    await assertThrowsAsync(
+      async () => {
+        await client.queryObject({
+          text: "SELECT 1",
+          fields: ["1A"],
+        });
+      },
+      TypeError,
+      "The fields provided for the query must contain only letters and underscores",
+    );
+
+    await assertThrowsAsync(
+      async () => {
+        await client.queryObject({
+          text: "SELECT 1",
+          fields: ["A$"],
+        });
+      },
+      TypeError,
+      "The fields provided for the query must contain only letters and underscores",
+    );
+  },
+);
+
+testClient(
+  "Object query throws if result columns don't match the user provided fields",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    await assertThrowsAsync(
+      async () => {
+        await client.queryObject({
+          text: "SELECT 1",
+          fields: ["FIELD_1", "FIELD_2"],
+        });
+      },
+      RangeError,
+      "The fields provided for the query don't match the ones returned as a result (1 expected, 2 received)",
+    );
+  },
+);
+
+testClient(
   "Query object with template string",
   async function (generateClient) {
     const client = await generateClient();
@@ -279,7 +319,7 @@ testClient(
     const value = { x: "A", y: "B" };
 
     const { rows } = await client.queryObject<{ x: string; y: string }>
-      `SELECT ${value.x} AS X, ${value.y} AS Y`;
+      `SELECT ${value.x} AS x, ${value.y} AS y`;
 
     assertEquals(rows[0], value);
   },
