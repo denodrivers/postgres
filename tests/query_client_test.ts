@@ -268,6 +268,28 @@ testClient(
       TypeError,
       "The fields provided for the query must contain only letters and underscores",
     );
+
+    await assertThrowsAsync(
+      async () => {
+        await client.queryObject({
+          text: "SELECT 1",
+          fields: ["1A"],
+        });
+      },
+      TypeError,
+      "The fields provided for the query must contain only letters and underscores",
+    );
+
+    await assertThrowsAsync(
+      async () => {
+        await client.queryObject({
+          text: "SELECT 1",
+          fields: ["A$"],
+        });
+      },
+      TypeError,
+      "The fields provided for the query must contain only letters and underscores",
+    );
   },
 );
 

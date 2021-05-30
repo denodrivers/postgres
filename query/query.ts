@@ -55,7 +55,9 @@ export interface QueryObjectConfig extends QueryConfig {
    * When specified, this names will be asigned to the results
    * of the query in the order they were provided
    *
-   * Fields must be unique and be in the range of (a-zA-Z_), otherwise the query will throw before execution
+   * Fields must be unique and be in the range of (a-zA-Z0-9_), otherwise the query will throw before execution
+   * 
+   * A field can not start with a number, just like JavaScript variables
    */
   fields?: string[];
 }
@@ -240,7 +242,7 @@ export class Query<T extends ResultType> {
       if (fields) {
         //deno-lint-ignore camelcase
         const clean_fields = fields.filter((field) =>
-          /^[a-zA-Z_]+$/.test(field)
+          /^[a-zA-Z0-9_]+$/.test(field)
         );
         if (fields.length !== clean_fields.length) {
           throw new TypeError(
