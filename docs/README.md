@@ -427,8 +427,9 @@ Other aspects to take into account when using the `fields` argument:
 
 - The fields will be matched in the order they were declared
 - The fields will override any alias in the query
-- These field properties must be unique (case insensitive), otherwise the query
-  will throw before execution
+- These field properties must be unique otherwise the query will throw before
+  execution
+- The fields must not have special characters and not start with a number
 - The fields must match the number of fields returned on the query, otherwise
   the query will throw on execution
 
