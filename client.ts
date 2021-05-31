@@ -159,7 +159,7 @@ export abstract class QueryClient {
    * ); // Array<[number, string]>
    * ```
    * 
-   * It also allows you to execute prepared stamements with template strings
+   * It also allows you to execute prepared statements with template strings
    * 
    * ```ts
    * const id = 12;
@@ -237,7 +237,7 @@ export abstract class QueryClient {
    * console.log(rows); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
    * ```
    * 
-   * It also allows you to execute prepared stamements with template strings
+   * It also allows you to execute prepared statements with template strings
    * 
    * ```ts
    * const id = 12;
