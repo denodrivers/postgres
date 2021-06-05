@@ -1,4 +1,4 @@
-FROM hayd/alpine-deno:1.9.0
+FROM denoland/deno:alpine-1.10.3
 WORKDIR /app
 
 # Install wait utility
@@ -13,9 +13,8 @@ ADD . .
 RUN deno cache tests/test_deps.ts
 
 # Code health checks
-RUN deno lint --unstable
+RUN deno lint
 RUN deno fmt --check
 
 # Run tests
 CMD /wait && deno test --unstable -A
-
