@@ -56,7 +56,7 @@ export interface QueryObjectConfig extends QueryConfig {
    * of the query in the order they were provided
    *
    * Fields must be unique and be in the range of (a-zA-Z0-9_), otherwise the query will throw before execution
-   * 
+   *
    * A field can not start with a number, just like JavaScript variables
    */
   fields?: string[];
