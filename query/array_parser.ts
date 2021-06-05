@@ -76,7 +76,7 @@ class ArrayParser<T> {
   /**
    * Arrays can contain items separated by semicolon (such as boxes)
    * and commas
-   * 
+   *
    * This checks if there is an instance of a semicolon on the top level
    * of the array. If it were to be found, the separator will be
    * a semicolon, otherwise it will default to a comma
