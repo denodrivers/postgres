@@ -102,6 +102,21 @@ possible without the `Deno.startTls` API, which is currently marked as unstable.
 This is a situation that will be solved once this API is stabilized, however I
 don't have an estimated time of when that might happen.
 
+#### About invalid TLS certificates
+
+There is a miriad of factors you have to take into account when using a
+certificate to encrypt your connection that, if not taken care of, can render
+your certificate invalid. Deno is specially strict when stablishing a TLS
+connection, rendering self-signed certificates unusable at the time.
+
+Work is being done in order to address the needs of those users who need to use
+said certificates, however as a personal piece of advice I recommend you to not
+use TLS at all if you are going to use a non-secure certificate, specially on a
+publicly reachable server.
+
+TLS can be disabled from your server by editing your `postgresql.conf` file and
+setting the `ssl` option to `off`.
+
 ### Clients
 
 Clients are the most basic block for establishing communication with your

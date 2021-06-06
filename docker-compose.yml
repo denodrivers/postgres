@@ -23,13 +23,24 @@ services:
     volumes:
       - ./docker/postgres_scram/data/:/var/lib/postgresql/host/
       - ./docker/postgres_scram/init/:/docker-entrypoint-initdb.d/
+  postgres_invalid_tls:
+    image: postgres
+    hostname: postgres_invalid_tls
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+    volumes:
+      - ./docker/postgres_invalid_tls/data/:/var/lib/postgresql/host/
+      - ./docker/postgres_invalid_tls/init/:/docker-entrypoint-initdb.d/
   tests:
     build: .
     depends_on:
       - postgres
       - postgres_scram
+      - postgres_invalid_tls
     environment:
-      - WAIT_HOSTS=postgres:5432,postgres_scram:5432
+      - WAIT_HOSTS=postgres:5432,postgres_scram:5432,postgres_invalid_tls:5432
       # Wait thirty seconds after database goes online
       # For database metadata initialization
       - WAIT_AFTER_HOSTS=15
