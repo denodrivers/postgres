@@ -1,6 +1,7 @@
 import { assertThrowsAsync } from "./test_deps.ts";
 import {
   getClearConfiguration,
+  getInvalidTlsConfiguration,
   getMainConfiguration,
   getMd5Configuration,
   getScramSha256Configuration,
@@ -28,6 +29,21 @@ Deno.test("Handles bad authentication correctly", async function () {
     },
     PostgresError,
     "password authentication failed for user",
+  )
+    .finally(async () => {
+      await client.end();
+    });
+});
+
+Deno.test("Handles invalid TLS certificates correctly", async () => {
+  const client = new Client(getInvalidTlsConfiguration());
+
+  await assertThrowsAsync(
+    async (): Promise<void> => {
+      await client.connect();
+    },
+    Error,
+    "The certificate used to secure the TLS connection is invalid",
   )
     .finally(async () => {
       await client.end();
