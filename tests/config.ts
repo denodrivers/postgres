@@ -39,6 +39,19 @@ const config: {
       scram: string;
     };
   };
+  postgres_invalid_tls: {
+    applicationName: string;
+    database: string;
+    hostname: string;
+    password: string;
+    port: string | number;
+    tls: {
+      enforce: boolean;
+    };
+    users: {
+      main: string;
+    };
+  };
 } = JSON.parse(content);
 
 export const getClearConfiguration = (): ConnectionOptions => {
@@ -82,5 +95,19 @@ export const getScramSha256Configuration = (): ConnectionOptions => {
     password: config.postgres_scram.password,
     port: config.postgres_scram.port,
     user: config.postgres_scram.users.scram,
+  };
+};
+
+export const getInvalidTlsConfiguration = (): ConnectionOptions => {
+  return {
+    applicationName: config.postgres_invalid_tls.applicationName,
+    database: config.postgres_invalid_tls.database,
+    hostname: config.postgres_invalid_tls.hostname,
+    password: config.postgres_invalid_tls.password,
+    port: config.postgres_invalid_tls.port,
+    tls: {
+      enforce: config.postgres_invalid_tls.tls.enforce,
+    },
+    user: config.postgres_invalid_tls.users.main,
   };
 };

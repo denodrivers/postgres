@@ -20,5 +20,18 @@
     "users": {
       "scram": "scram"
     }
+  },
+  "postgres_invalid_tls": {
+    "applicationName": "deno_postgres",
+    "database": "postgres",
+    "hostname": "postgres_invalid_tls",
+    "password": "postgres",
+    "port": 5432,
+    "tls": {
+      "enforce": true
+    },
+    "users": {
+      "main": "postgres"
+    }
   }
 }
