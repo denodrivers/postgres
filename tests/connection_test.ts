@@ -35,7 +35,17 @@ Deno.test("Handles bad authentication correctly", async function () {
     });
 });
 
-Deno.test("Handles invalid TLS certificates correctly", async () => {
+Deno.test("Downgrades to non-encrypted connection on invalid certificate", async () => {
+  const client = new Client({
+    ...getInvalidTlsConfiguration(),
+    tls: { enforce: false },
+  });
+
+  await client.connect();
+  await client.end();
+});
+
+Deno.test("Throws on invalid certificate and enforced TLS", async () => {
   const client = new Client(getInvalidTlsConfiguration());
 
   await assertThrowsAsync(

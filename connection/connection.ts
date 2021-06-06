@@ -329,6 +329,8 @@ export class Connection {
                 "\n" +
                 bold("Defaulting to non-encrypted connection"),
             );
+            // Make sure to close the active TLS connection
+            this.#conn.close();
             await this.#createNonTlsConnection({ hostname, port });
             this.#tls = false;
             startup_response = await this.sendStartupMessage();
