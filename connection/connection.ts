@@ -162,9 +162,15 @@ export class Connection {
   // TODO
   // Find out what the secret key is for
   #secretKey?: number;
+  #tls = false;
   // TODO
   // Find out what the transaction status is used for
   #transactionStatus?: TransactionStatus;
+
+  /** Indicates if the connection is carried over TLS */
+  get tls() {
+    return this.#tls;
+  }
 
   constructor(private connParams: ConnectionParams) {}
 
@@ -241,6 +247,28 @@ export class Connection {
     return await this.readMessage();
   }
 
+  #createNonTlsConnection = async (options: Deno.ConnectOptions) => {
+    this.#conn = await Deno.connect(options);
+    this.#bufWriter = new BufWriter(this.#conn);
+    this.#bufReader = new BufReader(this.#conn);
+  };
+
+  #createTlsConnection = async (
+    connection: Deno.Conn,
+    options: Deno.ConnectOptions,
+  ) => {
+    if ("startTls" in Deno) {
+      // @ts-ignore This API should be available on unstable
+      this.#conn = await Deno.startTls(connection, options);
+      this.#bufWriter = new BufWriter(this.#conn);
+      this.#bufReader = new BufReader(this.#conn);
+    } else {
+      throw new Error(
+        "You need to execute Deno with the `--unstable` argument in order to stablish a TLS connection",
+      );
+    }
+  };
+
   /**
    * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
    * */
@@ -253,22 +281,16 @@ export class Connection {
       },
     } = this.connParams;
 
-    this.#conn = await Deno.connect({ port, hostname });
-    this.#bufWriter = new BufWriter(this.#conn);
+    // A BufWriter needs to be available in order to check if the server accepts TLS connections
+    await this.#createNonTlsConnection({ hostname, port });
 
     /**
      * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
      * */
     if (await this.serverAcceptsTLS()) {
       try {
-        if ("startTls" in Deno) {
-          // @ts-ignore This API should be available on unstable
-          this.#conn = await Deno.startTls(this.#conn, { hostname });
-        } else {
-          throw new Error(
-            "You need to execute Deno with the `--unstable` argument in order to stablish a TLS connection",
-          );
-        }
+        await this.#createTlsConnection(this.#conn, { hostname, port });
+        this.#tls = true;
       } catch (e) {
         if (!enforceTLS) {
           console.error(
@@ -277,23 +299,44 @@ export class Connection {
               "\n" +
               bold("Defaulting to non-encrypted connection"),
           );
-          this.#conn = await Deno.connect({ port, hostname });
+          await this.#createNonTlsConnection({ hostname, port });
+          this.#tls = false;
         } else {
           throw e;
         }
       }
-      this.#bufWriter = new BufWriter(this.#conn);
     } else if (enforceTLS) {
       throw new Error(
         "The server isn't accepting TLS connections. Change the client configuration so TLS configuration isn't required to connect",
       );
     }
 
-    this.#bufReader = new BufReader(this.#conn);
-
     try {
       // deno-lint-ignore camelcase
-      const startup_response = await this.sendStartupMessage();
+      let startup_response;
+      try {
+        startup_response = await this.sendStartupMessage();
+      } catch (e) {
+        if (e instanceof Deno.errors.InvalidData) {
+          if (enforceTLS) {
+            throw new Error(
+              "The certificate used to secure the TLS connection is invalid",
+            );
+          } else {
+            console.error(
+              bold(yellow("TLS connection failed with message: ")) +
+                e.message +
+                "\n" +
+                bold("Defaulting to non-encrypted connection"),
+            );
+            await this.#createNonTlsConnection({ hostname, port });
+            this.#tls = false;
+            startup_response = await this.sendStartupMessage();
+          }
+        } else {
+          throw e;
+        }
+      }
       assertSuccessfulStartup(startup_response);
       await this.authenticate(startup_response);
 
