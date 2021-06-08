@@ -29,23 +29,19 @@
 import { bold, BufReader, BufWriter, yellow } from "../deps.ts";
 import { DeferredStack } from "../utils/deferred.ts";
 import { hashMd5Password, readUInt32BE } from "../utils/utils.ts";
-import { PacketReader } from "./packet_reader.ts";
 import { PacketWriter } from "./packet_writer.ts";
-import { parseError, parseNotice } from "./warning.ts";
+import { Message, parseError, parseNotice } from "./warning.ts";
 import {
   Query,
   QueryArrayResult,
   QueryObjectResult,
   QueryResult,
   ResultType,
+  RowDescription,
 } from "../query/query.ts";
+import { Column } from "../query/decode.ts";
 import type { ConnectionParams } from "./connection_params.ts";
 import * as scram from "./scram.ts";
-
-export enum Format {
-  TEXT = 0,
-  BINARY = 1,
-}
 
 enum TransactionStatus {
   Idle = "I",
@@ -107,34 +103,6 @@ function assertQueryResponse(msg: Message) {
     default:
       throw new Error(`Unexpected frame: ${msg.type}`);
   }
-}
-
-export class Message {
-  public reader: PacketReader;
-
-  constructor(
-    public type: string,
-    public byteCount: number,
-    public body: Uint8Array,
-  ) {
-    this.reader = new PacketReader(body);
-  }
-}
-
-export class Column {
-  constructor(
-    public name: string,
-    public tableOid: number,
-    public index: number,
-    public typeOid: number,
-    public columnLength: number,
-    public typeModifier: number,
-    public format: Format,
-  ) {}
-}
-
-export class RowDescription {
-  constructor(public columnCount: number, public columns: Column[]) {}
 }
 
 const decoder = new TextDecoder();

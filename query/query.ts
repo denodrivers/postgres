@@ -1,6 +1,5 @@
-import type { RowDescription } from "../connection/connection.ts";
 import { encode, EncodedArg } from "./encode.ts";
-import { decode } from "./decode.ts";
+import { Column, decode } from "./decode.ts";
 import { WarningFields } from "../connection/warning.ts";
 
 const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
@@ -18,6 +17,10 @@ type CommandType = (
 export enum ResultType {
   ARRAY,
   OBJECT,
+}
+
+export class RowDescription {
+  constructor(public columnCount: number, public columns: Column[]) {}
 }
 
 /**

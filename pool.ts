@@ -177,7 +177,7 @@ export class Pool {
       async (client) => {
         // TODO
         // Check if client is initialized
-        if (client.connected) {
+        if (!client.connected) {
           await client.connect();
         }
       },
