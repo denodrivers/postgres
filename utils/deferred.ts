@@ -88,7 +88,7 @@ export class DeferredAccessStack<T> {
 
   async pop(): Promise<T> {
     let element: T;
-    if (this.#elements.length > 0) {
+    if (this.available > 0) {
       element = this.#elements.pop()!;
     } else {
       // If there are not elements left in the stack, it will await the call until

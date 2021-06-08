@@ -63,18 +63,6 @@ export class Pool {
   #ready: Promise<void>;
   #size: number;
 
-  constructor(
-    // deno-lint-ignore camelcase
-    connection_params: ConnectionOptions | ConnectionString | undefined,
-    size: number,
-    lazy: boolean = false,
-  ) {
-    this.#connection_params = createParams(connection_params);
-    this.#lazy = lazy;
-    this.#ready = this.#initialize();
-    this.#size = size;
-  }
-
   /**
    * The number of open connections available for use
    *
@@ -85,6 +73,32 @@ export class Pool {
       return 0;
     }
     return this.#available_connections.available;
+  }
+
+  /**
+   * The number of total connections open in the pool
+   *
+   * Both available and in use connections will be counted
+   */
+  get size(): number {
+    if (this.#available_connections == null) {
+      return 0;
+    }
+    return this.#available_connections.size;
+  }
+
+  constructor(
+    // deno-lint-ignore camelcase
+    connection_params: ConnectionOptions | ConnectionString | undefined,
+    size: number,
+    lazy: boolean = false,
+  ) {
+    this.#connection_params = createParams(connection_params);
+    this.#lazy = lazy;
+    this.#size = size;
+
+    // This must ALWAYS be called the last
+    this.#ready = this.#initialize();
   }
 
   // TODO
@@ -175,8 +189,6 @@ export class Pool {
     this.#available_connections = new DeferredAccessStack(
       await Promise.all(clients),
       async (client) => {
-        // TODO
-        // Check if client is initialized
         if (!client.connected) {
           await client.connect();
         }
@@ -185,16 +197,4 @@ export class Pool {
 
     this.#ended = false;
   };
-
-  /**
-   * The number of total connections open in the pool
-   *
-   * Both available and in use connections will be counted
-   */
-  get size(): number {
-    if (this.#available_connections == null) {
-      return 0;
-    }
-    return this.#available_connections.size;
-  }
 }
