@@ -10,7 +10,7 @@ import {
   ResultType,
   templateStringToQuery,
 } from "./query.ts";
-import { isTemplateString } from "../utils.ts";
+import { isTemplateString } from "../utils/utils.ts";
 import { PostgresError, TransactionError } from "../connection/warning.ts";
 
 export class Savepoint {

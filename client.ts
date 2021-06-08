@@ -1,6 +1,7 @@
 import { Connection } from "./connection/connection.ts";
 import {
   ConnectionOptions,
+  ConnectionParams,
   ConnectionString,
   createParams,
 } from "./connection/connection_params.ts";
@@ -16,27 +17,45 @@ import {
   templateStringToQuery,
 } from "./query/query.ts";
 import { Transaction, TransactionOptions } from "./query/transaction.ts";
-import { isTemplateString } from "./utils.ts";
+import { isTemplateString } from "./utils/utils.ts";
 
 export abstract class QueryClient {
   protected connection: Connection;
+  // TODO
+  // Move transaction to a session object alongside the PID
   protected transaction: string | null = null;
 
   constructor(connection: Connection) {
     this.connection = connection;
   }
 
+  // TODO
+  // Add comment about reconnection attempts
+  get connected() {
+    return this.connection.connected;
+  }
+
   get current_transaction(): string | null {
     return this.transaction;
   }
 
-  protected executeQuery<T extends Array<unknown>>(
+  // TODO
+  // Distinguish between terminated and aborted
+  #assertOpenConnection = () => {
+    if (!this.connected) {
+      throw new Error(
+        "Connection to the database hasn't been initialized or has been terminated",
+      );
+    }
+  };
+
+  private executeQuery<T extends Array<unknown>>(
     query: Query<ResultType.ARRAY>,
   ): Promise<QueryArrayResult<T>>;
-  protected executeQuery<T extends Record<string, unknown>>(
+  private executeQuery<T extends Record<string, unknown>>(
     query: Query<ResultType.OBJECT>,
   ): Promise<QueryObjectResult<T>>;
-  protected executeQuery(
+  private executeQuery(
     query: Query<ResultType>,
   ): Promise<QueryResult> {
     return this.connection.query(query);
@@ -130,6 +149,8 @@ export abstract class QueryClient {
    */
 
   createTransaction(name: string, options?: TransactionOptions): Transaction {
+    this.#assertOpenConnection();
+
     return new Transaction(
       name,
       options,
@@ -140,6 +161,30 @@ export abstract class QueryClient {
         this.transaction = name;
       },
     );
+  }
+
+  /**
+   * Every client must initialize their connection previously to the
+   * execution of any statement
+   */
+  async connect(): Promise<void> {
+    if (!this.connected) {
+      await this.connection.startup();
+    }
+  }
+
+  /**
+   * Closing your PostgreSQL connection will delete all non-persistent data
+   * that may have been created in the course of the session and will require
+   * you to reconnect in order to execute further queries
+   */
+  async end(): Promise<void> {
+    if (this.connected) {
+      await this.connection.end();
+    }
+
+    // Cleanup all session related metadata
+    this.transaction = null;
   }
 
   /**
@@ -183,6 +228,8 @@ export abstract class QueryClient {
     query_template_or_config: TemplateStringsArray | string | QueryConfig,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>> {
+    this.#assertOpenConnection();
+
     if (this.current_transaction !== null) {
       throw new Error(
         `This connection is currently locked by the "${this.current_transaction}" transaction`,
@@ -266,6 +313,8 @@ export abstract class QueryClient {
       | TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>> {
+    this.#assertOpenConnection();
+
     if (this.current_transaction !== null) {
       throw new Error(
         `This connection is currently locked by the "${this.current_transaction}" transaction`,
@@ -329,36 +378,20 @@ export class Client extends QueryClient {
   constructor(config?: ConnectionOptions | ConnectionString) {
     super(new Connection(createParams(config)));
   }
-
-  /**
-   * Every client must initialize their connection previously to the
-   * execution of any statement
-   */
-  async connect(): Promise<void> {
-    await this.connection.startup();
-  }
-
-  /**
-   * Ending a connection will close your PostgreSQL connection, and delete
-   * all non-persistent data that may have been created in the course of the
-   * session
-   */
-  async end(): Promise<void> {
-    await this.connection.end();
-    this.transaction = null;
-  }
 }
 
 export class PoolClient extends QueryClient {
   #release: () => void;
 
-  constructor(connection: Connection, releaseCallback: () => void) {
-    super(connection);
+  constructor(config: ConnectionParams, releaseCallback: () => void) {
+    super(new Connection(config));
     this.#release = releaseCallback;
   }
 
-  async release(): Promise<void> {
-    await this.#release();
+  release() {
+    this.#release();
+
+    // Cleanup all session related metadata
     this.transaction = null;
   }
 }

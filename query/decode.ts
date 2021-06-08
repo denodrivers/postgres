@@ -1,5 +1,4 @@
 import { Oid } from "./oid.ts";
-import { Column, Format } from "../connection/connection.ts";
 import {
   decodeBigint,
   decodeBigintArray,
@@ -33,6 +32,23 @@ import {
   decodeTid,
   decodeTidArray,
 } from "./decoders.ts";
+
+export class Column {
+  constructor(
+    public name: string,
+    public tableOid: number,
+    public index: number,
+    public typeOid: number,
+    public columnLength: number,
+    public typeModifier: number,
+    public format: Format,
+  ) {}
+}
+
+enum Format {
+  TEXT = 0,
+  BINARY = 1,
+}
 
 const decoder = new TextDecoder();
 

@@ -71,6 +71,19 @@ testClient("Prepared statements", async function (generateClient) {
   assertEquals(result.rows, [{ id: 1 }]);
 });
 
+testClient("Terminated connections", async function (generateClient) {
+  const client = await generateClient();
+  await client.end();
+
+  assertThrowsAsync(
+    async () => {
+      await client.queryArray`SELECT 1`;
+    },
+    Error,
+    "Connection to the database hasn't been initialized or has been terminated",
+  );
+});
+
 testClient("Handling of debug notices", async function (generateClient) {
   const client = await generateClient();
 
