@@ -19,8 +19,6 @@ import {
 import { Transaction, TransactionOptions } from "./query/transaction.ts";
 import { isTemplateString } from "./utils/utils.ts";
 
-// TODO
-// Add checks everywhere for client connected
 export abstract class QueryClient {
   protected connection: Connection;
   protected transaction: string | null = null;
@@ -39,13 +37,23 @@ export abstract class QueryClient {
     return this.transaction;
   }
 
-  protected executeQuery<T extends Array<unknown>>(
+  // TODO
+  // Distinguish between terminated and aborted
+  #assertOpenConnection = () => {
+    if (!this.connected) {
+      throw new Error(
+        "Connection to the database hasn't been initialized or has been terminated",
+      );
+    }
+  };
+
+  private executeQuery<T extends Array<unknown>>(
     query: Query<ResultType.ARRAY>,
   ): Promise<QueryArrayResult<T>>;
-  protected executeQuery<T extends Record<string, unknown>>(
+  private executeQuery<T extends Record<string, unknown>>(
     query: Query<ResultType.OBJECT>,
   ): Promise<QueryObjectResult<T>>;
-  protected executeQuery(
+  private executeQuery(
     query: Query<ResultType>,
   ): Promise<QueryResult> {
     return this.connection.query(query);
@@ -139,6 +147,8 @@ export abstract class QueryClient {
    */
 
   createTransaction(name: string, options?: TransactionOptions): Transaction {
+    this.#assertOpenConnection();
+
     return new Transaction(
       name,
       options,
@@ -156,7 +166,9 @@ export abstract class QueryClient {
    * execution of any statement
    */
   async connect(): Promise<void> {
-    await this.connection.startup();
+    if (!this.connected) {
+      await this.connection.startup();
+    }
   }
 
   /**
@@ -165,7 +177,9 @@ export abstract class QueryClient {
    * you to reconnect in order to execute further queries
    */
   async end(): Promise<void> {
-    await this.connection.end();
+    if (this.connected) {
+      await this.connection.end();
+    }
     this.transaction = null;
   }
 
@@ -210,6 +224,8 @@ export abstract class QueryClient {
     query_template_or_config: TemplateStringsArray | string | QueryConfig,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>> {
+    this.#assertOpenConnection();
+
     if (this.current_transaction !== null) {
       throw new Error(
         `This connection is currently locked by the "${this.current_transaction}" transaction`,
@@ -293,6 +309,8 @@ export abstract class QueryClient {
       | TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>> {
+    this.#assertOpenConnection();
+
     if (this.current_transaction !== null) {
       throw new Error(
         `This connection is currently locked by the "${this.current_transaction}" transaction`,
@@ -368,6 +386,8 @@ export class PoolClient extends QueryClient {
 
   release() {
     this.#release();
+
+    // Cleanup all session related metadata
     this.transaction = null;
   }
 }

@@ -112,6 +112,8 @@ const encoder = new TextEncoder();
 // - Refactor properties to not be lazily initialized
 //   or to handle their undefined value
 // - Convert all properties to privates
+// - Expose connection PID as a method
+// - Cleanup properties on startup to guarantee safe reconnection
 export class Connection {
   #bufReader!: BufReader;
   #bufWriter!: BufWriter;
@@ -121,8 +123,6 @@ export class Connection {
   // TODO
   // Find out what parameters are for
   #parameters: { [key: string]: string } = {};
-  // TODO
-  // Find out what the pid is for
   #pid?: number;
   #queryLock: DeferredStack<undefined> = new DeferredStack(
     1,
@@ -130,10 +130,12 @@ export class Connection {
   );
   // TODO
   // Find out what the secret key is for
+  // Clean on startup
   #secretKey?: number;
   #tls = false;
   // TODO
   // Find out what the transaction status is used for
+  // Clean on startup
   #transactionStatus?: TransactionStatus;
 
   /** Indicates if the connection is carried over TLS */
@@ -239,6 +241,7 @@ export class Connection {
   };
 
   /**
+   * Calling startup on a connection twice will create a new session and overwrite the previous one
    * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
    * */
   async startup() {
@@ -801,6 +804,7 @@ export class Connection {
     if (!this.connected) {
       throw new Error("The connection hasn't been initialized");
     }
+
     await this.#queryLock.pop();
     try {
       if (query.args.length === 0) {
