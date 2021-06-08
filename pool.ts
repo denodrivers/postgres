@@ -188,13 +188,21 @@ export class Pool {
 
     this.#available_connections = new DeferredAccessStack(
       await Promise.all(clients),
-      async (client) => {
-        if (!client.connected) {
-          await client.connect();
-        }
-      },
+      (client) => client.connect(),
+      (client) => client.connected,
     );
 
     this.#ended = false;
   };
+
+  /**
+   * This will return the number of initialized clients in the pool
+   */
+  async initialized(): Promise<number> {
+    if (!this.#available_connections) {
+      return 0;
+    }
+
+    return await this.#available_connections.initialized();
+  }
 }

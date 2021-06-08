@@ -3,7 +3,12 @@ import { DsnResult, parseDsn } from "../utils/utils.ts";
 import { DeferredAccessStack } from "../utils/deferred.ts";
 
 class LazilyInitializedObject {
-  initialized = false;
+  #initialized = false;
+
+  // Simulate async check
+  get initialized() {
+    return new Promise<boolean>((r) => r(this.#initialized));
+  }
 
   async initialize(): Promise<void> {
     // Fake delay
@@ -13,7 +18,7 @@ class LazilyInitializedObject {
       }, 10);
     });
 
-    this.initialized = true;
+    this.#initialized = true;
   }
 }
 
@@ -48,22 +53,24 @@ Deno.test("DeferredAccessStack", async () => {
 
   const stack = new DeferredAccessStack(
     Array.from({ length: stack_size }, () => new LazilyInitializedObject()),
-    async (e) => {
-      if (!e.initialized) {
-        await e.initialize();
-      }
-    },
+    (e) => e.initialize(),
+    (e) => e.initialized,
   );
 
   assertEquals(stack.size, stack_size);
   assertEquals(stack.available, stack_size);
+  assertEquals(await stack.initialized(), 0);
+
   const a = await stack.pop();
-  assertEquals(a.initialized, true);
+  assertEquals(await a.initialized, true);
   assertEquals(stack.size, stack_size);
   assertEquals(stack.available, stack_size - 1);
+  assertEquals(await stack.initialized(), 0);
+
   stack.push(a);
   assertEquals(stack.size, stack_size);
   assertEquals(stack.available, stack_size);
+  assertEquals(await stack.initialized(), 1);
 });
 
 Deno.test("An empty DeferredAccessStack awaits until an object is back in the stack", async () => {
@@ -72,11 +79,8 @@ Deno.test("An empty DeferredAccessStack awaits until an object is back in the st
 
   const stack = new DeferredAccessStack(
     Array.from({ length: stack_size }, () => new LazilyInitializedObject()),
-    async (e) => {
-      if (!e.initialized) {
-        await e.initialize();
-      }
-    },
+    (e) => e.initialize(),
+    (e) => e.initialized,
   );
 
   const a = await stack.pop();

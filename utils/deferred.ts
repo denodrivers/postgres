@@ -54,11 +54,14 @@ export class DeferredStack<T> {
  * but with the caveat that they require an initialization of sorts before they can be used
  *
  * Instead of providing a `creator` function as you would with the `DeferredStack`, you provide
- * an initialization callback to execute for each element that is retrieved from the stack
+ * an initialization callback to execute for each element that is retrieved from the stack and a check
+ * callback to determine if the element requires initialization and return a count of the initialized
+ * elements
  */
 export class DeferredAccessStack<T> {
   #elements: Array<T>;
   #initializeElement: (element: T) => Promise<void>;
+  #checkElementInitialization: (element: T) => Promise<boolean> | boolean;
   #queue: Array<Deferred<undefined>>;
   #size: number;
 
@@ -67,7 +70,7 @@ export class DeferredAccessStack<T> {
   }
 
   /**
-   * The number of elements that can be contained in the stack a time
+   * The max number of elements that can be contained in the stack a time
    */
   get size(): number {
     return this.#size;
@@ -79,11 +82,27 @@ export class DeferredAccessStack<T> {
   constructor(
     elements: T[],
     initCallback: (element: T) => Promise<void>,
+    checkInitCallback: (element: T) => Promise<boolean> | boolean,
   ) {
+    this.#checkElementInitialization = checkInitCallback;
     this.#elements = elements;
     this.#initializeElement = initCallback;
     this.#queue = [];
     this.#size = elements.length;
+  }
+
+  /**
+   * Will execute the check for initialization on each element of the stack
+   * and then return the number of initialized elements that pass the check
+   */
+  async initialized(): Promise<number> {
+    const initialized = await Promise.all(
+      this.#elements.map((e) => this.#checkElementInitialization(e)),
+    );
+
+    return initialized
+      .filter((initialized) => initialized === true)
+      .length;
   }
 
   async pop(): Promise<T> {
@@ -99,7 +118,9 @@ export class DeferredAccessStack<T> {
       element = this.#elements.pop()!;
     }
 
-    await this.#initializeElement(element);
+    if (!await this.#checkElementInitialization(element)) {
+      await this.#initializeElement(element);
+    }
     return element;
   }
 
