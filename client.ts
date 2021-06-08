@@ -21,6 +21,8 @@ import { isTemplateString } from "./utils/utils.ts";
 
 export abstract class QueryClient {
   protected connection: Connection;
+  // TODO
+  // Move transaction to a session object alongside the PID
   protected transaction: string | null = null;
 
   constructor(connection: Connection) {
@@ -180,6 +182,8 @@ export abstract class QueryClient {
     if (this.connected) {
       await this.connection.end();
     }
+
+    // Cleanup all session related metadata
     this.transaction = null;
   }
 

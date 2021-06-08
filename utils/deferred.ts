@@ -50,7 +50,7 @@ export class DeferredStack<T> {
 }
 
 /**
- * The DeferredAccessStack provides access to a series of elements created on initialization,
+ * The DeferredAccessStack provides access to a series of elements provided on the stack creation,
  * but with the caveat that they require an initialization of sorts before they can be used
  *
  * Instead of providing a `creator` function as you would with the `DeferredStack`, you provide

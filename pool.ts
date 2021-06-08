@@ -81,7 +81,7 @@ export class Pool {
    * Both available and in use connections will be counted
    */
   get size(): number {
-    if (this.#available_connections == null) {
+    if (!this.#available_connections) {
       return 0;
     }
     return this.#available_connections.size;
@@ -98,6 +98,8 @@ export class Pool {
     this.#size = size;
 
     // This must ALWAYS be called the last
+    // TODO
+    // Refactor into its own initialization function
     this.#ready = this.#initialize();
   }
 
