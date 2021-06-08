@@ -17,7 +17,7 @@ import {
   templateStringToQuery,
 } from "./query/query.ts";
 import { Transaction, TransactionOptions } from "./query/transaction.ts";
-import { isTemplateString } from "./utils.ts";
+import { isTemplateString } from "./utils/utils.ts";
 
 // TODO
 // Add checks everywhere for client connected

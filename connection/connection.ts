@@ -27,8 +27,8 @@
  */
 
 import { bold, BufReader, BufWriter, yellow } from "../deps.ts";
-import { DeferredStack } from "./deferred.ts";
-import { hashMd5Password, readUInt32BE } from "../utils.ts";
+import { DeferredStack } from "../utils/deferred.ts";
+import { hashMd5Password, readUInt32BE } from "../utils/utils.ts";
 import { PacketReader } from "./packet_reader.ts";
 import { PacketWriter } from "./packet_writer.ts";
 import { parseError, parseNotice } from "./warning.ts";

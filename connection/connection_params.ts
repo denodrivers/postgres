@@ -1,4 +1,4 @@
-import { parseDsn } from "../utils.ts";
+import { parseDsn } from "../utils/utils.ts";
 
 /**
  * The connection string must match the following URI structure

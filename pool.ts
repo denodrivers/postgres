@@ -5,7 +5,7 @@ import {
   ConnectionString,
   createParams,
 } from "./connection/connection_params.ts";
-import { DeferredAccessStack } from "./connection/deferred.ts";
+import { DeferredAccessStack } from "./utils/deferred.ts";
 
 /**
  * Connection pools are a powerful resource to execute parallel queries and
