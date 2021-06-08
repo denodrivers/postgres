@@ -140,9 +140,10 @@ export class RowDescription {
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
-//TODO
-//Refactor properties to not be lazily initialized
-//or to handle their undefined value
+// TODO
+// - Refactor properties to not be lazily initialized
+//   or to handle their undefined value
+// - Convert all properties to privates
 export class Connection {
   #bufReader!: BufReader;
   #bufWriter!: BufWriter;
