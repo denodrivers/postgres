@@ -1,4 +1,4 @@
-import { readInt16BE, readInt32BE } from "../utils.ts";
+import { readInt16BE, readInt32BE } from "../utils/utils.ts";
 
 export class PacketReader {
   private offset = 0;

@@ -1,4 +1,4 @@
-import { createHash } from "./deps.ts";
+import { createHash } from "../deps.ts";
 
 export function readInt16BE(buffer: Uint8Array, offset: number): number {
   offset = offset >>> 0;

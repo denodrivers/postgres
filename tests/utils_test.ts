@@ -1,8 +1,28 @@
-const { test } = Deno;
 import { assertEquals } from "./test_deps.ts";
-import { DsnResult, parseDsn } from "../utils.ts";
+import { DsnResult, parseDsn } from "../utils/utils.ts";
+import { DeferredAccessStack } from "../utils/deferred.ts";
 
-test("testParseDsn", function () {
+class LazilyInitializedObject {
+  #initialized = false;
+
+  // Simulate async check
+  get initialized() {
+    return new Promise<boolean>((r) => r(this.#initialized));
+  }
+
+  async initialize(): Promise<void> {
+    // Fake delay
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, 10);
+    });
+
+    this.#initialized = true;
+  }
+}
+
+Deno.test("parseDsn", function () {
   let c: DsnResult;
 
   c = parseDsn(
@@ -25,4 +45,56 @@ test("testParseDsn", function () {
   assertEquals(c.hostname, "deno.land");
   assertEquals(c.port, "");
   assertEquals(c.database, "test_database");
+});
+
+Deno.test("DeferredAccessStack", async () => {
+  // deno-lint-ignore camelcase
+  const stack_size = 10;
+
+  const stack = new DeferredAccessStack(
+    Array.from({ length: stack_size }, () => new LazilyInitializedObject()),
+    (e) => e.initialize(),
+    (e) => e.initialized,
+  );
+
+  assertEquals(stack.size, stack_size);
+  assertEquals(stack.available, stack_size);
+  assertEquals(await stack.initialized(), 0);
+
+  const a = await stack.pop();
+  assertEquals(await a.initialized, true);
+  assertEquals(stack.size, stack_size);
+  assertEquals(stack.available, stack_size - 1);
+  assertEquals(await stack.initialized(), 0);
+
+  stack.push(a);
+  assertEquals(stack.size, stack_size);
+  assertEquals(stack.available, stack_size);
+  assertEquals(await stack.initialized(), 1);
+});
+
+Deno.test("An empty DeferredAccessStack awaits until an object is back in the stack", async () => {
+  // deno-lint-ignore camelcase
+  const stack_size = 1;
+
+  const stack = new DeferredAccessStack(
+    Array.from({ length: stack_size }, () => new LazilyInitializedObject()),
+    (e) => e.initialize(),
+    (e) => e.initialized,
+  );
+
+  const a = await stack.pop();
+  let fulfilled = false;
+  const b = stack.pop()
+    .then((e) => {
+      fulfilled = true;
+      return e;
+    });
+
+  await new Promise((r) => setTimeout(r, 100));
+  assertEquals(fulfilled, false);
+
+  stack.push(a);
+  assertEquals(a, await b);
+  assertEquals(fulfilled, true);
 });

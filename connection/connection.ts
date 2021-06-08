@@ -27,25 +27,21 @@
  */
 
 import { bold, BufReader, BufWriter, yellow } from "../deps.ts";
-import { DeferredStack } from "./deferred.ts";
-import { hashMd5Password, readUInt32BE } from "../utils.ts";
-import { PacketReader } from "./packet_reader.ts";
+import { DeferredStack } from "../utils/deferred.ts";
+import { hashMd5Password, readUInt32BE } from "../utils/utils.ts";
 import { PacketWriter } from "./packet_writer.ts";
-import { parseError, parseNotice } from "./warning.ts";
+import { Message, parseError, parseNotice } from "./warning.ts";
 import {
   Query,
   QueryArrayResult,
   QueryObjectResult,
   QueryResult,
   ResultType,
+  RowDescription,
 } from "../query/query.ts";
+import { Column } from "../query/decode.ts";
 import type { ConnectionParams } from "./connection_params.ts";
 import * as scram from "./scram.ts";
-
-export enum Format {
-  TEXT = 0,
-  BINARY = 1,
-}
 
 enum TransactionStatus {
   Idle = "I",
@@ -109,40 +105,15 @@ function assertQueryResponse(msg: Message) {
   }
 }
 
-export class Message {
-  public reader: PacketReader;
-
-  constructor(
-    public type: string,
-    public byteCount: number,
-    public body: Uint8Array,
-  ) {
-    this.reader = new PacketReader(body);
-  }
-}
-
-export class Column {
-  constructor(
-    public name: string,
-    public tableOid: number,
-    public index: number,
-    public typeOid: number,
-    public columnLength: number,
-    public typeModifier: number,
-    public format: Format,
-  ) {}
-}
-
-export class RowDescription {
-  constructor(public columnCount: number, public columns: Column[]) {}
-}
-
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
-//TODO
-//Refactor properties to not be lazily initialized
-//or to handle their undefined value
+// TODO
+// - Refactor properties to not be lazily initialized
+//   or to handle their undefined value
+// - Convert all properties to privates
+// - Expose connection PID as a method
+// - Cleanup properties on startup to guarantee safe reconnection
 export class Connection {
   #bufReader!: BufReader;
   #bufWriter!: BufWriter;
@@ -152,8 +123,6 @@ export class Connection {
   // TODO
   // Find out what parameters are for
   #parameters: { [key: string]: string } = {};
-  // TODO
-  // Find out what the pid is for
   #pid?: number;
   #queryLock: DeferredStack<undefined> = new DeferredStack(
     1,
@@ -161,10 +130,12 @@ export class Connection {
   );
   // TODO
   // Find out what the secret key is for
+  // Clean on startup
   #secretKey?: number;
   #tls = false;
   // TODO
   // Find out what the transaction status is used for
+  // Clean on startup
   #transactionStatus?: TransactionStatus;
 
   /** Indicates if the connection is carried over TLS */
@@ -270,6 +241,7 @@ export class Connection {
   };
 
   /**
+   * Calling startup on a connection twice will create a new session and overwrite the previous one
    * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
    * */
   async startup() {
@@ -832,6 +804,7 @@ export class Connection {
     if (!this.connected) {
       throw new Error("The connection hasn't been initialized");
     }
+
     await this.#queryLock.pop();
     try {
       if (query.args.length === 0) {

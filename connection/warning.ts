@@ -1,4 +1,16 @@
-import type { Message } from "./connection.ts";
+import { PacketReader } from "./packet_reader.ts";
+
+export class Message {
+  public reader: PacketReader;
+
+  constructor(
+    public type: string,
+    public byteCount: number,
+    public body: Uint8Array,
+  ) {
+    this.reader = new PacketReader(body);
+  }
+}
 
 export interface WarningFields {
   severity: string;
