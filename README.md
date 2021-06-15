@@ -56,7 +56,7 @@ For more examples visit the documentation available at
 
 ## Why do I need unstable to connect using TLS?
 
-Sadly, stablishing a TLS connection in the way Postgres requires it isn't
+Sadly, establishing a TLS connection in the way Postgres requires it isn't
 possible without the `Deno.startTls` API, which is currently marked as unstable.
 This is a situation that will be solved once this API is stabilized, however I
 don't have an estimated time of when that might happen.
@@ -105,7 +105,7 @@ It is recommended that you don't rely on any previously initialized data for
 your tests, instead of that create all the data you need at the moment of
 running the tests
 
-For example, the following test will create a temporal table that will dissapear
+For example, the following test will create a temporal table that will disappear
 once the test has been completed
 
 ```ts
@@ -146,7 +146,7 @@ When contributing to repository make sure to:
    explaining their usage
 3. All code must pass the format and lint checks enforced by `deno fmt` and
    `deno lint --unstable` respectively. The build will not pass the tests if
-   this conditions are not met. Ignore rules will be accepted in the code base
+   these conditions are not met. Ignore rules will be accepted in the code base
    when their respective justification is given in a comment
 4. All features and fixes must have a corresponding test added in order to be
    accepted
@@ -156,7 +156,7 @@ When contributing to repository make sure to:
 There are substantial parts of this library based on other libraries. They have
 preserved their individual licenses and copyrights.
 
-Eveything is licensed under the MIT License.
+Everything is licensed under the MIT License.
 
 All additional work is copyright 2018 - 2021 — Bartłomiej Iwańczuk and Steven
 Guerrero — All rights reserved.
