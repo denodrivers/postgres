@@ -1,4 +1,4 @@
-import { base64, HmacSha256, Sha256 } from "../deps.ts";
+import { base64, HmacSha256 } from "../deps.ts";
 
 function assert(cond: unknown): asserts cond {
   if (!cond) {
@@ -81,7 +81,7 @@ export class Client {
   }
 
   /** Processes server-first-message. */
-  receiveChallenge(challenge: string) {
+  async receiveChallenge(challenge: string) {
     assert(this.#state === State.ClientChallenge);
 
     try {
@@ -108,7 +108,7 @@ export class Client {
         throw new AuthError(Reason.BadIterationCount);
       }
 
-      this.#keys = deriveKeys(this.#password, salt, iterCount);
+      this.#keys = await deriveKeys(this.#password, salt, iterCount);
 
       this.#authMessage += "," + challenge;
       this.#state = State.ServerChallenge;
@@ -119,7 +119,7 @@ export class Client {
   }
 
   /** Composes client-final-message. */
-  composeResponse(): string {
+  async composeResponse(): Promise<string> {
     assert(this.#state === State.ServerChallenge);
     assert(this.#keys);
     assert(this.#serverNonce);
@@ -132,7 +132,7 @@ export class Client {
 
       const proof = base64.encode(
         computeProof(
-          computeSignature(this.#authMessage, this.#keys.stored),
+          await computeSignature(this.#authMessage, this.#keys.stored),
           this.#keys.client,
         ),
       );
@@ -147,7 +147,7 @@ export class Client {
   }
 
   /** Processes server-final-message. */
-  receiveResponse(response: string) {
+  async receiveResponse(response: string) {
     assert(this.#state === State.ClientResponse);
     assert(this.#keys);
 
@@ -159,7 +159,7 @@ export class Client {
       }
 
       const verifier = base64.encode(
-        computeSignature(this.#authMessage, this.#keys.server),
+        await computeSignature(this.#authMessage, this.#keys.server),
       );
       if (attrs.v !== verifier) {
         throw new AuthError(Reason.BadVerifier);
@@ -210,21 +210,26 @@ interface Keys {
 }
 
 /** Derives authentication keys from a plaintext password. */
-function deriveKeys(
+async function deriveKeys(
   password: string,
   salt: Uint8Array,
   iterCount: number,
-): Keys {
+): Promise<Keys> {
   const ikm = bytes(normalize(password));
-  const key = pbkdf2((msg: Uint8Array) => sign(msg, ikm), salt, iterCount, 1);
-  const server = sign(bytes("Server Key"), key);
-  const client = sign(bytes("Client Key"), key);
-  const stored = digest(client);
+  const key = await pbkdf2(
+    (msg: Uint8Array) => sign(msg, ikm),
+    salt,
+    iterCount,
+    1,
+  );
+  const server = await sign(bytes("Server Key"), key);
+  const client = await sign(bytes("Client Key"), key);
+  const stored = new Uint8Array(await crypto.subtle.digest("SHA-256", client));
   return { server, client, stored };
 }
 
 /** Computes SCRAM signature. */
-function computeSignature(message: string, key: Key): Digest {
+function computeSignature(message: string, key: Key): Promise<Digest> {
   return sign(bytes(message), key);
 }
 
@@ -265,15 +270,11 @@ function escape(str: string): string {
     .replace(/,/g, "=2C");
 }
 
-/** Computes message digest. */
-function digest(msg: Uint8Array): Digest {
-  const hash = new Sha256();
-  hash.update(msg);
-  return new Uint8Array(hash.arrayBuffer());
-}
-
 /** Computes HMAC of a message using given key. */
-function sign(msg: Uint8Array, key: Key): Digest {
+// TODO
+// Migrate to crypto.subtle.sign on Deno 1.11
+// deno-lint-ignore require-await
+async function sign(msg: Uint8Array, key: Key): Promise<Digest> {
   const hmac = new HmacSha256(key);
   hmac.update(msg);
   return new Uint8Array(hmac.arrayBuffer());
@@ -283,23 +284,23 @@ function sign(msg: Uint8Array, key: Key): Digest {
  * Computes a PBKDF2 key block.
  * @see {@link https://tools.ietf.org/html/rfc2898}
  */
-function pbkdf2(
-  prf: (_: Uint8Array) => Digest,
+async function pbkdf2(
+  prf: (_: Uint8Array) => Promise<Digest>,
   salt: Uint8Array,
   iterCount: number,
   index: number,
-): Key {
+): Promise<Key> {
   let block = new Uint8Array(salt.length + 4);
   block.set(salt);
   block[salt.length + 0] = (index >> 24) & 0xFF;
   block[salt.length + 1] = (index >> 16) & 0xFF;
   block[salt.length + 2] = (index >> 8) & 0xFF;
   block[salt.length + 3] = index & 0xFF;
-  block = prf(block);
+  block = await prf(block);
 
   const key = block;
   for (let r = 1; r < iterCount; r++) {
-    block = prf(block);
+    block = await prf(block);
     for (let i = 0; i < key.length; i++) {
       key[i] ^= block[i];
     }
