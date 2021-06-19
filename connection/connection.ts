@@ -1,3 +1,5 @@
+// deno-lint-ignore-file camelcase
+
 /*!
  * Substantial parts adapted from https://github.com/brianc/node-postgres
  * which is licensed as follows:
@@ -73,7 +75,6 @@ function assertSuccessfulStartup(msg: Message) {
   }
 }
 
-// deno-lint-ignore camelcase
 function assertSuccessfulAuthentication(auth_message: Message) {
   if (auth_message.type === "E") {
     throw parseError(auth_message);
@@ -111,7 +112,6 @@ const encoder = new TextEncoder();
 // TODO
 // - Refactor properties to not be lazily initialized
 //   or to handle their undefined value
-// - Convert all properties to privates
 // - Expose connection PID as a method
 // - Cleanup properties on startup to guarantee safe reconnection
 export class Connection {
@@ -119,6 +119,7 @@ export class Connection {
   #bufWriter!: BufWriter;
   #conn!: Deno.Conn;
   connected = false;
+  #connection_params: ConnectionParams;
   #packetWriter = new PacketWriter();
   // TODO
   // Find out what parameters are for
@@ -143,10 +144,12 @@ export class Connection {
     return this.#tls;
   }
 
-  constructor(private connParams: ConnectionParams) {}
+  constructor(connection_params: ConnectionParams) {
+    this.#connection_params = connection_params;
+  }
 
   /** Read single message sent by backend */
-  private async readMessage(): Promise<Message> {
+  async #readMessage(): Promise<Message> {
     // TODO: reuse buffer instead of allocating new ones each for each read
     const header = new Uint8Array(5);
     await this.#bufReader.readFull(header);
@@ -158,7 +161,7 @@ export class Connection {
     return new Message(msgType, msgLength, msgBody);
   }
 
-  private async serverAcceptsTLS(): Promise<boolean> {
+  async #serverAcceptsTLS(): Promise<boolean> {
     const writer = this.#packetWriter;
     writer.clear();
     writer
@@ -184,12 +187,12 @@ export class Connection {
     }
   }
 
-  private async sendStartupMessage(): Promise<Message> {
+  async #sendStartupMessage(): Promise<Message> {
     const writer = this.#packetWriter;
     writer.clear();
     // protocol version - 3.0, written as
     writer.addInt16(3).addInt16(0);
-    const connParams = this.connParams;
+    const connParams = this.#connection_params;
     // TODO: recognize other parameters
     writer.addCString("user").addCString(connParams.user);
     writer.addCString("database").addCString(connParams.database);
@@ -215,19 +218,19 @@ export class Connection {
     await this.#bufWriter.write(finalBuffer);
     await this.#bufWriter.flush();
 
-    return await this.readMessage();
+    return await this.#readMessage();
   }
 
-  #createNonTlsConnection = async (options: Deno.ConnectOptions) => {
+  async #createNonTlsConnection(options: Deno.ConnectOptions) {
     this.#conn = await Deno.connect(options);
     this.#bufWriter = new BufWriter(this.#conn);
     this.#bufReader = new BufReader(this.#conn);
-  };
+  }
 
-  #createTlsConnection = async (
+  async #createTlsConnection(
     connection: Deno.Conn,
     options: Deno.ConnectOptions,
-  ) => {
+  ) {
     if ("startTls" in Deno) {
       // @ts-ignore This API should be available on unstable
       this.#conn = await Deno.startTls(connection, options);
@@ -238,12 +241,11 @@ export class Connection {
         "You need to execute Deno with the `--unstable` argument in order to stablish a TLS connection",
       );
     }
-  };
-
-  /**
+  } /**
    * Calling startup on a connection twice will create a new session and overwrite the previous one
    * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
    * */
+
   async startup() {
     const {
       hostname,
@@ -251,7 +253,7 @@ export class Connection {
       tls: {
         enforce: enforceTLS,
       },
-    } = this.connParams;
+    } = this.#connection_params;
 
     // A BufWriter needs to be available in order to check if the server accepts TLS connections
     await this.#createNonTlsConnection({ hostname, port });
@@ -259,7 +261,7 @@ export class Connection {
     /**
      * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
      * */
-    if (await this.serverAcceptsTLS()) {
+    if (await this.#serverAcceptsTLS()) {
       try {
         await this.#createTlsConnection(this.#conn, { hostname, port });
         this.#tls = true;
@@ -284,10 +286,9 @@ export class Connection {
     }
 
     try {
-      // deno-lint-ignore camelcase
       let startup_response;
       try {
-        startup_response = await this.sendStartupMessage();
+        startup_response = await this.#sendStartupMessage();
       } catch (e) {
         if (e instanceof Deno.errors.InvalidData) {
           if (enforceTLS) {
@@ -303,37 +304,37 @@ export class Connection {
             );
             await this.#createNonTlsConnection({ hostname, port });
             this.#tls = false;
-            startup_response = await this.sendStartupMessage();
+            startup_response = await this.#sendStartupMessage();
           }
         } else {
           throw e;
         }
       }
       assertSuccessfulStartup(startup_response);
-      await this.authenticate(startup_response);
+      await this.#authenticate(startup_response);
 
       // Handle connection status
       // (connected but not ready)
       let msg;
       connection_status:
       while (true) {
-        msg = await this.readMessage();
+        msg = await this.#readMessage();
         switch (msg.type) {
           // Connection error (wrong database or user)
           case "E":
-            await this.processError(msg, false);
+            await this.#processError(msg, false);
             break;
           // backend key data
           case "K":
-            this._processBackendKeyData(msg);
+            this.#processBackendKeyData(msg);
             break;
           // parameter status
           case "S":
-            this._processParameterStatus(msg);
+            this.#processParameterStatus(msg);
             break;
           // ready for query
           case "Z": {
-            this._processReadyForQuery(msg);
+            this.#processReadyForQuery(msg);
             break connection_status;
           }
           default:
@@ -351,10 +352,10 @@ export class Connection {
   // TODO
   // Why is this handling the startup message response?
   /**
-   * Will attempt to authenticate with the database using the provided
+   * Will attempt to #authenticate with the database using the provided
    * password credentials
    */
-  private async authenticate(msg: Message) {
+  async #authenticate(msg: Message) {
     const code = msg.reader.readInt32();
     switch (code) {
       // pass
@@ -363,14 +364,14 @@ export class Connection {
       // cleartext password
       case 3:
         await assertSuccessfulAuthentication(
-          await this.authenticateWithClearPassword(),
+          await this.#authenticateWithClearPassword(),
         );
         break;
       // md5 password
       case 5: {
         const salt = msg.reader.readBytes(4);
         await assertSuccessfulAuthentication(
-          await this.authenticateWithMd5(salt),
+          await this.#authenticateWithMd5(salt),
         );
         break;
       }
@@ -382,7 +383,7 @@ export class Connection {
       // scram-sha-256 password
       case 10: {
         await assertSuccessfulAuthentication(
-          await this.authenticateWithScramSha256(),
+          await this.#authenticateWithScramSha256(),
         );
         break;
       }
@@ -391,27 +392,27 @@ export class Connection {
     }
   }
 
-  private async authenticateWithClearPassword(): Promise<Message> {
+  async #authenticateWithClearPassword(): Promise<Message> {
     this.#packetWriter.clear();
-    const password = this.connParams.password || "";
+    const password = this.#connection_params.password || "";
     const buffer = this.#packetWriter.addCString(password).flush(0x70);
 
     await this.#bufWriter.write(buffer);
     await this.#bufWriter.flush();
 
-    return this.readMessage();
+    return this.#readMessage();
   }
 
-  private async authenticateWithMd5(salt: Uint8Array): Promise<Message> {
+  async #authenticateWithMd5(salt: Uint8Array): Promise<Message> {
     this.#packetWriter.clear();
 
-    if (!this.connParams.password) {
+    if (!this.#connection_params.password) {
       throw new Error("Auth Error: attempting MD5 auth with password unset");
     }
 
     const password = hashMd5Password(
-      this.connParams.password,
-      this.connParams.user,
+      this.#connection_params.password,
+      this.#connection_params.user,
       salt,
     );
     const buffer = this.#packetWriter.addCString(password).flush(0x70);
@@ -419,19 +420,19 @@ export class Connection {
     await this.#bufWriter.write(buffer);
     await this.#bufWriter.flush();
 
-    return this.readMessage();
+    return this.#readMessage();
   }
 
-  private async authenticateWithScramSha256(): Promise<Message> {
-    if (!this.connParams.password) {
+  async #authenticateWithScramSha256(): Promise<Message> {
+    if (!this.#connection_params.password) {
       throw new Error(
         "Auth Error: attempting SCRAM-SHA-256 auth with password unset",
       );
     }
 
     const client = new scram.Client(
-      this.connParams.user,
-      this.connParams.password,
+      this.#connection_params.user,
+      this.#connection_params.password,
     );
     const utf8 = new TextDecoder("utf-8");
 
@@ -445,7 +446,7 @@ export class Connection {
     this.#bufWriter.flush();
 
     // AuthenticationSASLContinue
-    const saslContinue = await this.readMessage();
+    const saslContinue = await this.#readMessage();
     switch (saslContinue.type) {
       case "R": {
         if (saslContinue.reader.readInt32() != 11) {
@@ -471,7 +472,7 @@ export class Connection {
     this.#bufWriter.flush();
 
     // AuthenticationSASLFinal
-    const saslFinal = await this.readMessage();
+    const saslFinal = await this.#readMessage();
     switch (saslFinal.type) {
       case "R": {
         if (saslFinal.reader.readInt32() !== 12) {
@@ -490,30 +491,30 @@ export class Connection {
     client.receiveResponse(serverFinalMessage);
 
     // AuthenticationOK
-    return this.readMessage();
+    return this.#readMessage();
   }
 
-  private _processBackendKeyData(msg: Message) {
+  #processBackendKeyData(msg: Message) {
     this.#pid = msg.reader.readInt32();
     this.#secretKey = msg.reader.readInt32();
   }
 
-  private _processParameterStatus(msg: Message) {
+  #processParameterStatus(msg: Message) {
     // TODO: should we save all parameters?
     const key = msg.reader.readCString();
     const value = msg.reader.readCString();
     this.#parameters[key] = value;
   }
 
-  private _processReadyForQuery(msg: Message) {
+  #processReadyForQuery(msg: Message) {
     const txStatus = msg.reader.readByte();
     this.#transactionStatus = String.fromCharCode(
       txStatus,
     ) as TransactionStatus;
   }
 
-  private async _readReadyForQuery() {
-    const msg = await this.readMessage();
+  async #readReadyForQuery() {
+    const msg = await this.#readMessage();
 
     if (msg.type !== "Z") {
       throw new Error(
@@ -521,16 +522,16 @@ export class Connection {
       );
     }
 
-    this._processReadyForQuery(msg);
+    this.#processReadyForQuery(msg);
   }
 
-  private async _simpleQuery(
-    query: Query<ResultType.ARRAY>,
+  async #simpleQuery(
+    _query: Query<ResultType.ARRAY>,
   ): Promise<QueryArrayResult>;
-  private async _simpleQuery(
-    query: Query<ResultType.OBJECT>,
+  async #simpleQuery(
+    _query: Query<ResultType.OBJECT>,
   ): Promise<QueryObjectResult>;
-  private async _simpleQuery(
+  async #simpleQuery(
     query: Query<ResultType>,
   ): Promise<QueryResult> {
     this.#packetWriter.clear();
@@ -549,29 +550,29 @@ export class Connection {
 
     let msg: Message;
 
-    msg = await this.readMessage();
+    msg = await this.#readMessage();
 
     // Query startup message, executed only once
     switch (msg.type) {
       // row description
       case "T":
-        result.loadColumnDescriptions(this.parseRowDescription(msg));
+        result.loadColumnDescriptions(this.#parseRowDescription(msg));
         break;
       // no data
       case "n":
         break;
       // error response
       case "E":
-        await this.processError(msg);
+        await this.#processError(msg);
         break;
       // notice response
       case "N":
-        result.warnings.push(await this.processNotice(msg));
+        result.warnings.push(await this.#processNotice(msg));
         break;
       // command complete
       // TODO: this is duplicated in next loop
       case "C": {
-        const commandTag = this.getCommandTag(msg);
+        const commandTag = this.#getCommandTag(msg);
         result.handleCommandComplete(commandTag);
         result.done();
         break;
@@ -582,35 +583,35 @@ export class Connection {
 
     // Handle each row returned by the query
     while (true) {
-      msg = await this.readMessage();
+      msg = await this.#readMessage();
       switch (msg.type) {
         // data row
         case "D": {
           // this is actually packet read
-          result.insertRow(this.parseRowData(msg));
+          result.insertRow(this.#parseRowData(msg));
           break;
         }
         // command complete
         case "C": {
-          const commandTag = this.getCommandTag(msg);
+          const commandTag = this.#getCommandTag(msg);
           result.handleCommandComplete(commandTag);
           result.done();
           break;
         }
         // ready for query
         case "Z":
-          this._processReadyForQuery(msg);
+          this.#processReadyForQuery(msg);
           return result;
         // error response
         case "E":
-          await this.processError(msg);
+          await this.#processError(msg);
           break;
         // notice response
         case "N":
-          result.warnings.push(await this.processNotice(msg));
+          result.warnings.push(await this.#processNotice(msg));
           break;
         case "T":
-          result.loadColumnDescriptions(this.parseRowDescription(msg));
+          result.loadColumnDescriptions(this.#parseRowDescription(msg));
           break;
         default:
           throw new Error(`Unexpected frame: ${msg.type}`);
@@ -618,7 +619,7 @@ export class Connection {
     }
   }
 
-  private async appendQueryToMessage<T extends ResultType>(query: Query<T>) {
+  async #appendQueryToMessage<T extends ResultType>(query: Query<T>) {
     this.#packetWriter.clear();
 
     const buffer = this.#packetWriter
@@ -629,7 +630,7 @@ export class Connection {
     await this.#bufWriter.write(buffer);
   }
 
-  private async appendArgumentsToMessage<T extends ResultType>(
+  async #appendArgumentsToMessage<T extends ResultType>(
     query: Query<T>,
   ) {
     this.#packetWriter.clear();
@@ -676,14 +677,14 @@ export class Connection {
    * This function appends the query type (in this case prepared statement)
    * to the message
    */
-  private async appendQueryTypeToMessage() {
+  async #appendQueryTypeToMessage() {
     this.#packetWriter.clear();
 
     const buffer = this.#packetWriter.addCString("P").flush(0x44);
     await this.#bufWriter.write(buffer);
   }
 
-  private async appendExecuteToMessage() {
+  async #appendExecuteToMessage() {
     this.#packetWriter.clear();
 
     const buffer = this.#packetWriter
@@ -693,22 +694,22 @@ export class Connection {
     await this.#bufWriter.write(buffer);
   }
 
-  private async appendSyncToMessage() {
+  async #appendSyncToMessage() {
     this.#packetWriter.clear();
 
     const buffer = this.#packetWriter.flush(0x53);
     await this.#bufWriter.write(buffer);
   }
 
-  private async processError(msg: Message, recoverable = true) {
+  async #processError(msg: Message, recoverable = true) {
     const error = parseError(msg);
     if (recoverable) {
-      await this._readReadyForQuery();
+      await this.#readReadyForQuery();
     }
     throw error;
   }
 
-  private processNotice(msg: Message) {
+  #processNotice(msg: Message) {
     const warning = parseNotice(msg);
     console.error(`${bold(yellow(warning.severity))}: ${warning.message}`);
     return warning;
@@ -719,19 +720,19 @@ export class Connection {
   /**
    * https://www.postgresql.org/docs/13/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
    */
-  private async _preparedQuery<T extends ResultType>(
+  async #preparedQuery<T extends ResultType>(
     query: Query<T>,
   ): Promise<QueryResult> {
-    await this.appendQueryToMessage(query);
-    await this.appendArgumentsToMessage(query);
-    await this.appendQueryTypeToMessage();
-    await this.appendExecuteToMessage();
-    await this.appendSyncToMessage();
+    await this.#appendQueryToMessage(query);
+    await this.#appendArgumentsToMessage(query);
+    await this.#appendQueryTypeToMessage();
+    await this.#appendExecuteToMessage();
+    await this.#appendSyncToMessage();
     // send all messages to backend
     await this.#bufWriter.flush();
 
-    await assertQueryResponse(await this.readMessage());
-    await assertArgumentsResponse(await this.readMessage());
+    await assertQueryResponse(await this.#readMessage());
+    await assertArgumentsResponse(await this.#readMessage());
 
     let result;
     if (query.result_type === ResultType.ARRAY) {
@@ -740,12 +741,12 @@ export class Connection {
       result = new QueryObjectResult(query);
     }
     let msg: Message;
-    msg = await this.readMessage();
+    msg = await this.#readMessage();
 
     switch (msg.type) {
       // row description
       case "T": {
-        const rowDescription = this.parseRowDescription(msg);
+        const rowDescription = this.#parseRowDescription(msg);
         result.loadColumnDescriptions(rowDescription);
         break;
       }
@@ -754,7 +755,7 @@ export class Connection {
         break;
       // error
       case "E":
-        await this.processError(msg);
+        await this.#processError(msg);
         break;
       default:
         throw new Error(`Unexpected frame: ${msg.type}`);
@@ -762,32 +763,32 @@ export class Connection {
 
     outerLoop:
     while (true) {
-      msg = await this.readMessage();
+      msg = await this.#readMessage();
       switch (msg.type) {
         // data row
         case "D": {
           // this is actually packet read
-          const rawDataRow = this.parseRowData(msg);
+          const rawDataRow = this.#parseRowData(msg);
           result.insertRow(rawDataRow);
           break;
         }
         // command complete
         case "C": {
-          const commandTag = this.getCommandTag(msg);
+          const commandTag = this.#getCommandTag(msg);
           result.handleCommandComplete(commandTag);
           result.done();
           break outerLoop;
         }
         // error response
         case "E":
-          await this.processError(msg);
+          await this.#processError(msg);
           break;
         default:
           throw new Error(`Unexpected frame: ${msg.type}`);
       }
     }
 
-    await this._readReadyForQuery();
+    await this.#readReadyForQuery();
 
     return result;
   }
@@ -808,16 +809,16 @@ export class Connection {
     await this.#queryLock.pop();
     try {
       if (query.args.length === 0) {
-        return await this._simpleQuery(query);
+        return await this.#simpleQuery(query);
       } else {
-        return await this._preparedQuery(query);
+        return await this.#preparedQuery(query);
       }
     } finally {
       this.#queryLock.push(undefined);
     }
   }
 
-  private parseRowDescription(msg: Message): RowDescription {
+  #parseRowDescription(msg: Message): RowDescription {
     const columnCount = msg.reader.readInt16();
     const columns = [];
 
@@ -840,9 +841,9 @@ export class Connection {
   }
 
   //TODO
-  //Research corner cases where parseRowData can return null values
+  //Research corner cases where #parseRowData can return null values
   // deno-lint-ignore no-explicit-any
-  private parseRowData(msg: Message): any[] {
+  #parseRowData(msg: Message): any[] {
     const fieldCount = msg.reader.readInt16();
     const row = [];
 
@@ -861,7 +862,7 @@ export class Connection {
     return row;
   }
 
-  private getCommandTag(msg: Message) {
+  #getCommandTag(msg: Message) {
     return msg.reader.readString(msg.byteCount);
   }
 

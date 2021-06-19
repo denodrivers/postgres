@@ -93,7 +93,6 @@ export function encode(value: unknown): EncodedArg {
   } else if (value instanceof Object) {
     return JSON.stringify(value);
   } else {
-    // deno-lint-ignore no-explicit-any
-    return (value as any).toString();
+    return String(value);
   }
 }

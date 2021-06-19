@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import { PoolClient } from "./client.ts";
 import {
   ConnectionOptions,
@@ -88,7 +89,6 @@ export class Pool {
   }
 
   constructor(
-    // deno-lint-ignore camelcase
     connection_params: ConnectionOptions | ConnectionString | undefined,
     size: number,
     lazy: boolean = false,
@@ -170,7 +170,7 @@ export class Pool {
    * If the pool is lazily initialized, the clients will connect when they
    * are requested by the user, otherwise they will all connect on initialization
    */
-  #initialize = async (): Promise<void> => {
+  async #initialize() {
     const initialized = this.#lazy ? 0 : this.#size;
     const clients = Array.from(
       { length: this.#size },
@@ -195,11 +195,10 @@ export class Pool {
     );
 
     this.#ended = false;
-  };
-
-  /**
+  } /**
    * This will return the number of initialized clients in the pool
    */
+
   async initialized(): Promise<number> {
     if (!this.#available_connections) {
       return 0;

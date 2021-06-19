@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import { PacketReader } from "./packet_reader.ts";
 
 export class Message {
@@ -46,7 +47,6 @@ export class PostgresError extends Error {
 // Use error cause once it's added to JavaScript
 export class TransactionError extends Error {
   constructor(
-    // deno-lint-ignore camelcase
     transaction_name: string,
     public cause: PostgresError,
   ) {

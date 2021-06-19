@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import type { QueryClient } from "../client.ts";
 import {
   Query,
@@ -23,9 +24,7 @@ export class Savepoint {
 
   constructor(
     public readonly name: string,
-    // deno-lint-ignore camelcase
     update_callback: (name: string) => Promise<void>,
-    // deno-lint-ignore camelcase
     release_callback: (name: string) => Promise<void>,
   ) {
     this.#release_callback = release_callback;
@@ -93,16 +92,14 @@ export class Savepoint {
 type IsolationLevel = "read_committed" | "repeatable_read" | "serializable";
 
 export type TransactionOptions = {
-  // deno-lint-ignore camelcase
   isolation_level?: IsolationLevel;
-  // deno-lint-ignore camelcase
   read_only?: boolean;
   snapshot?: string;
 };
 
 export class Transaction {
   #client: QueryClient;
-  #executeQuery: (_query: Query<ResultType>) => Promise<QueryResult>;
+  #executeQuery: (query: Query<ResultType>) => Promise<QueryResult>;
   #isolation_level: IsolationLevel;
   #read_only: boolean;
   #savepoints: Savepoint[] = [];
@@ -113,9 +110,7 @@ export class Transaction {
     public name: string,
     options: TransactionOptions | undefined,
     client: QueryClient,
-    // deno-lint-ignore camelcase
-    execute_query_callback: (_query: Query<ResultType>) => Promise<QueryResult>,
-    // deno-lint-ignore camelcase
+    execute_query_callback: (query: Query<ResultType>) => Promise<QueryResult>,
     update_client_lock_callback: (name: string | null) => void,
   ) {
     this.#client = client;
@@ -137,17 +132,17 @@ export class Transaction {
   /**
    * This method will throw if the transaction opened in the client doesn't match this one
    */
-  #assertTransactionOpen = () => {
+  #assertTransactionOpen() {
     if (this.#client.current_transaction !== this.name) {
       throw new Error(
         `This transaction has not been started yet, make sure to use the "begin" method to do so`,
       );
     }
-  };
+  }
 
-  #resetTransaction = () => {
+  #resetTransaction() {
     this.#savepoints = [];
-  };
+  }
 
   /**
    * The begin method will officially begin the transaction, and it must be called before
@@ -173,7 +168,6 @@ export class Transaction {
       );
     }
 
-    // deno-lint-ignore camelcase
     let isolation_level;
     switch (this.#isolation_level) {
       case "read_committed": {
@@ -338,7 +332,6 @@ export class Transaction {
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>>;
   async queryArray<T extends Array<unknown> = Array<unknown>>(
-    // deno-lint-ignore camelcase
     query_template_or_config: TemplateStringsArray | string | QueryConfig,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>> {
@@ -427,7 +420,6 @@ export class Transaction {
   async queryObject<
     T extends Record<string, unknown> = Record<string, unknown>,
   >(
-    // deno-lint-ignore camelcase
     query_template_or_config:
       | string
       | QueryObjectConfig
@@ -517,14 +509,12 @@ export class Transaction {
   async rollback(options?: { savepoint?: string | Savepoint }): Promise<void>;
   async rollback(options?: { chain?: boolean }): Promise<void>;
   async rollback(
-    // deno-lint-ignore camelcase
     savepoint_or_options?: string | Savepoint | {
       savepoint?: string | Savepoint;
     } | { chain?: boolean },
   ): Promise<void> {
     this.#assertTransactionOpen();
 
-    // deno-lint-ignore camelcase
     let savepoint_option: Savepoint | string | undefined;
     if (
       typeof savepoint_or_options === "string" ||
@@ -536,7 +526,6 @@ export class Transaction {
         (savepoint_or_options as { savepoint?: string | Savepoint })?.savepoint;
     }
 
-    // deno-lint-ignore camelcase
     let savepoint_name: string | undefined;
     if (savepoint_option instanceof Savepoint) {
       savepoint_name = savepoint_option.name;
@@ -544,7 +533,6 @@ export class Transaction {
       savepoint_name = savepoint_option.toLowerCase();
     }
 
-    // deno-lint-ignore camelcase
     let chain_option = false;
     if (typeof savepoint_or_options === "object") {
       chain_option = (savepoint_or_options as { chain?: boolean })?.chain ??
@@ -559,7 +547,6 @@ export class Transaction {
 
     // If a savepoint is provided, rollback to that savepoint, continue the transaction
     if (typeof savepoint_option !== "undefined") {
-      // deno-lint-ignore camelcase
       const ts_savepoint = this.#savepoints.find(({ name }) =>
         name === savepoint_name
       );
