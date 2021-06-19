@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import { Client, Pool } from "../mod.ts";
 import { assert, assertEquals, assertThrowsAsync } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
@@ -128,7 +129,6 @@ testClient("nativeType", async function (generateClient) {
 testClient("Binary data is parsed correctly", async function (generateClient) {
   const client = await generateClient();
 
-  // deno-lint-ignore camelcase
   const { rows: result_1 } = await client.queryArray
     `SELECT E'foo\\\\000\\\\200\\\\\\\\\\\\377'::BYTEA`;
 
@@ -136,7 +136,6 @@ testClient("Binary data is parsed correctly", async function (generateClient) {
 
   assertEquals(result_1[0][0], expectedBytes);
 
-  // deno-lint-ignore camelcase
   const { rows: result_2 } = await client.queryArray(
     "SELECT $1::BYTEA",
     expectedBytes,
@@ -225,7 +224,6 @@ testClient("Long column alias is truncated", async function (generateClient) {
 testClient("Query array with template string", async function (generateClient) {
   const client = await generateClient();
 
-  // deno-lint-ignore camelcase
   const [value_1, value_2] = ["A", "B"];
 
   const { rows } = await client.queryArray<[string, string]>
@@ -341,7 +339,6 @@ testClient(
 testClient("Transaction", async function (generateClient) {
   const client = await generateClient();
 
-  // deno-lint-ignore camelcase
   const transaction_name = "x";
   const transaction = client.createTransaction(transaction_name);
 
@@ -354,7 +351,6 @@ testClient("Transaction", async function (generateClient) {
   await transaction.queryArray`CREATE TEMP TABLE TEST (X INTEGER)`;
   const savepoint = await transaction.savepoint("table_creation");
   await transaction.queryArray`INSERT INTO TEST (X) VALUES (1)`;
-  // deno-lint-ignore camelcase
   const query_1 = await transaction.queryObject<{ x: number }>
     `SELECT X FROM TEST`;
   assertEquals(
@@ -363,7 +359,6 @@ testClient("Transaction", async function (generateClient) {
     "Operation was not executed inside transaction",
   );
   await transaction.rollback(savepoint);
-  // deno-lint-ignore camelcase
   const query_2 = await transaction.queryObject<{ x: number }>
     `SELECT X FROM TEST`;
   assertEquals(
@@ -382,15 +377,14 @@ testClient("Transaction", async function (generateClient) {
 testClient(
   "Transaction with repeatable read isolation level",
   async function (generateClient) {
-    // deno-lint-ignore camelcase
     const client_1 = await generateClient();
-    // deno-lint-ignore camelcase
+
     const client_2 = await generateClient();
 
     await client_1.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
     await client_1.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
     await client_1.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
-    // deno-lint-ignore camelcase
+
     const transaction_rr = client_1.createTransaction(
       "transactionIsolationLevelRepeatableRead",
       { isolation_level: "repeatable_read" },
@@ -403,12 +397,11 @@ testClient(
 
     // Modify data outside the transaction
     await client_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
-    // deno-lint-ignore camelcase
+
     const { rows: query_1 } = await client_2.queryObject<{ x: number }>
       `SELECT X FROM FOR_TRANSACTION_TEST`;
     assertEquals(query_1, [{ x: 2 }]);
 
-    // deno-lint-ignore camelcase
     const { rows: query_2 } = await transaction_rr.queryObject<
       { x: number }
     >`SELECT X FROM FOR_TRANSACTION_TEST`;
@@ -420,7 +413,6 @@ testClient(
 
     await transaction_rr.commit();
 
-    // deno-lint-ignore camelcase
     const { rows: query_3 } = await client_1.queryObject<{ x: number }>
       `SELECT X FROM FOR_TRANSACTION_TEST`;
     assertEquals(
@@ -436,15 +428,14 @@ testClient(
 testClient(
   "Transaction with serializable isolation level",
   async function (generateClient) {
-    // deno-lint-ignore camelcase
     const client_1 = await generateClient();
-    // deno-lint-ignore camelcase
+
     const client_2 = await generateClient();
 
     await client_1.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
     await client_1.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
     await client_1.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
-    // deno-lint-ignore camelcase
+
     const transaction_rr = client_1.createTransaction(
       "transactionIsolationLevelRepeatableRead",
       { isolation_level: "serializable" },
@@ -465,7 +456,6 @@ testClient(
       "A serializable transaction should throw if the data read in the transaction has been modified externally",
     );
 
-    // deno-lint-ignore camelcase
     const { rows: query_3 } = await client_1.queryObject<{ x: number }>
       `SELECT X FROM FOR_TRANSACTION_TEST`;
     assertEquals(
@@ -498,15 +488,12 @@ testClient("Transaction read only", async function (generateClient) {
 });
 
 testClient("Transaction snapshot", async function (generateClient) {
-  // deno-lint-ignore camelcase
   const client_1 = await generateClient();
-  // deno-lint-ignore camelcase
   const client_2 = await generateClient();
 
   await client_1.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
   await client_1.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
   await client_1.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
-  // deno-lint-ignore camelcase
   const transaction_1 = client_1.createTransaction(
     "transactionSnapshot1",
     { isolation_level: "repeatable_read" },
@@ -520,7 +507,6 @@ testClient("Transaction snapshot", async function (generateClient) {
   // Modify data outside the transaction
   await client_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
 
-  // deno-lint-ignore camelcase
   const { rows: query_1 } = await transaction_1.queryObject<{ x: number }>
     `SELECT X FROM FOR_TRANSACTION_TEST`;
   assertEquals(
@@ -531,14 +517,12 @@ testClient("Transaction snapshot", async function (generateClient) {
 
   const snapshot = await transaction_1.getSnapshot();
 
-  // deno-lint-ignore camelcase
   const transaction_2 = client_2.createTransaction(
     "transactionSnapshot2",
     { isolation_level: "repeatable_read", snapshot },
   );
   await transaction_2.begin();
 
-  // deno-lint-ignore camelcase
   const { rows: query_2 } = await transaction_2.queryObject<{ x: number }>
     `SELECT X FROM FOR_TRANSACTION_TEST`;
   assertEquals(
@@ -610,7 +594,7 @@ testClient(
     await client.queryArray`CREATE TEMP TABLE MY_TEST (X INTEGER)`;
     await transaction.begin();
     await transaction.queryArray`INSERT INTO MY_TEST (X) VALUES (1)`;
-    // deno-lint-ignore camelcase
+
     const { rows: query_1 } = await transaction.queryObject<{ x: number }>
       `SELECT X FROM MY_TEST`;
     assertEquals(query_1, [{ x: 1 }]);
@@ -625,7 +609,6 @@ testClient(
 
     await transaction.rollback();
 
-    // deno-lint-ignore camelcase
     const { rowCount: query_2 } = await client.queryObject<{ x: number }>
       `SELECT X FROM MY_TEST`;
     assertEquals(query_2, 0);
@@ -685,14 +668,12 @@ testClient(
 testClient("Transaction savepoints", async function (generateClient) {
   const client = await generateClient();
 
-  // deno-lint-ignore camelcase
   const savepoint_name = "a1";
   const transaction = client.createTransaction("x");
 
   await transaction.begin();
   await transaction.queryArray`CREATE TEMP TABLE X (Y INT)`;
   await transaction.queryArray`INSERT INTO X VALUES (1)`;
-  // deno-lint-ignore camelcase
   const { rows: query_1 } = await transaction.queryObject<{ y: number }>
     `SELECT Y FROM X`;
   assertEquals(query_1, [{ y: 1 }]);
@@ -700,7 +681,6 @@ testClient("Transaction savepoints", async function (generateClient) {
   const savepoint = await transaction.savepoint(savepoint_name);
 
   await transaction.queryArray`DELETE FROM X`;
-  // deno-lint-ignore camelcase
   const { rowCount: query_2 } = await transaction.queryObject<{ y: number }>
     `SELECT Y FROM X`;
   assertEquals(query_2, 0);
@@ -708,13 +688,11 @@ testClient("Transaction savepoints", async function (generateClient) {
   await savepoint.update();
 
   await transaction.queryArray`INSERT INTO X VALUES (2)`;
-  // deno-lint-ignore camelcase
   const { rows: query_3 } = await transaction.queryObject<{ y: number }>
     `SELECT Y FROM X`;
   assertEquals(query_3, [{ y: 2 }]);
 
   await transaction.rollback(savepoint);
-  // deno-lint-ignore camelcase
   const { rowCount: query_4 } = await transaction.queryObject<{ y: number }>
     `SELECT Y FROM X`;
   assertEquals(query_4, 0);
@@ -733,7 +711,6 @@ testClient("Transaction savepoints", async function (generateClient) {
 
   // This checks that the savepoint can be called by name as well
   await transaction.rollback(savepoint_name);
-  // deno-lint-ignore camelcase
   const { rows: query_5 } = await transaction.queryObject<{ y: number }>
     `SELECT Y FROM X`;
   assertEquals(query_5, [{ y: 1 }]);
@@ -809,9 +786,8 @@ testClient(
   async function (generateClient) {
     const client = await generateClient();
 
-    // deno-lint-ignore camelcase
     const transaction_x = client.createTransaction("x");
-    // deno-lint-ignore camelcase
+
     const transaction_y = client.createTransaction("y");
 
     await transaction_x.begin();

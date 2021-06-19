@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import { encode, EncodedArg } from "./encode.ts";
 import { Column, decode } from "./decode.ts";
 import { WarningFields } from "../connection/warning.ts";
@@ -34,7 +35,6 @@ export class RowDescription {
 export function templateStringToQuery<T extends ResultType>(
   template: TemplateStringsArray,
   args: QueryArguments,
-  // deno-lint-ignore camelcase
   result_type: T,
 ): Query<T> {
   const text = template.reduce((curr, next, index) => {
@@ -133,7 +133,6 @@ export class QueryArrayResult<T extends Array<unknown> = Array<unknown>>
   extends QueryResult {
   public rows: T[] = [];
 
-  // deno-lint-ignore camelcase
   insertRow(row_data: Uint8Array[]) {
     if (this._done) {
       throw new Error(
@@ -166,7 +165,6 @@ export class QueryObjectResult<
 > extends QueryResult {
   public rows: T[] = [];
 
-  // deno-lint-ignore camelcase
   insertRow(row_data: Uint8Array[]) {
     if (this._done) {
       throw new Error(
@@ -191,23 +189,26 @@ export class QueryObjectResult<
     }
 
     // Row description won't be modified after initialization
-    const row = row_data.reduce((row, raw_value, index) => {
-      const column = this.rowDescription!.columns[index];
+    const row = row_data.reduce(
+      (row: Record<string, unknown>, raw_value, index) => {
+        const column = this.rowDescription!.columns[index];
 
-      // Find the field name provided by the user
-      // default to database provided name
-      const name = this.query.fields?.[index] ?? column.name;
+        // Find the field name provided by the user
+        // default to database provided name
+        const name = this.query.fields?.[index] ?? column.name;
 
-      if (raw_value === null) {
-        row[name] = null;
-      } else {
-        row[name] = decode(raw_value, column);
-      }
+        if (raw_value === null) {
+          row[name] = null;
+        } else {
+          row[name] = decode(raw_value, column);
+        }
 
-      return row;
-    }, {} as Record<string, unknown>) as T;
+        return row;
+      },
+      {},
+    );
 
-    this.rows.push(row);
+    this.rows.push(row as T);
   }
 }
 
@@ -217,14 +218,10 @@ export class Query<T extends ResultType> {
   public result_type: ResultType;
   public text: string;
 
-  //deno-lint-ignore camelcase
-  constructor(_config: QueryObjectConfig, _result_type: T);
-  //deno-lint-ignore camelcase
-  constructor(_text: string, _result_type: T, ..._args: unknown[]);
+  constructor(config: QueryObjectConfig, result_type: T);
+  constructor(text: string, result_type: T, ...args: unknown[]);
   constructor(
-    //deno-lint-ignore camelcase
     config_or_text: string | QueryObjectConfig,
-    //deno-lint-ignore camelcase
     result_type: T,
     ...args: unknown[]
   ) {
@@ -236,14 +233,12 @@ export class Query<T extends ResultType> {
     } else {
       const {
         fields,
-        //deno-lint-ignore camelcase
         ...query_config
       } = config_or_text;
 
       // Check that the fields passed are valid and can be used to map
       // the result of the query
       if (fields) {
-        //deno-lint-ignore camelcase
         const clean_fields = fields.filter((field) =>
           /^[a-zA-Z_][a-zA-Z0-9_]+$/.test(field)
         );
@@ -265,10 +260,10 @@ export class Query<T extends ResultType> {
       config = query_config;
     }
     this.text = config.text;
-    this.args = this._prepareArgs(config);
+    this.args = this.#prepareArgs(config);
   }
 
-  private _prepareArgs(config: QueryConfig): EncodedArg[] {
+  #prepareArgs(config: QueryConfig): EncodedArg[] {
     const encodingFn = config.encoder ? config.encoder : encode;
     return (config.args || []).map(encodingFn);
   }

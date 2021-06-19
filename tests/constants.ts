@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 export const DEFAULT_SETUP = [
   "DROP TABLE IF EXISTS ids;",
   "CREATE TABLE ids(id integer);",
@@ -12,7 +13,6 @@ export const DEFAULT_SETUP = [
   "CREATE OR REPLACE FUNCTION CREATE_NOTICE () RETURNS INT AS $$ BEGIN RAISE NOTICE 'NOTICED'; RETURN (SELECT 1); END; $$ LANGUAGE PLPGSQL;",
 ];
 
-// deno-lint-ignore camelcase
 let has_env_access = true;
 try {
   Deno.env.toObject();

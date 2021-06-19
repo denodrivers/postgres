@@ -1,10 +1,9 @@
-const { test } = Deno;
+// deno-lint-ignore-file camelcase
 import { assertEquals, assertThrows } from "./test_deps.ts";
 import {
   ConnectionParamsError,
   createParams,
 } from "../connection/connection_params.ts";
-// deno-lint-ignore camelcase
 import { has_env_access } from "./constants.ts";
 
 /**
@@ -57,7 +56,7 @@ function withNotAllowedEnv(fn: () => void) {
   };
 }
 
-test("dsnStyleParameters", function () {
+Deno.test("dsnStyleParameters", function () {
   const p = createParams(
     "postgres://some_user@some_host:10101/deno_postgres",
   );
@@ -68,7 +67,7 @@ test("dsnStyleParameters", function () {
   assertEquals(p.port, 10101);
 });
 
-test("dsnStyleParametersWithPostgresqlDriver", function () {
+Deno.test("dsnStyleParametersWithPostgresqlDriver", function () {
   const p = createParams(
     "postgresql://some_user@some_host:10101/deno_postgres",
   );
@@ -79,7 +78,7 @@ test("dsnStyleParametersWithPostgresqlDriver", function () {
   assertEquals(p.port, 10101);
 });
 
-test("dsnStyleParametersWithoutExplicitPort", function () {
+Deno.test("dsnStyleParametersWithoutExplicitPort", function () {
   const p = createParams(
     "postgres://some_user@some_host/deno_postgres",
   );
@@ -90,7 +89,7 @@ test("dsnStyleParametersWithoutExplicitPort", function () {
   assertEquals(p.port, 5432);
 });
 
-test("dsnStyleParametersWithApplicationName", function () {
+Deno.test("dsnStyleParametersWithApplicationName", function () {
   const p = createParams(
     "postgres://some_user@some_host:10101/deno_postgres?application_name=test_app",
   );
@@ -102,7 +101,7 @@ test("dsnStyleParametersWithApplicationName", function () {
   assertEquals(p.port, 10101);
 });
 
-test("dsnStyleParametersWithSSLModeRequire", function () {
+Deno.test("dsnStyleParametersWithSSLModeRequire", function () {
   const p = createParams(
     "postgres://some_user@some_host:10101/deno_postgres?sslmode=require",
   );
@@ -110,7 +109,7 @@ test("dsnStyleParametersWithSSLModeRequire", function () {
   assertEquals(p.tls.enforce, true);
 });
 
-test("dsnStyleParametersWithInvalidDriver", function () {
+Deno.test("dsnStyleParametersWithInvalidDriver", function () {
   assertThrows(
     () =>
       createParams(
@@ -121,7 +120,7 @@ test("dsnStyleParametersWithInvalidDriver", function () {
   );
 });
 
-test("dsnStyleParametersWithInvalidPort", function () {
+Deno.test("dsnStyleParametersWithInvalidPort", function () {
   assertThrows(
     () =>
       createParams(
@@ -132,7 +131,7 @@ test("dsnStyleParametersWithInvalidPort", function () {
   );
 });
 
-test("dsnStyleParametersWithInvalidSSLMode", function () {
+Deno.test("dsnStyleParametersWithInvalidSSLMode", function () {
   assertThrows(
     () =>
       createParams(
@@ -143,7 +142,7 @@ test("dsnStyleParametersWithInvalidSSLMode", function () {
   );
 });
 
-test("objectStyleParameters", function () {
+Deno.test("objectStyleParameters", function () {
   const p = createParams({
     user: "some_user",
     hostname: "some_host",
@@ -157,7 +156,7 @@ test("objectStyleParameters", function () {
   assertEquals(p.port, 10101);
 });
 
-test({
+Deno.test({
   name: "envParameters",
   ignore: !has_env_access,
   fn() {
@@ -176,7 +175,7 @@ test({
   },
 });
 
-test({
+Deno.test({
   name: "envParametersWithInvalidPort",
   ignore: !has_env_access,
   fn() {
@@ -195,7 +194,7 @@ test({
   },
 });
 
-test(
+Deno.test(
   "envParametersWhenNotAllowed",
   withNotAllowedEnv(function () {
     const p = createParams({
@@ -210,7 +209,7 @@ test(
   }),
 );
 
-test("defaultParameters", function () {
+Deno.test("defaultParameters", function () {
   const database = "deno_postgres";
   const user = "deno_postgres";
 
@@ -232,7 +231,7 @@ test("defaultParameters", function () {
   );
 });
 
-test("requiredParameters", function () {
+Deno.test("requiredParameters", function () {
   if (has_env_access) {
     if (!(Deno.env.get("PGUSER") && Deno.env.get("PGDATABASE"))) {
       assertThrows(
