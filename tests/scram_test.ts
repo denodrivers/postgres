@@ -1,7 +1,11 @@
-import { assertEquals, assertNotEquals, assertThrows } from "./test_deps.ts";
+import {
+  assertEquals,
+  assertNotEquals,
+  assertThrowsAsync,
+} from "./test_deps.ts";
 import * as scram from "../connection/scram.ts";
 
-Deno.test("scram.Client reproduces RFC 7677 example", () => {
+Deno.test("scram.Client reproduces RFC 7677 example", async () => {
   // Example seen in https://tools.ietf.org/html/rfc7677
   const client = new scram.Client("user", "pencil", "rOprNGfwEbeRWgbNEkqO");
 
@@ -9,21 +13,21 @@ Deno.test("scram.Client reproduces RFC 7677 example", () => {
     client.composeChallenge(),
     "n,,n=user,r=rOprNGfwEbeRWgbNEkqO",
   );
-  client.receiveChallenge(
+  await client.receiveChallenge(
     "r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0," +
       "s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096",
   );
   assertEquals(
-    client.composeResponse(),
+    await client.composeResponse(),
     "c=biws,r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0," +
       "p=dHzbZapWIk4jUhN+Ute9ytag9zjfMHgsqmmiz7AndVQ=",
   );
-  client.receiveResponse(
+  await client.receiveResponse(
     "v=6rriTRBi23WpRR/wtup+mMhUZUn/dB5nLTJRsjl95G4=",
   );
 });
 
-Deno.test("scram.Client catches bad server nonce", () => {
+Deno.test("scram.Client catches bad server nonce", async () => {
   const testCases = [
     "s=c2FsdA==,i=4096", // no server nonce
     "r=,s=c2FsdA==,i=4096", // empty
@@ -32,11 +36,11 @@ Deno.test("scram.Client catches bad server nonce", () => {
   for (const testCase of testCases) {
     const client = new scram.Client("user", "password", "nonce1");
     client.composeChallenge();
-    assertThrows(() => client.receiveChallenge(testCase));
+    await assertThrowsAsync(() => client.receiveChallenge(testCase));
   }
 });
 
-Deno.test("scram.Client catches bad salt", () => {
+Deno.test("scram.Client catches bad salt", async () => {
   const testCases = [
     "r=nonce12,i=4096", // no salt
     "r=nonce12,s=*,i=4096", // ill-formed base-64 string
@@ -44,11 +48,11 @@ Deno.test("scram.Client catches bad salt", () => {
   for (const testCase of testCases) {
     const client = new scram.Client("user", "password", "nonce1");
     client.composeChallenge();
-    assertThrows(() => client.receiveChallenge(testCase));
+    await assertThrowsAsync(() => client.receiveChallenge(testCase));
   }
 });
 
-Deno.test("scram.Client catches bad iteration count", () => {
+Deno.test("scram.Client catches bad iteration count", async () => {
   const testCases = [
     "r=nonce12,s=c2FsdA==", // no iteration count
     "r=nonce12,s=c2FsdA==,i=", // empty
@@ -59,24 +63,24 @@ Deno.test("scram.Client catches bad iteration count", () => {
   for (const testCase of testCases) {
     const client = new scram.Client("user", "password", "nonce1");
     client.composeChallenge();
-    assertThrows(() => client.receiveChallenge(testCase));
+    await assertThrowsAsync(() => client.receiveChallenge(testCase));
   }
 });
 
-Deno.test("scram.Client catches bad verifier", () => {
+Deno.test("scram.Client catches bad verifier", async () => {
   const client = new scram.Client("user", "password", "nonce1");
   client.composeChallenge();
-  client.receiveChallenge("r=nonce12,s=c2FsdA==,i=4096");
-  client.composeResponse();
-  assertThrows(() => client.receiveResponse("v=xxxx"));
+  await client.receiveChallenge("r=nonce12,s=c2FsdA==,i=4096");
+  await client.composeResponse();
+  await assertThrowsAsync(() => client.receiveResponse("v=xxxx"));
 });
 
-Deno.test("scram.Client catches server rejection", () => {
+Deno.test("scram.Client catches server rejection", async () => {
   const client = new scram.Client("user", "password", "nonce1");
   client.composeChallenge();
-  client.receiveChallenge("r=nonce12,s=c2FsdA==,i=4096");
-  client.composeResponse();
-  assertThrows(() => client.receiveResponse("e=auth error"));
+  await client.receiveChallenge("r=nonce12,s=c2FsdA==,i=4096");
+  await client.composeResponse();
+  await assertThrowsAsync(() => client.receiveResponse("e=auth error"));
 });
 
 Deno.test("scram.Client generates unique challenge", () => {
