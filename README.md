@@ -124,6 +124,23 @@ Deno.test("INSERT works correctly", async () => {
 });
 ```
 
+### Setting up an advanced development environment
+
+More advanced features such as the Deno inspector, test filtering, database
+inspection and permission filtering can be achieved by setting up a local
+testing environment, as shown in the following steps:
+
+1. Start the development databases using the Docker service with the command\
+   `docker-compose up postgres postgres_scram postgres_invalid_tls`\
+   Though using the detach (`-d`) option is recommended, this will make the
+   databases run in the background unless you use docker itself to stop them.
+   You can find more info about this
+   [here](https://docs.docker.com/compose/reference/up)
+2. Run the tests manually by using the command\
+   `DEVELOPMENT=true deno test --unstable -A`\
+   The `DEVELOPMENT` variable will tell the testing pipeline to use the local
+   testing settings specified in `tests/config.json`
+
 ## Deno compatibility
 
 Due to a not intended breaking change in Deno 1.9.0, two versions of
