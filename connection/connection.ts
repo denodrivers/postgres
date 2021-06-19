@@ -464,10 +464,9 @@ export class Connection {
     const serverFirstMessage = utf8.decode(saslContinue.reader.readAllBytes());
     client.receiveChallenge(serverFirstMessage);
 
-    // SASLResponse
-    const clientFinalMessage = client.composeResponse();
     this.#packetWriter.clear();
-    this.#packetWriter.addString(clientFinalMessage);
+    // SASLResponse
+    this.#packetWriter.addString(await client.composeResponse());
     this.#bufWriter.write(this.#packetWriter.flush(0x70));
     this.#bufWriter.flush();
 

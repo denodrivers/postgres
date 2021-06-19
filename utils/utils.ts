@@ -89,8 +89,7 @@ export function parseDsn(dsn: string): DsnResult {
 }
 
 export function isTemplateString(
-  // deno-lint-ignore no-explicit-any
-  template: any,
+  template: unknown,
 ): template is TemplateStringsArray {
   if (!Array.isArray(template)) {
     return false;
