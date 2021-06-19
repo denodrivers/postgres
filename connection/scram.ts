@@ -1,4 +1,4 @@
-import { base64, HmacSha256, Sha256 } from "../deps.ts";
+import { base64, HmacSha256 } from "../deps.ts";
 
 function assert(cond: unknown): asserts cond {
   if (!cond) {
@@ -224,7 +224,7 @@ async function deriveKeys(
   );
   const server = await sign(bytes("Server Key"), key);
   const client = await sign(bytes("Client Key"), key);
-  const stored = await digest(client);
+  const stored = new Uint8Array(await crypto.subtle.digest("SHA-256", client));
   return { server, client, stored };
 }
 
@@ -270,14 +270,9 @@ function escape(str: string): string {
     .replace(/,/g, "=2C");
 }
 
-/** Computes message digest. */
-function digest(msg: Uint8Array): Digest {
-  const hash = new Sha256();
-  hash.update(msg);
-  return new Uint8Array(hash.arrayBuffer());
-}
-
 /** Computes HMAC of a message using given key. */
+// TODO
+// Migrate to crypto.subtle.sign on Deno 1.11
 // deno-lint-ignore require-await
 async function sign(msg: Uint8Array, key: Key): Promise<Digest> {
   const hmac = new HmacSha256(key);
