@@ -462,7 +462,7 @@ export class Connection {
       }
     }
     const serverFirstMessage = utf8.decode(saslContinue.reader.readAllBytes());
-    client.receiveChallenge(serverFirstMessage);
+    await client.receiveChallenge(serverFirstMessage);
 
     this.#packetWriter.clear();
     // SASLResponse
@@ -487,7 +487,7 @@ export class Connection {
       }
     }
     const serverFinalMessage = utf8.decode(saslFinal.reader.readAllBytes());
-    client.receiveResponse(serverFinalMessage);
+    await client.receiveResponse(serverFinalMessage);
 
     // AuthenticationOK
     return this.#readMessage();
