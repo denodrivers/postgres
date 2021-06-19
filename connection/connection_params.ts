@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import { parseDsn } from "../utils/utils.ts";
 
 /**
@@ -83,7 +84,6 @@ function formatMissingParams(missingParams: string[]) {
 function assertRequiredOptions(
   options: ConnectionOptions,
   requiredKeys: (keyof ConnectionOptions)[],
-  // deno-lint-ignore camelcase
   has_env_access: boolean,
 ) {
   const missingParams: (keyof ConnectionOptions)[] = [];
@@ -98,7 +98,6 @@ function assertRequiredOptions(
   }
 
   if (missingParams.length) {
-    // deno-lint-ignore camelcase
     let missing_params_message = formatMissingParams(missingParams);
     if (!has_env_access) {
       missing_params_message +=
@@ -158,7 +157,6 @@ export function createParams(
   }
 
   let pgEnv: ConnectionOptions = {};
-  // deno-lint-ignore camelcase
   let has_env_access = true;
   try {
     pgEnv = getPgEnv();
@@ -181,7 +179,6 @@ export function createParams(
 
   // TODO
   // Perhaps username should be taken from the PC user as a default?
-  // deno-lint-ignore camelcase
   const connection_options = {
     applicationName: params.applicationName ?? pgEnv.applicationName ??
       DEFAULT_OPTIONS.applicationName,
@@ -203,7 +200,6 @@ export function createParams(
 
   // By this point all required parameters have been checked out
   // by the assert function
-  // deno-lint-ignore camelcase
   const connection_parameters: ConnectionParams = {
     ...connection_options,
     database: connection_options.database as string,

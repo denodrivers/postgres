@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import { assertEquals } from "./test_deps.ts";
 import { DsnResult, parseDsn } from "../utils/utils.ts";
 import { DeferredAccessStack } from "../utils/deferred.ts";
@@ -48,7 +49,6 @@ Deno.test("parseDsn", function () {
 });
 
 Deno.test("DeferredAccessStack", async () => {
-  // deno-lint-ignore camelcase
   const stack_size = 10;
 
   const stack = new DeferredAccessStack(
@@ -74,7 +74,6 @@ Deno.test("DeferredAccessStack", async () => {
 });
 
 Deno.test("An empty DeferredAccessStack awaits until an object is back in the stack", async () => {
-  // deno-lint-ignore camelcase
   const stack_size = 1;
 
   const stack = new DeferredAccessStack(

@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import { assertEquals, base64, formatDate, parseDate } from "./test_deps.ts";
 import { Client } from "../mod.ts";
 import { getMainConfiguration } from "./config.ts";
@@ -28,12 +29,10 @@ const SETUP = [
 /**
  * This will generate a random number with a precision of 2
  */
-// deno-lint-ignore camelcase
 function generateRandomNumber(max_value: number) {
   return Math.round((Math.random() * max_value + Number.EPSILON) * 100) / 100;
 }
 
-// deno-lint-ignore camelcase
 function generateRandomPoint(max_value = 100): Point {
   return {
     x: String(generateRandomNumber(max_value)) as Float8,
@@ -380,7 +379,6 @@ testClient(async function varcharNestedArray() {
 });
 
 testClient(async function uuid() {
-  // deno-lint-ignore camelcase
   const uuid_text = "c4792ecb-c00a-43a2-bd74-5b0ed551c599";
   const result = await CLIENT.queryArray(`SELECT $1::uuid`, uuid_text);
   assertEquals(result.rows[0][0], uuid_text);
@@ -444,7 +442,6 @@ testClient(async function bpcharNestedArray() {
 });
 
 testClient(async function jsonArray() {
-  // deno-lint-ignore camelcase
   const json_array = await CLIENT.queryArray(
     `SELECT ARRAY_AGG(A) FROM  (
       SELECT JSON_BUILD_OBJECT( 'X', '1' ) AS A
@@ -503,7 +500,6 @@ function randomBase64(): string {
 }
 
 testClient(async function bytea() {
-  // deno-lint-ignore camelcase
   const base64_string = randomBase64();
 
   const result = await CLIENT.queryArray(
@@ -703,7 +699,6 @@ testClient(async function tidArray() {
 });
 
 testClient(async function date() {
-  // deno-lint-ignore camelcase
   const date_text = "2020-01-01";
 
   const result = await CLIENT.queryArray<[Timestamp, Timestamp]>(

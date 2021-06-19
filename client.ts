@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import { Connection } from "./connection/connection.ts";
 import {
   ConnectionOptions,
@@ -41,21 +42,21 @@ export abstract class QueryClient {
 
   // TODO
   // Distinguish between terminated and aborted
-  #assertOpenConnection = () => {
+  #assertOpenConnection() {
     if (!this.connected) {
       throw new Error(
         "Connection to the database hasn't been initialized or has been terminated",
       );
     }
-  };
+  }
 
-  private executeQuery<T extends Array<unknown>>(
-    query: Query<ResultType.ARRAY>,
+  #executeQuery<T extends Array<unknown>>(
+    _query: Query<ResultType.ARRAY>,
   ): Promise<QueryArrayResult<T>>;
-  private executeQuery<T extends Record<string, unknown>>(
-    query: Query<ResultType.OBJECT>,
+  #executeQuery<T extends Record<string, unknown>>(
+    _query: Query<ResultType.OBJECT>,
   ): Promise<QueryObjectResult<T>>;
-  private executeQuery(
+  #executeQuery(
     query: Query<ResultType>,
   ): Promise<QueryResult> {
     return this.connection.query(query);
@@ -156,7 +157,7 @@ export abstract class QueryClient {
       options,
       this,
       // Bind context so function can be passed as is
-      this.executeQuery.bind(this),
+      this.#executeQuery.bind(this),
       (name: string | null) => {
         this.transaction = name;
       },
@@ -224,7 +225,6 @@ export abstract class QueryClient {
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>>;
   queryArray<T extends Array<unknown> = Array<unknown>>(
-    // deno-lint-ignore camelcase
     query_template_or_config: TemplateStringsArray | string | QueryConfig,
     ...args: QueryArguments
   ): Promise<QueryArrayResult<T>> {
@@ -249,7 +249,7 @@ export abstract class QueryClient {
       query = new Query(query_template_or_config, ResultType.ARRAY);
     }
 
-    return this.executeQuery(query);
+    return this.#executeQuery(query);
   }
 
   /**
@@ -306,7 +306,6 @@ export abstract class QueryClient {
   queryObject<
     T extends Record<string, unknown> = Record<string, unknown>,
   >(
-    // deno-lint-ignore camelcase
     query_template_or_config:
       | string
       | QueryObjectConfig
@@ -337,7 +336,7 @@ export abstract class QueryClient {
       );
     }
 
-    return this.executeQuery<T>(query);
+    return this.#executeQuery<T>(query);
   }
 }
 

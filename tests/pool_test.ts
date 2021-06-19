@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import { assertEquals, delay } from "./test_deps.ts";
 import { Pool } from "../pool.ts";
 import { getMainConfiguration } from "./config.ts";
@@ -63,13 +64,11 @@ testPool(
 testPool(
   "Pool initializes lazy connections on demand",
   async function (POOL, size) {
-    // deno-lint-ignore camelcase
     const client_1 = await POOL.connect();
     await client_1.queryArray("SELECT 1");
     await client_1.release();
     assertEquals(await POOL.initialized(), 1);
 
-    // deno-lint-ignore camelcase
     const client_2 = await POOL.connect();
     const p = client_2.queryArray("SELECT pg_sleep(0.1) is null, -1 AS id");
     await delay(1);
@@ -81,7 +80,6 @@ testPool(
     assertEquals(await POOL.initialized(), 1);
 
     // Test stack repletion as well
-    // deno-lint-ignore camelcase
     const requested_clients = size + 5;
     const qsThunks = Array.from({ length: requested_clients }, async (_, i) => {
       const client = await POOL.connect();

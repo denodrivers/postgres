@@ -106,11 +106,11 @@ function decodeByteaHex(byteaStr: string): Uint8Array {
 export function decodeCircle(value: string): Circle {
   const [point, radius] = value.substring(1, value.length - 1).split(
     /,(?![^(]*\))/,
-  );
+  ) as [string, Float8];
 
   return {
     point: decodePoint(point),
-    radius: radius as Float8,
+    radius: radius,
   };
 }
 
@@ -217,12 +217,16 @@ export function decodeJsonArray(value: string): unknown[] {
 }
 
 export function decodeLine(value: string): Line {
-  const [a, b, c] = value.substring(1, value.length - 1).split(",");
+  const [a, b, c] = value.substring(1, value.length - 1).split(",") as [
+    Float8,
+    Float8,
+    Float8,
+  ];
 
   return {
-    a: a as Float8,
-    b: b as Float8,
-    c: c as Float8,
+    a: a,
+    b: b,
+    c: c,
   };
 }
 
@@ -258,7 +262,10 @@ export function decodePathArray(value: string) {
 }
 
 export function decodePoint(value: string): Point {
-  const [x, y] = value.substring(1, value.length - 1).split(",");
+  const [x, y] = value.substring(1, value.length - 1).split(",") as [
+    Float8,
+    Float8,
+  ];
 
   if (Number.isNaN(parseFloat(x)) || Number.isNaN(parseFloat(y))) {
     throw new Error(
@@ -267,8 +274,8 @@ export function decodePoint(value: string): Point {
   }
 
   return {
-    x: x as Float8,
-    y: y as Float8,
+    x: x,
+    y: y,
   };
 }
 

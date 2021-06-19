@@ -38,60 +38,60 @@ const defaultNonceSize = 16;
 
 /**
  * Client composes and verifies SCRAM authentication messages, keeping track
- * of authentication state and parameters.
+ * of authentication #state and parameters.
  * @see {@link https://tools.ietf.org/html/rfc5802}
  */
 export class Client {
-  private username: string;
-  private password: string;
-  private keys?: Keys;
-  private clientNonce: string;
-  private serverNonce?: string;
-  private authMessage: string;
-  private state: State;
+  #authMessage: string;
+  #clientNonce: string;
+  #keys?: Keys;
+  #password: string;
+  #serverNonce?: string;
+  #state: State;
+  #username: string;
 
   /** Constructor sets credentials and parameters used in an authentication. */
   constructor(username: string, password: string, nonce?: string) {
-    this.username = username;
-    this.password = password;
-    this.clientNonce = nonce ?? generateNonce(defaultNonceSize);
-    this.authMessage = "";
-    this.state = State.Init;
+    this.#username = username;
+    this.#password = password;
+    this.#clientNonce = nonce ?? generateNonce(defaultNonceSize);
+    this.#authMessage = "";
+    this.#state = State.Init;
   }
 
   /** Composes client-first-message. */
   composeChallenge(): string {
-    assert(this.state === State.Init);
+    assert(this.#state === State.Init);
 
     try {
       // "n" for no channel binding, then an empty authzid option follows.
       const header = "n,,";
 
-      const username = escape(normalize(this.username));
-      const challenge = `n=${username},r=${this.clientNonce}`;
+      const username = escape(normalize(this.#username));
+      const challenge = `n=${username},r=${this.#clientNonce}`;
       const message = header + challenge;
 
-      this.authMessage += challenge;
-      this.state = State.ClientChallenge;
+      this.#authMessage += challenge;
+      this.#state = State.ClientChallenge;
       return message;
     } catch (e) {
-      this.state = State.Failed;
+      this.#state = State.Failed;
       throw e;
     }
   }
 
   /** Processes server-first-message. */
   receiveChallenge(challenge: string) {
-    assert(this.state === State.ClientChallenge);
+    assert(this.#state === State.ClientChallenge);
 
     try {
       const attrs = parseAttributes(challenge);
 
       const nonce = attrs.r;
-      if (!attrs.r || !attrs.r.startsWith(this.clientNonce)) {
+      if (!attrs.r || !attrs.r.startsWith(this.#clientNonce)) {
         throw new AuthError(Reason.BadServerNonce);
       }
-      this.serverNonce = nonce;
+      this.#serverNonce = nonce;
 
       let salt: Uint8Array | undefined;
       if (!attrs.s) {
@@ -108,48 +108,48 @@ export class Client {
         throw new AuthError(Reason.BadIterationCount);
       }
 
-      this.keys = deriveKeys(this.password, salt, iterCount);
+      this.#keys = deriveKeys(this.#password, salt, iterCount);
 
-      this.authMessage += "," + challenge;
-      this.state = State.ServerChallenge;
+      this.#authMessage += "," + challenge;
+      this.#state = State.ServerChallenge;
     } catch (e) {
-      this.state = State.Failed;
+      this.#state = State.Failed;
       throw e;
     }
   }
 
   /** Composes client-final-message. */
   composeResponse(): string {
-    assert(this.state === State.ServerChallenge);
-    assert(this.keys);
-    assert(this.serverNonce);
+    assert(this.#state === State.ServerChallenge);
+    assert(this.#keys);
+    assert(this.#serverNonce);
 
     try {
       // "biws" is the base-64 encoded form of the gs2-header "n,,".
-      const responseWithoutProof = `c=biws,r=${this.serverNonce}`;
+      const responseWithoutProof = `c=biws,r=${this.#serverNonce}`;
 
-      this.authMessage += "," + responseWithoutProof;
+      this.#authMessage += "," + responseWithoutProof;
 
       const proof = base64.encode(
         computeProof(
-          computeSignature(this.authMessage, this.keys.stored),
-          this.keys.client,
+          computeSignature(this.#authMessage, this.#keys.stored),
+          this.#keys.client,
         ),
       );
       const message = `${responseWithoutProof},p=${proof}`;
 
-      this.state = State.ClientResponse;
+      this.#state = State.ClientResponse;
       return message;
     } catch (e) {
-      this.state = State.Failed;
+      this.#state = State.Failed;
       throw e;
     }
   }
 
   /** Processes server-final-message. */
   receiveResponse(response: string) {
-    assert(this.state === State.ClientResponse);
-    assert(this.keys);
+    assert(this.#state === State.ClientResponse);
+    assert(this.#keys);
 
     try {
       const attrs = parseAttributes(response);
@@ -159,15 +159,15 @@ export class Client {
       }
 
       const verifier = base64.encode(
-        computeSignature(this.authMessage, this.keys.server),
+        computeSignature(this.#authMessage, this.#keys.server),
       );
       if (attrs.v !== verifier) {
         throw new AuthError(Reason.BadVerifier);
       }
 
-      this.state = State.ServerResponse;
+      this.#state = State.ServerResponse;
     } catch (e) {
-      this.state = State.Failed;
+      this.#state = State.Failed;
       throw e;
     }
   }
