@@ -1,22 +1,7 @@
+// deno-lint-ignore-file camelcase
 import { ConnectionOptions } from "../connection/connection_params.ts";
 
-const file = "config.json";
-const path = new URL("config.json", import.meta.url);
-
-let content = "{}";
-try {
-  content = await Deno.readTextFile(path);
-} catch (e) {
-  if (e instanceof Deno.errors.NotFound) {
-    console.log(
-      `"${file}" wasn't found in the tests directory, using environmental variables`,
-    );
-  } else {
-    throw e;
-  }
-}
-
-const config: {
+interface EnvironmentConfig {
   postgres: {
     applicationName: string;
     database: string;
@@ -52,7 +37,18 @@ const config: {
       main: string;
     };
   };
-} = JSON.parse(content);
+}
+
+const config_file: {
+  ci: EnvironmentConfig;
+  local: EnvironmentConfig;
+} = JSON.parse(
+  await Deno.readTextFile(new URL("./config.json", import.meta.url)),
+);
+
+const config = Deno.env.get("DEVELOPMENT") === "true"
+  ? config_file.local
+  : config_file.ci;
 
 export const getClearConfiguration = (): ConnectionOptions => {
   return {
