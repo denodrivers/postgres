@@ -1,37 +1,76 @@
 {
-  "postgres": {
-    "applicationName": "deno_postgres",
-    "database": "postgres",
-    "hostname": "postgres",
-    "password": "postgres",
-    "port": 5432,
-    "users": {
-      "clear": "clear",
-      "main": "postgres",
-      "md5": "md5"
-    }
-  },
-  "postgres_scram": {
-    "applicationName": "deno_postgres",
-    "database": "postgres",
-    "hostname": "postgres_scram",
-    "password": "postgres",
-    "port": 5432,
-    "users": {
-      "scram": "scram"
-    }
-  },
-  "postgres_invalid_tls": {
-    "applicationName": "deno_postgres",
-    "database": "postgres",
-    "hostname": "postgres_invalid_tls",
-    "password": "postgres",
-    "port": 5432,
-    "tls": {
-      "enforce": true
+  "ci": {
+    "postgres": {
+      "applicationName": "deno_postgres",
+      "database": "postgres",
+      "hostname": "postgres",
+      "password": "postgres",
+      "port": 5432,
+      "users": {
+        "clear": "clear",
+        "main": "postgres",
+        "md5": "md5"
+      }
     },
-    "users": {
-      "main": "postgres"
+    "postgres_scram": {
+      "applicationName": "deno_postgres",
+      "database": "postgres",
+      "hostname": "postgres_scram",
+      "password": "postgres",
+      "port": 5432,
+      "users": {
+        "scram": "scram"
+      }
+    },
+    "postgres_invalid_tls": {
+      "applicationName": "deno_postgres",
+      "database": "postgres",
+      "hostname": "postgres_invalid_tls",
+      "password": "postgres",
+      "port": 5432,
+      "tls": {
+        "enforce": true
+      },
+      "users": {
+        "main": "postgres"
+      }
+    }
+  },
+  "local": {
+    "postgres": {
+      "applicationName": "deno_postgres",
+      "database": "postgres",
+      "hostname": "localhost",
+      "password": "postgres",
+      "port": 6001,
+      "users": {
+        "clear": "clear",
+        "main": "postgres",
+        "md5": "md5"
+      }
+    },
+    "postgres_scram": {
+      "applicationName": "deno_postgres",
+      "database": "postgres",
+      "hostname": "localhost",
+      "password": "postgres",
+      "port": 6002,
+      "users": {
+        "scram": "scram"
+      }
+    },
+    "postgres_invalid_tls": {
+      "applicationName": "deno_postgres",
+      "database": "postgres",
+      "hostname": "localhost",
+      "password": "postgres",
+      "port": 6003,
+      "tls": {
+        "enforce": true
+      },
+      "users": {
+        "main": "postgres"
+      }
     }
   }
 }
