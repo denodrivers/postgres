@@ -42,7 +42,7 @@ import {
   RowDescription,
 } from "../query/query.ts";
 import { Column } from "../query/decode.ts";
-import type { ConnectionParams } from "./connection_params.ts";
+import type { ClientConfiguration } from "./connection_params.ts";
 import * as scram from "./scram.ts";
 
 enum TransactionStatus {
@@ -119,7 +119,7 @@ export class Connection {
   #bufWriter!: BufWriter;
   #conn!: Deno.Conn;
   connected = false;
-  #connection_params: ConnectionParams;
+  #connection_params: ClientConfiguration;
   #packetWriter = new PacketWriter();
   // TODO
   // Find out what parameters are for
@@ -148,7 +148,7 @@ export class Connection {
     return this.#tls;
   }
 
-  constructor(connection_params: ConnectionParams) {
+  constructor(connection_params: ClientConfiguration) {
     this.#connection_params = connection_params;
   }
 

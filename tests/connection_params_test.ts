@@ -179,16 +179,17 @@ Deno.test({
   name: "envParametersWithInvalidPort",
   ignore: !has_env_access,
   fn() {
+    const port = "abc";
     withEnv({
       database: "deno_postgres",
       host: "some_host",
-      port: "abc",
+      port,
       user: "some_user",
     }, () => {
       assertThrows(
         () => createParams(),
         ConnectionParamsError,
-        "Invalid port NaN",
+        `"${port}" is not a valid port number`,
       );
     });
   },

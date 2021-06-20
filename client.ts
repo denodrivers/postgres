@@ -1,8 +1,8 @@
 // deno-lint-ignore-file camelcase
 import { Connection } from "./connection/connection.ts";
 import {
-  ConnectionOptions,
-  ConnectionParams,
+  ClientConfiguration,
+  ClientOptions,
   ConnectionString,
   createParams,
 } from "./connection/connection_params.ts";
@@ -391,7 +391,7 @@ export abstract class QueryClient {
  * ```
  */
 export class Client extends QueryClient {
-  constructor(config?: ConnectionOptions | ConnectionString) {
+  constructor(config?: ClientOptions | ConnectionString) {
     super(new Connection(createParams(config)));
   }
 }
@@ -399,7 +399,7 @@ export class Client extends QueryClient {
 export class PoolClient extends QueryClient {
   #release: () => void;
 
-  constructor(config: ConnectionParams, releaseCallback: () => void) {
+  constructor(config: ClientConfiguration, releaseCallback: () => void) {
     super(new Connection(config));
     this.#release = releaseCallback;
   }
