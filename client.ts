@@ -33,7 +33,7 @@ export abstract class QueryClient {
   protected executeQuery<T extends Array<unknown>>(
     query: Query<ResultType.ARRAY>,
   ): Promise<QueryArrayResult<T>>;
-  protected executeQuery<T extends Record<string, unknown>>(
+  protected executeQuery<T>(
     query: Query<ResultType.OBJECT>,
   ): Promise<QueryObjectResult<T>>;
   protected executeQuery(
@@ -245,19 +245,19 @@ export abstract class QueryClient {
    * const {rows} = await my_client.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
    * ```
    */
-  queryObject<T extends Record<string, unknown>>(
+  queryObject<T>(
     query: string,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>>;
-  queryObject<T extends Record<string, unknown>>(
+  queryObject<T>(
     config: QueryObjectConfig,
   ): Promise<QueryObjectResult<T>>;
-  queryObject<T extends Record<string, unknown>>(
+  queryObject<T>(
     query: TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>>;
   queryObject<
-    T extends Record<string, unknown> = Record<string, unknown>,
+    T = Record<string, unknown>,
   >(
     // deno-lint-ignore camelcase
     query_template_or_config:

@@ -157,7 +157,7 @@ export class QueryArrayResult<T extends Array<unknown> = Array<unknown>>
 }
 
 export class QueryObjectResult<
-  T extends Record<string, unknown> = Record<string, unknown>,
+  T = Record<string, unknown>,
 > extends QueryResult {
   public rows: T[] = [];
 

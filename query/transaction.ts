@@ -413,19 +413,19 @@ export class Transaction {
    * const {rows} = await transaction.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
    * ```
    */
-  async queryObject<T extends Record<string, unknown>>(
+  async queryObject<T>(
     query: string,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>>;
-  async queryObject<T extends Record<string, unknown>>(
+  async queryObject<T>(
     config: QueryObjectConfig,
   ): Promise<QueryObjectResult<T>>;
-  async queryObject<T extends Record<string, unknown>>(
+  async queryObject<T>(
     query: TemplateStringsArray,
     ...args: QueryArguments
   ): Promise<QueryObjectResult<T>>;
   async queryObject<
-    T extends Record<string, unknown> = Record<string, unknown>,
+    T = Record<string, unknown>,
   >(
     // deno-lint-ignore camelcase
     query_template_or_config:
