@@ -28,3 +28,5 @@ async function listenServerConnections() {
     conn.write(new TextEncoder().encode("INVALID"));
   }
 }
+
+export {};
