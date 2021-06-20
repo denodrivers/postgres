@@ -247,11 +247,22 @@ export class Connection {
     }
   }
 
-  /**
-   * Calling startup on a connection twice will create a new session and overwrite the previous one
-   * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
-   * */
-  async startup() {
+  #resetConnectionMetadata() {
+    this.connected = false;
+    this.#packetWriter = new PacketWriter();
+    this.#parameters = {};
+    this.#queryLock = new DeferredStack(
+      1,
+      [undefined],
+    );
+    this.#secretKey = undefined;
+    this.#tls = false;
+    this.#transactionStatus = undefined;
+  }
+
+  async #startup() {
+    this.#resetConnectionMetadata();
+
     const {
       hostname,
       port,
@@ -292,6 +303,8 @@ export class Connection {
         }
       }
     } else if (enforceTLS) {
+      // Make sure to close the connection before erroring
+      this.#conn.close();
       throw new Error(
         "The server isn't accepting TLS connections. Change the client configuration so TLS configuration isn't required to connect",
       );
@@ -358,6 +371,36 @@ export class Connection {
     } catch (e) {
       this.#conn.close();
       throw e;
+    }
+  }
+
+  #RECONNECTION_ATTEMPTS = 5;
+  #reconnection_attempts = 0;
+
+  /**
+   * Calling startup on a connection twice will create a new session and overwrite the previous one
+   * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
+   * */
+  async startup() {
+    this.#reconnection_attempts = 0;
+
+    let error;
+    while (this.#reconnection_attempts < this.#RECONNECTION_ATTEMPTS) {
+      try {
+        await this.#startup();
+        break;
+      } catch (e) {
+        // TODO
+        // Eventually distinguish between connection errors and normal errors
+        this.#reconnection_attempts++;
+        if (this.#RECONNECTION_ATTEMPTS === this.#reconnection_attempts) {
+          error = e;
+        }
+      }
+    }
+
+    if (error) {
+      throw error;
     }
   }
 

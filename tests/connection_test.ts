@@ -65,6 +65,10 @@ Deno.test("Closes connection on bad TLS availability verification", async functi
     user: "none",
   });
 
+  // The server will try to emit a message everytime it receives a connection
+  // For this test we don't need them, so we just discard them
+  server.onmessage = () => {};
+
   let bad_tls_availability_message = false;
   try {
     await client.connect();
@@ -99,7 +103,9 @@ Deno.test("Closes connection on bad TLS availability verification", async functi
   assertEquals(bad_tls_availability_message, true);
 });
 
-Deno.test("Attempts to reconnect", async function () {
+Deno.test("Attempts reconnection as configured on the client", async function () {
+  const ATTEMPT_RECONNECTIONS = 5;
+
   const server = new Worker(
     new URL("./workers/postgres_server.ts", import.meta.url).href,
     {
@@ -129,15 +135,22 @@ Deno.test("Attempts to reconnect", async function () {
   });
 
   let connection_attempts = 0;
+  server.onmessage = ({ data }) => {
+    if (data !== "connection") {
+      closed.reject(
+        `Unexpected message "${data}" received from worker`,
+      );
+    }
+    connection_attempts++;
+  };
+
   try {
     await client.connect();
   } catch (e) {
     if (
-      e instanceof Error ||
-      e.message.startsWith("Could not check if server accepts SSL connections")
+      !(e instanceof Error) ||
+      !e.message.startsWith("Could not check if server accepts SSL connections")
     ) {
-      connection_attempts++;
-    } else {
       // Early fail, if the connection fails for an unexpected error
       server.terminate();
       throw e;
@@ -159,7 +172,7 @@ Deno.test("Attempts to reconnect", async function () {
   await closed;
   server.terminate();
 
-  assertEquals(connection_attempts, 1);
+  assertEquals(connection_attempts, ATTEMPT_RECONNECTIONS);
 });
 
 Deno.test("Handles invalid TLS certificates correctly", async () => {
