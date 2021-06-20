@@ -103,7 +103,7 @@ Deno.test("Closes connection on bad TLS availability verification", async functi
   assertEquals(bad_tls_availability_message, true);
 });
 
-Deno.test("Attempts reconnection as configured on the client", async function () {
+Deno.test("Attempts reconnection on connection startup", async function () {
   const ATTEMPT_RECONNECTIONS = 5;
 
   const server = new Worker(
@@ -128,6 +128,9 @@ Deno.test("Attempts reconnection as configured on the client", async function ()
   await initialized;
 
   const client = new Client({
+    connection: {
+      attempts: ATTEMPT_RECONNECTIONS,
+    },
     database: "none",
     hostname: "127.0.0.1",
     port: "8080",

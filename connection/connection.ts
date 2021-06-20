@@ -129,6 +129,7 @@ export class Connection {
     1,
     [undefined],
   );
+  #reconnection_attempts = 0;
   // TODO
   // Find out what the secret key is for
   // Clean on startup
@@ -251,6 +252,7 @@ export class Connection {
     this.connected = false;
     this.#packetWriter = new PacketWriter();
     this.#parameters = {};
+    this.#pid = undefined;
     this.#queryLock = new DeferredStack(
       1,
       [undefined],
@@ -374,9 +376,6 @@ export class Connection {
     }
   }
 
-  #RECONNECTION_ATTEMPTS = 5;
-  #reconnection_attempts = 0;
-
   /**
    * Calling startup on a connection twice will create a new session and overwrite the previous one
    * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
@@ -385,7 +384,9 @@ export class Connection {
     this.#reconnection_attempts = 0;
 
     let error;
-    while (this.#reconnection_attempts < this.#RECONNECTION_ATTEMPTS) {
+    while (
+      this.#reconnection_attempts < this.#connection_params.connection.attempts
+    ) {
       try {
         await this.#startup();
         break;
@@ -393,7 +394,10 @@ export class Connection {
         // TODO
         // Eventually distinguish between connection errors and normal errors
         this.#reconnection_attempts++;
-        if (this.#RECONNECTION_ATTEMPTS === this.#reconnection_attempts) {
+        if (
+          this.#reconnection_attempts ===
+            this.#connection_params.connection.attempts
+        ) {
           error = e;
         }
       }
