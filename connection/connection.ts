@@ -245,11 +245,12 @@ export class Connection {
         "You need to execute Deno with the `--unstable` argument in order to stablish a TLS connection",
       );
     }
-  } /**
+  }
+
+  /**
    * Calling startup on a connection twice will create a new session and overwrite the previous one
    * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
    * */
-
   async startup() {
     const {
       hostname,

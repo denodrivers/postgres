@@ -99,6 +99,69 @@ Deno.test("Closes connection on bad TLS availability verification", async functi
   assertEquals(bad_tls_availability_message, true);
 });
 
+Deno.test("Attempts to reconnect", async function () {
+  const server = new Worker(
+    new URL("./workers/postgres_server.ts", import.meta.url).href,
+    {
+      type: "module",
+      deno: {
+        namespace: true,
+      },
+    },
+  );
+
+  // Await for server initialization
+  const initialized = deferred();
+  server.onmessage = ({ data }) => {
+    if (data !== "initialized") {
+      initialized.reject(`Unexpected message "${data}" received from worker`);
+    }
+    initialized.resolve();
+  };
+  server.postMessage("initialize");
+  await initialized;
+
+  const client = new Client({
+    database: "none",
+    hostname: "127.0.0.1",
+    port: "8080",
+    user: "none",
+  });
+
+  let connection_attempts = 0;
+  try {
+    await client.connect();
+  } catch (e) {
+    if (
+      e instanceof Error ||
+      e.message.startsWith("Could not check if server accepts SSL connections")
+    ) {
+      connection_attempts++;
+    } else {
+      // Early fail, if the connection fails for an unexpected error
+      server.terminate();
+      throw e;
+    }
+  } finally {
+    await client.end();
+  }
+
+  const closed = deferred();
+  server.onmessage = ({ data }) => {
+    if (data !== "closed") {
+      closed.reject(
+        `Unexpected message "${data}" received from worker`,
+      );
+    }
+    closed.resolve();
+  };
+  server.postMessage("close");
+  await closed;
+  server.terminate();
+
+  assertEquals(connection_attempts, 1);
+});
+
 Deno.test("Handles invalid TLS certificates correctly", async () => {
   const client = new Client(getInvalidTlsConfiguration());
 
