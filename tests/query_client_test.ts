@@ -344,7 +344,7 @@ testClient("Transaction", async function (generateClient) {
 
   await transaction.begin();
   assertEquals(
-    client.current_transaction,
+    client.session.current_transaction,
     transaction_name,
     "Client is locked out during transaction",
   );
@@ -368,7 +368,7 @@ testClient("Transaction", async function (generateClient) {
   );
   await transaction.commit();
   assertEquals(
-    client.current_transaction,
+    client.session.current_transaction,
     null,
     "Client was not released after transaction",
   );
@@ -554,7 +554,7 @@ testClient("Transaction locks client", async function (generateClient) {
 
   await client.queryArray`SELECT 1`;
   assertEquals(
-    client.current_transaction,
+    client.session.current_transaction,
     null,
     "Client was not released after transaction",
   );
@@ -570,14 +570,14 @@ testClient("Transaction commit chain", async function (generateClient) {
 
   await transaction.commit({ chain: true });
   assertEquals(
-    client.current_transaction,
+    client.session.current_transaction,
     name,
     "Client shouldn't have been released on chained commit",
   );
 
   await transaction.commit();
   assertEquals(
-    client.current_transaction,
+    client.session.current_transaction,
     null,
     "Client was not released after transaction ended",
   );
@@ -602,7 +602,7 @@ testClient(
     await transaction.rollback({ chain: true });
 
     assertEquals(
-      client.current_transaction,
+      client.session.current_transaction,
       name,
       "Client shouldn't have been released after chained rollback",
     );
@@ -614,7 +614,7 @@ testClient(
     assertEquals(query_2, 0);
 
     assertEquals(
-      client.current_transaction,
+      client.session.current_transaction,
       null,
       "Client was not released after rollback",
     );
@@ -653,7 +653,7 @@ testClient(
       undefined,
       `The transaction "${name}" has been aborted due to \`PostgresError:`,
     );
-    assertEquals(client.current_transaction, null);
+    assertEquals(client.session.current_transaction, null);
 
     await transaction.begin();
     await assertThrowsAsync(
@@ -661,7 +661,7 @@ testClient(
       undefined,
       `The transaction "${name}" has been aborted due to \`PostgresError:`,
     );
-    assertEquals(client.current_transaction, null);
+    assertEquals(client.session.current_transaction, null);
   },
 );
 
