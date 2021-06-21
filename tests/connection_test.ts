@@ -144,3 +144,19 @@ Deno.test("Startup error when database does not exist", async function () {
       await client.end();
     });
 });
+
+Deno.test("Exposes session PID", async () => {
+  const client = new Client(getClearConfiguration());
+  await client.connect();
+  const { rows } = await client.queryObject<{ pid: string }>(
+    "SELECT PG_BACKEND_PID() AS PID",
+  );
+  assertEquals(client.session.pid, rows[0].pid);
+
+  await client.end();
+  assertEquals(
+    client.session.pid,
+    undefined,
+    "PID is not cleared after disconnection",
+  );
+});

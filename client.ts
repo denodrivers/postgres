@@ -20,24 +20,38 @@ import {
 import { Transaction, TransactionOptions } from "./query/transaction.ts";
 import { isTemplateString } from "./utils/utils.ts";
 
+export interface Session {
+  /**
+   * This is the code for the transaction currently locking the connection.
+   * If there is no transaction ongoing, the transaction code will be null
+   */
+  current_transaction: string | null;
+  /**
+   * This is the process id of the current session as assigned by the database
+   * on connection. This id will undefined when there is no connection stablished
+   */
+  pid: number | undefined;
+}
+
 export abstract class QueryClient {
-  protected connection: Connection;
-  // TODO
-  // Move transaction to a session object alongside the PID
-  protected transaction: string | null = null;
+  #connection: Connection;
+  #transaction: string | null = null;
 
   constructor(connection: Connection) {
-    this.connection = connection;
+    this.#connection = connection;
   }
 
   // TODO
   // Add comment about reconnection attempts
   get connected() {
-    return this.connection.connected;
+    return this.#connection.connected;
   }
 
-  get current_transaction(): string | null {
-    return this.transaction;
+  get session(): Session {
+    return {
+      current_transaction: this.#transaction,
+      pid: this.#connection.pid,
+    };
   }
 
   // TODO
@@ -59,7 +73,7 @@ export abstract class QueryClient {
   #executeQuery(
     query: Query<ResultType>,
   ): Promise<QueryResult> {
-    return this.connection.query(query);
+    return this.#connection.query(query);
   }
 
   /**
@@ -159,7 +173,7 @@ export abstract class QueryClient {
       // Bind context so function can be passed as is
       this.#executeQuery.bind(this),
       (name: string | null) => {
-        this.transaction = name;
+        this.#transaction = name;
       },
     );
   }
@@ -170,7 +184,7 @@ export abstract class QueryClient {
    */
   async connect(): Promise<void> {
     if (!this.connected) {
-      await this.connection.startup();
+      await this.#connection.startup();
     }
   }
 
@@ -181,11 +195,10 @@ export abstract class QueryClient {
    */
   async end(): Promise<void> {
     if (this.connected) {
-      await this.connection.end();
+      await this.#connection.end();
     }
 
-    // Cleanup all session related metadata
-    this.transaction = null;
+    this.resetSessionMetadata();
   }
 
   /**
@@ -230,9 +243,9 @@ export abstract class QueryClient {
   ): Promise<QueryArrayResult<T>> {
     this.#assertOpenConnection();
 
-    if (this.current_transaction !== null) {
+    if (this.#transaction !== null) {
       throw new Error(
-        `This connection is currently locked by the "${this.current_transaction}" transaction`,
+        `This connection is currently locked by the "${this.#transaction}" transaction`,
       );
     }
 
@@ -314,9 +327,9 @@ export abstract class QueryClient {
   ): Promise<QueryObjectResult<T>> {
     this.#assertOpenConnection();
 
-    if (this.current_transaction !== null) {
+    if (this.#transaction !== null) {
       throw new Error(
-        `This connection is currently locked by the "${this.current_transaction}" transaction`,
+        `This connection is currently locked by the "${this.#transaction}" transaction`,
       );
     }
 
@@ -337,6 +350,10 @@ export abstract class QueryClient {
     }
 
     return this.#executeQuery<T>(query);
+  }
+
+  protected resetSessionMetadata() {
+    this.#transaction = null;
   }
 }
 
@@ -391,6 +408,6 @@ export class PoolClient extends QueryClient {
     this.#release();
 
     // Cleanup all session related metadata
-    this.transaction = null;
+    this.resetSessionMetadata();
   }
 }

@@ -133,7 +133,7 @@ export class Transaction {
    * This method will throw if the transaction opened in the client doesn't match this one
    */
   #assertTransactionOpen() {
-    if (this.#client.current_transaction !== this.name) {
+    if (this.#client.session.current_transaction !== this.name) {
       throw new Error(
         `This transaction has not been started yet, make sure to use the "begin" method to do so`,
       );
@@ -156,15 +156,15 @@ export class Transaction {
    * https://www.postgresql.org/docs/13/sql-begin.html
    */
   async begin() {
-    if (this.#client.current_transaction !== null) {
-      if (this.#client.current_transaction === this.name) {
+    if (this.#client.session.current_transaction !== null) {
+      if (this.#client.session.current_transaction === this.name) {
         throw new Error(
           "This transaction is already open",
         );
       }
 
       throw new Error(
-        `This client already has an ongoing transaction "${this.#client.current_transaction}"`,
+        `This client already has an ongoing transaction "${this.#client.session.current_transaction}"`,
       );
     }
 
