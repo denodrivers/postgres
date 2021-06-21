@@ -35,6 +35,7 @@ export interface Session {
 
 export abstract class QueryClient {
   #connection: Connection;
+  #terminated = false;
   #transaction: string | null = null;
 
   constructor(connection: Connection) {
@@ -54,12 +55,14 @@ export abstract class QueryClient {
     };
   }
 
-  // TODO
-  // Distinguish between terminated and aborted
   #assertOpenConnection() {
-    if (!this.connected) {
+    if (this.#terminated) {
       throw new Error(
-        "Connection to the database hasn't been initialized or has been terminated",
+        "Connection to the database has been terminated",
+      );
+    } else if (!this.connected) {
+      throw new Error(
+        "Connection to the database hasn't been initialized",
       );
     }
   }
@@ -184,7 +187,8 @@ export abstract class QueryClient {
    */
   async connect(): Promise<void> {
     if (!this.connected) {
-      await this.#connection.startup();
+      await this.#connection.startup(false);
+      this.#terminated = false;
     }
   }
 
@@ -198,6 +202,7 @@ export abstract class QueryClient {
       await this.#connection.end();
     }
 
+    this.#terminated = true;
     this.resetSessionMetadata();
   }
 
@@ -392,7 +397,11 @@ export abstract class QueryClient {
  */
 export class Client extends QueryClient {
   constructor(config?: ClientOptions | ConnectionString) {
-    super(new Connection(createParams(config)));
+    super(
+      new Connection(createParams(config), async () => {
+        await this.end();
+      }),
+    );
   }
 }
 
@@ -400,7 +409,11 @@ export class PoolClient extends QueryClient {
   #release: () => void;
 
   constructor(config: ClientConfiguration, releaseCallback: () => void) {
-    super(new Connection(config));
+    super(
+      new Connection(config, async () => {
+        await this.end();
+      }),
+    );
     this.#release = releaseCallback;
   }
 

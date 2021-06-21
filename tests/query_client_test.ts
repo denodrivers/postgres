@@ -76,12 +76,12 @@ testClient("Terminated connections", async function (generateClient) {
   const client = await generateClient();
   await client.end();
 
-  assertThrowsAsync(
+  await assertThrowsAsync(
     async () => {
       await client.queryArray`SELECT 1`;
     },
     Error,
-    "Connection to the database hasn't been initialized or has been terminated",
+    "Connection to the database has been terminated",
   );
 });
 

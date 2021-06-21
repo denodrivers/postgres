@@ -121,6 +121,7 @@ export class Connection {
   #conn!: Deno.Conn;
   connected = false;
   #connection_params: ClientConfiguration;
+  #onDisconnection: () => Promise<void>;
   #packetWriter = new PacketWriter();
   // TODO
   // Find out what parameters are for
@@ -150,8 +151,12 @@ export class Connection {
     return this.#tls;
   }
 
-  constructor(connection_params: ClientConfiguration) {
+  constructor(
+    connection_params: ClientConfiguration,
+    disconnection_callback: () => Promise<void>,
+  ) {
     this.#connection_params = connection_params;
+    this.#onDisconnection = disconnection_callback;
   }
 
   /** Read single message sent by backend */
@@ -396,32 +401,46 @@ export class Connection {
 
   /**
    * Calling startup on a connection twice will create a new session and overwrite the previous one
+   *
+   * @param is_reconnection This indicates whether the startup should behave as if there was
+   * a connection previously established, or if it should attempt to create a connection first
+   *
    * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
    * */
-  async startup() {
+  async startup(is_reconnection: boolean) {
     this.#reconnection_attempts = 0;
+    const max_reconnections = this.#connection_params.connection.attempts;
 
-    let error;
-    while (
-      this.#reconnection_attempts < this.#connection_params.connection.attempts
-    ) {
+    let error: Error | undefined;
+    // If no connection has been established and the reconnection attempts are
+    // set to zero, attempt to connect at least once
+    if (!is_reconnection && this.#connection_params.connection.attempts === 0) {
       try {
         await this.#startup();
-        break;
       } catch (e) {
-        // TODO
-        // Eventually distinguish between connection errors and normal errors
-        this.#reconnection_attempts++;
-        if (
-          this.#reconnection_attempts ===
-            this.#connection_params.connection.attempts
-        ) {
-          error = e;
+        error = e;
+      }
+    } else {
+      // If the reconnection attempts are set to zero the client won't attempt to
+      // reconnect, but it won't error either, this "no reconnections" behavior
+      // should be handled wherever the reconnection is requested
+      while (this.#reconnection_attempts < max_reconnections) {
+        try {
+          await this.#startup();
+          break;
+        } catch (e) {
+          // TODO
+          // Eventually distinguish between connection errors and normal errors
+          this.#reconnection_attempts++;
+          if (this.#reconnection_attempts === max_reconnections) {
+            error = e;
+          }
         }
       }
     }
 
     if (error) {
+      await this.end();
       throw error;
     }
   }
@@ -902,12 +921,19 @@ export class Connection {
         return await this.#preparedQuery(query);
       }
     } catch (e) {
-      if (e instanceof ConnectionError) {
-        try {
-          await this.startup();
-          return this.query(query);
-        } catch (_e) {
-          throw e;
+      if (
+        e instanceof ConnectionError
+      ) {
+        // Don't even try to reconnect if reconnection is disabled
+        if (this.#connection_params.connection.attempts === 0) {
+          await this.end();
+        } else {
+          try {
+            await this.startup(true);
+            return this.query(query);
+          } catch (_e) {
+            throw e;
+          }
         }
       }
       throw e;
@@ -975,6 +1001,7 @@ export class Connection {
         // This steps can fail if the underlying connection has been closed ungracefully
       } finally {
         this.#resetConnectionMetadata();
+        this.#onDisconnection();
       }
     }
   }
