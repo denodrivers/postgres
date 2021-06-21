@@ -139,6 +139,10 @@ export class Connection {
   // Clean on startup
   #transactionStatus?: TransactionStatus;
 
+  get pid() {
+    return this.#pid;
+  }
+
   /** Indicates if the connection is carried over TLS */
   get tls() {
     return this.#tls;
@@ -874,6 +878,10 @@ export class Connection {
 
   async end(): Promise<void> {
     if (this.connected) {
+      // TODO
+      // Remove all session metadata
+      this.#pid = undefined;
+
       const terminationMessage = new Uint8Array([0x58, 0x00, 0x00, 0x00, 0x04]);
       await this.#bufWriter.write(terminationMessage);
       await this.#bufWriter.flush();

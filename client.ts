@@ -37,6 +37,7 @@ export abstract class QueryClient {
   get session() {
     return {
       current_transaction: this.#transaction,
+      pid: this.#connection.pid,
     };
   }
 
