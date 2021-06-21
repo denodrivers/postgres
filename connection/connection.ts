@@ -966,7 +966,6 @@ export class Connection {
 
   async end(): Promise<void> {
     if (this.connected) {
-      this.#resetConnectionMetadata();
       const terminationMessage = new Uint8Array([0x58, 0x00, 0x00, 0x00, 0x04]);
       await this.#bufWriter.write(terminationMessage);
       try {
@@ -975,7 +974,7 @@ export class Connection {
       } catch (_e) {
         // This steps can fail if the underlying connection has been closed ungracefully
       } finally {
-        this.connected = false;
+        this.#resetConnectionMetadata();
       }
     }
   }
