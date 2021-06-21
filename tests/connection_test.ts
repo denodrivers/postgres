@@ -19,6 +19,33 @@ Deno.test("Clear password authentication (no tls)", async () => {
   await client.end();
 });
 
+Deno.test("MD5 authentication (no tls)", async () => {
+  const client = new Client(getMd5Configuration());
+  await client.connect();
+  await client.end();
+});
+
+Deno.test("SCRAM-SHA-256 authentication (no tls)", async () => {
+  const client = new Client(getScramSha256Configuration());
+  await client.connect();
+  await client.end();
+});
+
+Deno.test("Handles invalid TLS certificates correctly", async () => {
+  const client = new Client(getInvalidTlsConfiguration());
+
+  await assertThrowsAsync(
+    async (): Promise<void> => {
+      await client.connect();
+    },
+    Error,
+    "The certificate used to secure the TLS connection is invalid",
+  )
+    .finally(async () => {
+      await client.end();
+    });
+});
+
 Deno.test("Handles bad authentication correctly", async function () {
   const badConnectionData = getMainConfiguration();
   badConnectionData.password += getRandomString();
@@ -34,6 +61,41 @@ Deno.test("Handles bad authentication correctly", async function () {
     .finally(async () => {
       await client.end();
     });
+});
+
+// This test requires current user database connection permissions
+// on "pg_hba.conf" set to "all"
+Deno.test("Startup error when database does not exist", async function () {
+  const badConnectionData = getMainConfiguration();
+  badConnectionData.database += getRandomString();
+  const client = new Client(badConnectionData);
+
+  await assertThrowsAsync(
+    async (): Promise<void> => {
+      await client.connect();
+    },
+    PostgresError,
+    "does not exist",
+  )
+    .finally(async () => {
+      await client.end();
+    });
+});
+
+Deno.test("Exposes session PID", async () => {
+  const client = new Client(getClearConfiguration());
+  await client.connect();
+  const { rows } = await client.queryObject<{ pid: string }>(
+    "SELECT PG_BACKEND_PID() AS PID",
+  );
+  assertEquals(client.session.pid, rows[0].pid);
+
+  await client.end();
+  assertEquals(
+    client.session.pid,
+    undefined,
+    "PID is not cleared after disconnection",
+  );
 });
 
 Deno.test("Closes connection on bad TLS availability verification", async function () {
@@ -178,64 +240,17 @@ Deno.test("Attempts reconnection on connection startup", async function () {
   assertEquals(connection_attempts, ATTEMPT_RECONNECTIONS);
 });
 
-Deno.test("Handles invalid TLS certificates correctly", async () => {
-  const client = new Client(getInvalidTlsConfiguration());
-
-  await assertThrowsAsync(
-    async (): Promise<void> => {
-      await client.connect();
-    },
-    Error,
-    "The certificate used to secure the TLS connection is invalid",
-  )
-    .finally(async () => {
-      await client.end();
-    });
-});
-
-Deno.test("MD5 authentication (no tls)", async () => {
-  const client = new Client(getMd5Configuration());
+Deno.test("Attempts reconnection on disconnection", async function () {
+  const client = new Client(getMainConfiguration());
   await client.connect();
-  await client.end();
-});
-
-Deno.test("SCRAM-SHA-256 authentication (no tls)", async () => {
-  const client = new Client(getScramSha256Configuration());
-  await client.connect();
-  await client.end();
-});
-
-// This test requires current user database connection permissions
-// on "pg_hba.conf" set to "all"
-Deno.test("Startup error when database does not exist", async function () {
-  const badConnectionData = getMainConfiguration();
-  badConnectionData.database += getRandomString();
-  const client = new Client(badConnectionData);
-
-  await assertThrowsAsync(
-    async (): Promise<void> => {
-      await client.connect();
-    },
-    PostgresError,
-    "does not exist",
-  )
-    .finally(async () => {
-      await client.end();
-    });
-});
-
-Deno.test("Exposes session PID", async () => {
-  const client = new Client(getClearConfiguration());
-  await client.connect();
+  await client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`;
   const { rows } = await client.queryObject<{ pid: string }>(
     "SELECT PG_BACKEND_PID() AS PID",
   );
-  assertEquals(client.session.pid, rows[0].pid);
-
-  await client.end();
   assertEquals(
     client.session.pid,
-    undefined,
-    "PID is not cleared after disconnection",
+    rows[0].pid,
+    "The PID is not reseted after reconnection",
   );
+  await client.end();
 });

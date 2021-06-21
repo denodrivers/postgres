@@ -44,6 +44,7 @@ import {
 import { Column } from "../query/decode.ts";
 import type { ClientConfiguration } from "./connection_params.ts";
 import * as scram from "./scram.ts";
+import { ConnectionError } from "./warning.ts";
 
 enum TransactionStatus {
   Idle = "I",
@@ -159,6 +160,18 @@ export class Connection {
     const header = new Uint8Array(5);
     await this.#bufReader.readFull(header);
     const msgType = decoder.decode(header.slice(0, 1));
+    // TODO
+    // Investigate if the ascii terminator is the best way to check for a broken
+    // session
+    if (msgType === "\x00") {
+      // This error means that the database terminated the session without notifying
+      // the library
+      // TODO
+      // This will be removed once we move to async handling of messages by the frontend
+      // However, unnotified disconnection will remain a possibility, that will likely
+      // be handled in another place
+      throw new ConnectionError("The session was terminated by the database");
+    }
     const msgLength = readUInt32BE(header, 1) - 4;
     const msgBody = new Uint8Array(msgLength);
     await this.#bufReader.readFull(msgBody);
@@ -249,6 +262,11 @@ export class Connection {
   }
 
   #resetConnectionMetadata() {
+    try {
+      this.#conn.close();
+    } catch (_e) {
+      // Swallow error
+    }
     this.connected = false;
     this.#packetWriter = new PacketWriter();
     this.#parameters = {};
@@ -811,6 +829,10 @@ export class Connection {
       // no data
       case "n":
         break;
+      // notice response
+      case "N":
+        result.warnings.push(await this.#processNotice(msg));
+        break;
       // error
       case "E":
         await this.#processError(msg);
@@ -837,6 +859,10 @@ export class Connection {
           result.done();
           break outerLoop;
         }
+        // notice response
+        case "N":
+          result.warnings.push(await this.#processNotice(msg));
+          break;
         // error response
         case "E":
           await this.#processError(msg);
@@ -864,6 +890,10 @@ export class Connection {
       throw new Error("The connection hasn't been initialized");
     }
 
+    // TODO
+    // Please forgive me
+    // This will all be removed once the message handling is refactored to receive
+    // messages at any point in time, not only as a response to a request
     await this.#queryLock.pop();
     try {
       if (query.args.length === 0) {
@@ -871,6 +901,16 @@ export class Connection {
       } else {
         return await this.#preparedQuery(query);
       }
+    } catch (e) {
+      if (e instanceof ConnectionError) {
+        try {
+          await this.startup();
+          return this.query(query);
+        } catch (_e) {
+          throw e;
+        }
+      }
+      throw e;
     } finally {
       this.#queryLock.push(undefined);
     }
@@ -926,15 +966,17 @@ export class Connection {
 
   async end(): Promise<void> {
     if (this.connected) {
-      // TODO
-      // Remove all session metadata
-      this.#pid = undefined;
-
+      this.#resetConnectionMetadata();
       const terminationMessage = new Uint8Array([0x58, 0x00, 0x00, 0x00, 0x04]);
       await this.#bufWriter.write(terminationMessage);
-      await this.#bufWriter.flush();
-      this.#conn.close();
-      this.connected = false;
+      try {
+        await this.#bufWriter.flush();
+        this.#conn.close();
+      } catch (_e) {
+        // This steps can fail if the underlying connection has been closed ungracefully
+      } finally {
+        this.connected = false;
+      }
     }
   }
 }
