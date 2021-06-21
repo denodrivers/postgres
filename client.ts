@@ -20,6 +20,19 @@ import {
 import { Transaction, TransactionOptions } from "./query/transaction.ts";
 import { isTemplateString } from "./utils/utils.ts";
 
+export interface Session {
+  /**
+   * This is the code for the transaction currently locking the connection.
+   * If there is no transaction ongoing, the transaction code will be null
+   */
+  current_transaction: string | null;
+  /**
+   * This is the process id of the current session as assigned by the database
+   * on connection. This id will undefined when there is no connection stablished
+   */
+  pid: number | undefined;
+}
+
 export abstract class QueryClient {
   #connection: Connection;
   #transaction: string | null = null;
@@ -34,7 +47,7 @@ export abstract class QueryClient {
     return this.#connection.connected;
   }
 
-  get session() {
+  get session(): Session {
     return {
       current_transaction: this.#transaction,
       pid: this.#connection.pid,
