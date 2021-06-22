@@ -67,7 +67,7 @@ test("encodeUint8Array", function () {
   const buf2 = new Uint8Array([2, 10, 500]);
 
   assertEquals("\\x010203", encode(buf1));
-  assertEquals("\\x02af4", encode(buf2));
+  assertEquals("\\x020af4", encode(buf2));
 });
 
 test("encodeArray", function () {
