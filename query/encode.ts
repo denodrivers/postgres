@@ -74,7 +74,7 @@ function encodeArray(array: Array<unknown>): string {
 
 function encodeBytes(value: Uint8Array): string {
   const hex = Array.from(value)
-    .map((val) => (val < 10 ? `0${val.toString(16)}` : val.toString(16)))
+    .map((val) => (val < 0x10 ? `0${val.toString(16)}` : val.toString(16)))
     .join("");
   return `\\x${hex}`;
 }
