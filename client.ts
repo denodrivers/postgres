@@ -17,6 +17,7 @@ import {
   ResultType,
   templateStringToQuery,
 } from "./query/query.ts";
+import type { ResultType as ResultTypeT } from "./query/query.ts";
 import { Transaction, TransactionOptions } from "./query/transaction.ts";
 import { isTemplateString } from "./utils/utils.ts";
 
@@ -65,13 +66,13 @@ export abstract class QueryClient {
   }
 
   #executeQuery<T extends Array<unknown>>(
-    _query: Query<ResultType.ARRAY>,
+    _query: Query<ResultTypeT.ARRAY>,
   ): Promise<QueryArrayResult<T>>;
   #executeQuery<T>(
-    _query: Query<ResultType.OBJECT>,
+    _query: Query<ResultTypeT.OBJECT>,
   ): Promise<QueryObjectResult<T>>;
   #executeQuery(
-    query: Query<ResultType>,
+    query: Query<ResultTypeT>,
   ): Promise<QueryResult> {
     return this.#connection.query(query);
   }
@@ -249,7 +250,7 @@ export abstract class QueryClient {
       );
     }
 
-    let query: Query<ResultType.ARRAY>;
+    let query: Query<ResultTypeT.ARRAY>;
     if (typeof query_template_or_config === "string") {
       query = new Query(query_template_or_config, ResultType.ARRAY, ...args);
     } else if (isTemplateString(query_template_or_config)) {
@@ -333,7 +334,7 @@ export abstract class QueryClient {
       );
     }
 
-    let query: Query<ResultType.OBJECT>;
+    let query: Query<ResultTypeT.OBJECT>;
     if (typeof query_template_or_config === "string") {
       query = new Query(query_template_or_config, ResultType.OBJECT, ...args);
     } else if (isTemplateString(query_template_or_config)) {
