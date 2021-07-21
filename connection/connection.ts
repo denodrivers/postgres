@@ -249,7 +249,7 @@ export class Connection {
 
   async #createTlsConnection(
     connection: Deno.Conn,
-    options: Deno.StartTlsOptions,
+    options: { hostname: string; certFile?: string },
   ) {
     if ("startTls" in Deno) {
       // @ts-ignore This API should be available on unstable
