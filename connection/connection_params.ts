@@ -62,6 +62,10 @@ export interface TLSOptions {
    * default: `false`
    */
   enforce: boolean;
+  /**
+   * A custom CA file to use for the TLS connection to the server.
+   */
+  caFile?: string;
 }
 
 export interface ClientOptions {
