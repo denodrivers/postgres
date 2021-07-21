@@ -251,7 +251,7 @@ export class Connection {
 
   async #createTlsConnection(
     connection: Deno.Conn,
-    options: Deno.ConnectOptions,
+    options: Deno.StartTlsOptions,
   ) {
     if ("startTls" in Deno) {
       // @ts-ignore This API should be available on unstable
@@ -292,6 +292,7 @@ export class Connection {
       port,
       tls: {
         enforce: enforceTLS,
+        caFile,
       },
     } = this.#connection_params;
 
@@ -310,7 +311,7 @@ export class Connection {
      * */
     if (accepts_tls) {
       try {
-        await this.#createTlsConnection(this.#conn, { hostname, port });
+        await this.#createTlsConnection(this.#conn, { hostname, certFile: caFile });
         this.#tls = true;
       } catch (e) {
         if (!enforceTLS) {

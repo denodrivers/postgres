@@ -148,16 +148,18 @@ don't have an estimated time of when that might happen.
 
 There is a miriad of factors you have to take into account when using a
 certificate to encrypt your connection that, if not taken care of, can render
-your certificate invalid. Deno is specially strict when stablishing a TLS
-connection, rendering self-signed certificates unusable at the time.
+your certificate invalid.
 
-Work is being done in order to address the needs of those users who need to use
-said certificates, however as a personal piece of advice I recommend you to not
-use TLS at all if you are going to use a non-secure certificate, specially on a
-publicly reachable server.
+When using a self signed certificate, make sure to specify the path to the CA
+certificate in the `tls.caFile` option when creating the Postgres `Client`, or
+using the `--cert` option when starting Deno. The latter approach only works for
+Deno 1.12.2 or later.
 
-TLS can be disabled from your server by editing your `postgresql.conf` file and
-setting the `ssl` option to `off`.
+Disabling TLS verification is currently not possible due to restrictions from
+the Deno runtime.
+
+If all else fails you can disable TLS on your Postgres server by editing your
+`postgresql.conf` file and setting the `ssl` option to `off`.
 
 #### Env parameters
 
