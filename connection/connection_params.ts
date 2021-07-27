@@ -38,6 +38,11 @@ export class ConnectionParamsError extends Error {
 
 export interface TLSOptions {
   /**
+   * If TLS support is enabled or not. If the server requires TLS,
+   * the connection will fail.
+   */
+  enabled: boolean;
+  /**
    * This will force the connection to run over TLS
    * If the server doesn't support TLS, the connection will fail
    *
@@ -117,25 +122,30 @@ function parseOptionsFromDsn(connString: string): ConnectionOptions {
     );
   }
 
+  let enabled = true;
   let enforceTls = false;
   if (dsn.params.sslmode) {
     const sslmode = dsn.params.sslmode;
     delete dsn.params.sslmode;
 
-    if (sslmode !== "require" && sslmode !== "prefer") {
+    if (!["disable", "require", "prefer"].includes(sslmode)) {
       throw new ConnectionParamsError(
-        `Supplied DSN has invalid sslmode '${sslmode}'. Only 'require' or 'prefer' are supported`,
+        `Supplied DSN has invalid sslmode '${sslmode}'. Only 'disable', 'require', and 'prefer' are supported`,
       );
     }
 
     if (sslmode === "require") {
       enforceTls = true;
     }
+
+    if (sslmode === "disable") {
+      enabled = false;
+    }
   }
 
   return {
     ...dsn,
-    tls: { enforce: enforceTls },
+    tls: { enabled, enforce: enforceTls },
     applicationName: dsn.params.application_name,
   };
 }
@@ -145,6 +155,7 @@ const DEFAULT_OPTIONS = {
   hostname: "127.0.0.1",
   port: "5432",
   tls: {
+    enabled: true,
     enforce: false,
   },
 };
@@ -187,6 +198,7 @@ export function createParams(
     password: params.password ?? pgEnv.password,
     port,
     tls: {
+      enabled: !!params?.tls?.enabled ?? DEFAULT_OPTIONS.tls.enabled,
       enforce: !!params?.tls?.enforce ?? DEFAULT_OPTIONS.tls.enforce,
     },
     user: params.user ?? pgEnv.user,

@@ -102,6 +102,7 @@ export const getInvalidTlsConfiguration = (): ConnectionOptions => {
     password: config.postgres_invalid_tls.password,
     port: config.postgres_invalid_tls.port,
     tls: {
+      enabled: true,
       enforce: config.postgres_invalid_tls.tls.enforce,
     },
     user: config.postgres_invalid_tls.users.main,

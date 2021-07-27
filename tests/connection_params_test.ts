@@ -106,6 +106,7 @@ Deno.test("dsnStyleParametersWithSSLModeRequire", function () {
     "postgres://some_user@some_host:10101/deno_postgres?sslmode=require",
   );
 
+  assertEquals(p.tls.enabled, true);
   assertEquals(p.tls.enforce, true);
 });
 
@@ -135,10 +136,10 @@ Deno.test("dsnStyleParametersWithInvalidSSLMode", function () {
   assertThrows(
     () =>
       createParams(
-        "postgres://some_user@some_host:10101/deno_postgres?sslmode=disable",
+        "postgres://some_user@some_host:10101/deno_postgres?sslmode=verify-full",
       ),
     undefined,
-    "Supplied DSN has invalid sslmode 'disable'. Only 'require' or 'prefer' are supported",
+    "Supplied DSN has invalid sslmode 'verify-full'. Only 'require' or 'prefer' are supported",
   );
 });
 
