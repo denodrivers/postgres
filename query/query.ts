@@ -206,10 +206,11 @@ export class QueryObjectResult<
       (row: Record<string, unknown>, raw_value, index) => {
         const column = this.rowDescription!.columns[index];
 
-
         // convert snake_case to camelCase
-        if (snakeToCamel) const name = this.snakeToCamelCase(this.query.fields?.[index] ?? column.name);
-          else const name = this.query.fields?.[index] ?? column.name;
+        const snakeToCamel: boolean = true;
+        let name;
+        if (snakeToCamel) name = this.snakeToCamelCase(this.query.fields?.[index] ?? column.name);
+        else name = this.query.fields?.[index] ?? column.name;
 
         // Find the field name provided by the user
         // default to database provided name
