@@ -165,6 +165,19 @@ export class QueryObjectResult<
 > extends QueryResult {
   public rows: T[] = [];
 
+  private snakeToCamelCase = (input: string) =>
+  input
+    .split("_")
+    .reduce(
+      (res, word, i) =>
+        i === 0
+          ? word.toLowerCase()
+          : `${res}${word.charAt(0).toUpperCase()}${word
+              .substr(1)
+              .toLowerCase()}`,
+      ""
+    );
+
   insertRow(row_data: Uint8Array[]) {
     if (this._done) {
       throw new Error(
@@ -193,10 +206,13 @@ export class QueryObjectResult<
       (row: Record<string, unknown>, raw_value, index) => {
         const column = this.rowDescription!.columns[index];
 
+
+        // convert snake_case to camelCase
+        if (snakeToCamel) const name = this.snakeToCamelCase(this.query.fields?.[index] ?? column.name);
+          else const name = this.query.fields?.[index] ?? column.name;
+
         // Find the field name provided by the user
         // default to database provided name
-        const name = this.query.fields?.[index] ?? column.name;
-
         if (raw_value === null) {
           row[name] = null;
         } else {
