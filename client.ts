@@ -411,7 +411,7 @@ export class PoolClient extends QueryClient {
   constructor(config: ClientConfiguration, releaseCallback: () => void) {
     super(
       new Connection(config, async () => {
-        await this.end();
+        await this.closeConnection();
       }),
     );
     this.#release = releaseCallback;
