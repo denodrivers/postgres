@@ -131,7 +131,6 @@ export class Connection {
     1,
     [undefined],
   );
-  #reconnection_attempts = 0;
   // TODO
   // Find out what the secret key is for
   // Clean on startup
@@ -414,7 +413,7 @@ export class Connection {
       );
     }
 
-    this.#reconnection_attempts = 0;
+    let reconnection_attempts = 0;
     const max_reconnections = this.#connection_params.connection.attempts;
 
     let error: Error | undefined;
@@ -430,15 +429,15 @@ export class Connection {
       // If the reconnection attempts are set to zero the client won't attempt to
       // reconnect, but it won't error either, this "no reconnections" behavior
       // should be handled wherever the reconnection is requested
-      while (this.#reconnection_attempts < max_reconnections) {
+      while (reconnection_attempts < max_reconnections) {
         try {
           await this.#startup();
           break;
         } catch (e) {
           // TODO
           // Eventually distinguish between connection errors and normal errors
-          this.#reconnection_attempts++;
-          if (this.#reconnection_attempts === max_reconnections) {
+          reconnection_attempts++;
+          if (reconnection_attempts === max_reconnections) {
             error = e;
           }
         }
