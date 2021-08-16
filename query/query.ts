@@ -240,7 +240,7 @@ export class Query<T extends ResultType> {
       // the result of the query
       if (fields) {
         const clean_fields = fields.filter((field) =>
-          /^[a-zA-Z_][a-zA-Z0-9_]+$/.test(field)
+          /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field)
         );
         if (fields.length !== clean_fields.length) {
           throw new TypeError(

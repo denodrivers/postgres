@@ -264,6 +264,35 @@ testClient(
   },
 );
 
+// Regression test
+testClient(
+  "Object query doesn't throw provided fields only have one letter",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    const { rows: result_1 } = await client.queryObject<{ a: number }>({
+      text: "SELECT 1",
+      fields: ["a"],
+    });
+
+    assertEquals(
+      result_1[0].a,
+      1,
+    );
+
+    await assertThrowsAsync(
+      async () => {
+        await client.queryObject({
+          text: "SELECT 1",
+          fields: ["1"],
+        });
+      },
+      TypeError,
+      "The fields provided for the query must contain only letters and underscores",
+    );
+  },
+);
+
 testClient(
   "Object query throws if user provided fields aren't valid",
   async function (generateClient) {
