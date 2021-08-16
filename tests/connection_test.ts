@@ -8,6 +8,7 @@ import {
   getScramSha256Configuration,
 } from "./config.ts";
 import { Client, PostgresError } from "../mod.ts";
+import { ConnectionError } from "../connection/warning.ts";
 
 function getRandomString() {
   return Math.random().toString(36).substring(7);
@@ -249,6 +250,8 @@ Deno.test("Attempts reconnection on connection startup", async function () {
   await mockReconnection(0);
 });
 
+// This test ensures a failed query that is disconnected after execution but before
+// status report is only executed one (regression test)
 Deno.test("Attempts reconnection on disconnection", async function () {
   const client = new Client({
     ...getMainConfiguration(),
@@ -258,16 +261,45 @@ Deno.test("Attempts reconnection on disconnection", async function () {
   });
   await client.connect();
 
-  await client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`;
-  assertEquals(client.connected, true);
+  const test_table = "TEST_DENO_RECONNECTION_1";
+  const test_value = 1;
 
-  const { rows } = await client.queryObject<{ pid: string }>(
-    "SELECT PG_BACKEND_PID() AS PID",
+  await client.queryArray(`DROP TABLE IF EXISTS ${test_table}`);
+  await client.queryArray(`CREATE TABLE ${test_table} (X INT)`);
+
+  await assertThrowsAsync(
+    () =>
+      client.queryArray(
+        `INSERT INTO ${test_table} VALUES (${test_value}); COMMIT; SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
+      ),
+    ConnectionError,
+    "The session was terminated by the database",
   );
+  assertEquals(client.connected, false);
+
+  await client.connect();
+
+  const { rows: result_1 } = await client.queryObject<{ pid: string }>({
+    text: "SELECT PG_BACKEND_PID() AS PID",
+    fields: ["pid"],
+  });
   assertEquals(
     client.session.pid,
-    rows[0].pid,
+    result_1[0].pid,
     "The PID is not reseted after reconnection",
+  );
+
+  const { rows: result_2 } = await client.queryObject<{ x: number }>({
+    text: `SELECT X FROM ${test_table}`,
+    fields: ["x"],
+  });
+  assertEquals(
+    result_2.length,
+    1,
+  );
+  assertEquals(
+    result_2[0].x,
+    test_value,
   );
 
   await client.end();

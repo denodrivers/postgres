@@ -267,11 +267,6 @@ export class Connection {
   }
 
   #resetConnectionMetadata() {
-    try {
-      this.#conn.close();
-    } catch (_e) {
-      // Swallow error
-    }
     this.connected = false;
     this.#packetWriter = new PacketWriter();
     this.#parameters = {};
@@ -286,6 +281,11 @@ export class Connection {
   }
 
   async #startup() {
+    try {
+      this.#conn.close();
+    } catch (_e) {
+      // Swallow error
+    }
     this.#resetConnectionMetadata();
 
     const {
@@ -909,10 +909,6 @@ export class Connection {
       throw new Error("The connection hasn't been initialized");
     }
 
-    // TODO
-    // Please forgive me
-    // This will all be removed once the message handling is refactored to receive
-    // messages at any point in time, not only as a response to a request
     await this.#queryLock.pop();
     try {
       if (query.args.length === 0) {
@@ -924,17 +920,7 @@ export class Connection {
       if (
         e instanceof ConnectionError
       ) {
-        // Don't even try to reconnect if reconnection is disabled
-        if (this.#connection_params.connection.attempts === 0) {
-          await this.end();
-        } else {
-          try {
-            await this.startup(true);
-            return this.query(query);
-          } catch (_e) {
-            throw e;
-          }
-        }
+        await this.end();
       }
       throw e;
     } finally {
