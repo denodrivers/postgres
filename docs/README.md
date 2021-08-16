@@ -115,6 +115,12 @@ try {
 }
 ```
 
+Your initial connection will also be affected by this setting, in a slightly
+different manner than already active errored connections. If you fail to connect
+to your database in the first attempt, the client will keep trying to connect as
+many times as requested, meaning that if your attempt configuration is three,
+your total first-connection-attempts will ammount to four.
+
 #### SSL/TLS connection
 
 Using a database that supports TLS is quite simple. After providing your
