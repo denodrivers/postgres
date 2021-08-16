@@ -33,6 +33,8 @@ export interface WarningFields {
   routine?: string;
 }
 
+export class ConnectionError extends Error {}
+
 export class PostgresError extends Error {
   public fields: WarningFields;
 

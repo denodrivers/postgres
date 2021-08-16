@@ -49,4 +49,4 @@ services:
       - WAIT_HOSTS=postgres:5432,postgres_scram:5432,postgres_invalid_tls:5432
       # Wait thirty seconds after database goes online
       # For database metadata initialization
-      - WAIT_AFTER_HOSTS=15
+      - WAIT_AFTER_HOSTS=0

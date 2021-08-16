@@ -25,7 +25,10 @@ onmessage = ({ data }: { data: "initialize" | "close" }) => {
 async function listenServerConnections() {
   for await (const conn of server) {
     // The driver will attempt to check if the server receives
+    // a TLS connection, however we return an invalid response
     conn.write(new TextEncoder().encode("INVALID"));
+    // Notify the parent thread that we have received a connection
+    postMessage("connection");
   }
 }
 

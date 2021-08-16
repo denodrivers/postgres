@@ -134,11 +134,14 @@ export class QueryArrayResult<T extends Array<unknown> = Array<unknown>>
   public rows: T[] = [];
 
   insertRow(row_data: Uint8Array[]) {
-    if (this._done) {
-      throw new Error(
-        "Tried to add a new row to the result after the result is done reading",
-      );
-    }
+    // TODO
+    // Investigate multiple query status report
+    // INSERT INTO X VALUES (1); SELECT PG_TERMINATE_BACKEND(PID) triggers an error here
+    // if (this._done) {
+    //   throw new Error(
+    //     "Tried to add a new row to the result after the result is done reading",
+    //   );
+    // }
 
     if (!this.rowDescription) {
       throw new Error(
@@ -166,11 +169,14 @@ export class QueryObjectResult<
   public rows: T[] = [];
 
   insertRow(row_data: Uint8Array[]) {
-    if (this._done) {
-      throw new Error(
-        "Tried to add a new row to the result after the result is done reading",
-      );
-    }
+    // TODO
+    // Investigate multiple query status report
+    // INSERT INTO X VALUES (1); SELECT PG_TERMINATE_BACKEND(PID) triggers an error here
+    // if (this._done) {
+    //   throw new Error(
+    //     "Tried to add a new row to the result after the result is done reading",
+    //   );
+    // }
 
     if (!this.rowDescription) {
       throw new Error(

@@ -1,5 +1,5 @@
 // deno-lint-ignore-file camelcase
-import { Client, Pool } from "../mod.ts";
+import { Client, ConnectionError, Pool } from "../mod.ts";
 import { assert, assertEquals, assertThrowsAsync } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
 import { PoolClient, QueryClient } from "../client.ts";
@@ -76,13 +76,36 @@ testClient("Terminated connections", async function (generateClient) {
   const client = await generateClient();
   await client.end();
 
-  assertThrowsAsync(
+  await assertThrowsAsync(
     async () => {
       await client.queryArray`SELECT 1`;
     },
     Error,
-    "Connection to the database hasn't been initialized or has been terminated",
+    "Connection to the database has been terminated",
   );
+});
+
+// This test depends on the assumption that all clients will default to
+// one reconneciton by default
+testClient("Default reconnection", async (generateClient) => {
+  const client = await generateClient();
+
+  await assertThrowsAsync(
+    () => client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
+    ConnectionError,
+    "The session was terminated by the database",
+  );
+  assertEquals(client.connected, false);
+
+  const { rows: result } = await client.queryObject<{ res: number }>({
+    text: `SELECT 1`,
+    fields: ["res"],
+  });
+  assertEquals(
+    result[0].res,
+    1,
+  );
+  assertEquals(client.connected, true);
 });
 
 testClient("Handling of debug notices", async function (generateClient) {

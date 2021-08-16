@@ -1,8 +1,8 @@
 // deno-lint-ignore-file camelcase
 import { Connection } from "./connection/connection.ts";
 import {
-  ConnectionOptions,
-  ConnectionParams,
+  ClientConfiguration,
+  ClientOptions,
   ConnectionString,
   createParams,
 } from "./connection/connection_params.ts";
@@ -35,6 +35,7 @@ export interface Session {
 
 export abstract class QueryClient {
   #connection: Connection;
+  #terminated = false;
   #transaction: string | null = null;
 
   constructor(connection: Connection) {
@@ -54,26 +55,20 @@ export abstract class QueryClient {
     };
   }
 
-  // TODO
-  // Distinguish between terminated and aborted
   #assertOpenConnection() {
-    if (!this.connected) {
+    if (this.#terminated) {
       throw new Error(
-        "Connection to the database hasn't been initialized or has been terminated",
+        "Connection to the database has been terminated",
       );
     }
   }
 
-  #executeQuery<T extends Array<unknown>>(
-    _query: Query<ResultType.ARRAY>,
-  ): Promise<QueryArrayResult<T>>;
-  #executeQuery<T>(
-    _query: Query<ResultType.OBJECT>,
-  ): Promise<QueryObjectResult<T>>;
-  #executeQuery(
-    query: Query<ResultType>,
-  ): Promise<QueryResult> {
-    return this.#connection.query(query);
+  protected async closeConnection() {
+    if (this.connected) {
+      await this.#connection.end();
+    }
+
+    this.resetSessionMetadata();
   }
 
   /**
@@ -162,7 +157,6 @@ export abstract class QueryClient {
    * https://www.postgresql.org/docs/13/tutorial-transactions.html
    * https://www.postgresql.org/docs/13/sql-set-transaction.html
    */
-
   createTransaction(name: string, options?: TransactionOptions): Transaction {
     this.#assertOpenConnection();
 
@@ -184,7 +178,8 @@ export abstract class QueryClient {
    */
   async connect(): Promise<void> {
     if (!this.connected) {
-      await this.#connection.startup();
+      await this.#connection.startup(false);
+      this.#terminated = false;
     }
   }
 
@@ -194,11 +189,21 @@ export abstract class QueryClient {
    * you to reconnect in order to execute further queries
    */
   async end(): Promise<void> {
-    if (this.connected) {
-      await this.#connection.end();
-    }
+    await this.closeConnection();
 
-    this.resetSessionMetadata();
+    this.#terminated = true;
+  }
+
+  #executeQuery<T extends Array<unknown>>(
+    _query: Query<ResultType.ARRAY>,
+  ): Promise<QueryArrayResult<T>>;
+  #executeQuery<T>(
+    _query: Query<ResultType.OBJECT>,
+  ): Promise<QueryObjectResult<T>>;
+  #executeQuery(
+    query: Query<ResultType>,
+  ): Promise<QueryResult> {
+    return this.#connection.query(query);
   }
 
   /**
@@ -391,16 +396,24 @@ export abstract class QueryClient {
  * ```
  */
 export class Client extends QueryClient {
-  constructor(config?: ConnectionOptions | ConnectionString) {
-    super(new Connection(createParams(config)));
+  constructor(config?: ClientOptions | ConnectionString) {
+    super(
+      new Connection(createParams(config), async () => {
+        await this.closeConnection();
+      }),
+    );
   }
 }
 
 export class PoolClient extends QueryClient {
   #release: () => void;
 
-  constructor(config: ConnectionParams, releaseCallback: () => void) {
-    super(new Connection(config));
+  constructor(config: ClientConfiguration, releaseCallback: () => void) {
+    super(
+      new Connection(config, async () => {
+        await this.closeConnection();
+      }),
+    );
     this.#release = releaseCallback;
   }
 

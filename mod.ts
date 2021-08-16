@@ -1,11 +1,12 @@
 export { Client } from "./client.ts";
-export { PostgresError } from "./connection/warning.ts";
+export { ConnectionError, PostgresError } from "./connection/warning.ts";
 export { Pool } from "./pool.ts";
 
 // TODO
 // Remove the following reexports after https://doc.deno.land
 // supports two level depth exports
 export type {
+  ClientOptions,
   ConnectionOptions,
   ConnectionString,
   TLSOptions,

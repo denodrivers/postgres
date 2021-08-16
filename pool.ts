@@ -1,8 +1,8 @@
 // deno-lint-ignore-file camelcase
 import { PoolClient } from "./client.ts";
 import {
-  ConnectionOptions,
-  ConnectionParams,
+  ClientConfiguration,
+  ClientOptions,
   ConnectionString,
   createParams,
 } from "./connection/connection_params.ts";
@@ -56,7 +56,7 @@ import { DeferredAccessStack } from "./utils/deferred.ts";
  */
 export class Pool {
   #available_connections?: DeferredAccessStack<PoolClient>;
-  #connection_params: ConnectionParams;
+  #connection_params: ClientConfiguration;
   #ended = false;
   #lazy: boolean;
   // TODO
@@ -89,7 +89,7 @@ export class Pool {
   }
 
   constructor(
-    connection_params: ConnectionOptions | ConnectionString | undefined,
+    connection_params: ClientOptions | ConnectionString | undefined,
     size: number,
     lazy: boolean = false,
   ) {
