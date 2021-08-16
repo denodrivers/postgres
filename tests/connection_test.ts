@@ -277,8 +277,6 @@ Deno.test("Attempts reconnection on disconnection", async function () {
   );
   assertEquals(client.connected, false);
 
-  await client.connect();
-
   const { rows: result_1 } = await client.queryObject<{ pid: string }>({
     text: "SELECT PG_BACKEND_PID() AS PID",
     fields: ["pid"],
@@ -305,7 +303,7 @@ Deno.test("Attempts reconnection on disconnection", async function () {
   await client.end();
 });
 
-Deno.test("Is set as disconnected when reconnection is disabled", async function () {
+Deno.test("Doesn't attempt reconnection when attempts are set to zero", async function () {
   const client = new Client({
     ...getMainConfiguration(),
     connection: { attempts: 0 },
@@ -315,4 +313,10 @@ Deno.test("Is set as disconnected when reconnection is disabled", async function
     client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`
   );
   assertEquals(client.connected, false);
+
+  await assertThrowsAsync(
+    () => client.queryArray`SELECT 1`,
+    Error,
+    "The client has been disconnected from the database",
+  );
 });

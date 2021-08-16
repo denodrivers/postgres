@@ -408,6 +408,12 @@ export class Connection {
    * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
    * */
   async startup(is_reconnection: boolean) {
+    if (is_reconnection && this.#connection_params.connection.attempts === 0) {
+      throw new Error(
+        "The client has been disconnected from the database. Enable reconnection in the client to attempt reconnection after failure",
+      );
+    }
+
     this.#reconnection_attempts = 0;
     const max_reconnections = this.#connection_params.connection.attempts;
 
@@ -906,7 +912,7 @@ export class Connection {
     query: Query<ResultType>,
   ): Promise<QueryResult> {
     if (!this.connected) {
-      throw new Error("The connection hasn't been initialized");
+      await this.startup(true);
     }
 
     await this.#queryLock.pop();

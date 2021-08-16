@@ -60,23 +60,15 @@ export abstract class QueryClient {
       throw new Error(
         "Connection to the database has been terminated",
       );
-    } else if (!this.connected) {
-      throw new Error(
-        "Connection to the database hasn't been initialized",
-      );
     }
   }
 
-  #executeQuery<T extends Array<unknown>>(
-    _query: Query<ResultType.ARRAY>,
-  ): Promise<QueryArrayResult<T>>;
-  #executeQuery<T>(
-    _query: Query<ResultType.OBJECT>,
-  ): Promise<QueryObjectResult<T>>;
-  #executeQuery(
-    query: Query<ResultType>,
-  ): Promise<QueryResult> {
-    return this.#connection.query(query);
+  protected async closeConnection() {
+    if (this.connected) {
+      await this.#connection.end();
+    }
+
+    this.resetSessionMetadata();
   }
 
   /**
@@ -165,7 +157,6 @@ export abstract class QueryClient {
    * https://www.postgresql.org/docs/13/tutorial-transactions.html
    * https://www.postgresql.org/docs/13/sql-set-transaction.html
    */
-
   createTransaction(name: string, options?: TransactionOptions): Transaction {
     this.#assertOpenConnection();
 
@@ -198,12 +189,21 @@ export abstract class QueryClient {
    * you to reconnect in order to execute further queries
    */
   async end(): Promise<void> {
-    if (this.connected) {
-      await this.#connection.end();
-    }
+    await this.closeConnection();
 
     this.#terminated = true;
-    this.resetSessionMetadata();
+  }
+
+  #executeQuery<T extends Array<unknown>>(
+    _query: Query<ResultType.ARRAY>,
+  ): Promise<QueryArrayResult<T>>;
+  #executeQuery<T>(
+    _query: Query<ResultType.OBJECT>,
+  ): Promise<QueryObjectResult<T>>;
+  #executeQuery(
+    query: Query<ResultType>,
+  ): Promise<QueryResult> {
+    return this.#connection.query(query);
   }
 
   /**
@@ -399,7 +399,7 @@ export class Client extends QueryClient {
   constructor(config?: ClientOptions | ConnectionString) {
     super(
       new Connection(createParams(config), async () => {
-        await this.end();
+        await this.closeConnection();
       }),
     );
   }
