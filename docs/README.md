@@ -32,7 +32,10 @@ await client.end();
 
 ## Connection Management
 
-### Connecting to DB
+### Connecting to your DB
+
+All `deno-postgres` clients provide the following options to authenticate and
+manage your connections
 
 ```ts
 import { Client } from "https://deno.land/x/postgres/mod.ts";
@@ -42,6 +45,9 @@ let config;
 // You can use the connection interface to set the connection properties
 config = {
   applicationName: "my_custom_app",
+  connection: {
+    attempts: 1,
+  },
   database: "test",
   hostname: "localhost",
   password: "password",
@@ -61,25 +67,55 @@ await client.connect();
 await client.end();
 ```
 
-The values required to connect to the database can be read directly from
-environmental variables, given the case that the user doesn't provide them while
-initializing the client. The only requirement for this variables to be read is
-for Deno to be run with `--allow-env` permissions
+#### Database reconnection
 
-The env variables that the client will recognize are taken from `libpq` to keep
-consistency with other PostgreSQL clients out there (see
-https://www.postgresql.org/docs/current/libpq-envars.html)
+It's a very common occurrence to get broken connections due to connectivity
+issues or OS related problems, however while this may be a minor inconvenience
+in development, it becomes a serious matter in a production environment if not
+handled correctly. To mitigate the impact of disconnected clients
+`deno-postgres` allows the developer to stablish a new connection with the
+database automatically before executing a query on a broken connection.
+
+To manage the number of reconnection attempts, adjust the `connection.attempts`
+parameter in your client options. Every client will default to one try before
+throwing a disconnection error.
 
 ```ts
-// PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env --unstable database.js
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+try {
+  // We will forcefully close our current connection
+  await client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`;
+} catch (e) {
+  // Manage the error
+}
 
-const client = new Client();
-await client.connect();
-await client.end();
+// The client will reconnect silently before running the query
+await client.queryArray`SELECT 1`;
 ```
 
-### SSL/TLS connection
+If automatic reconnection is not desired, the developer can simply set the
+number of attempts to zero and manage connection and reconnection manually
+
+```ts
+const client = new Client({
+  connection: {
+    attempts: 0,
+  },
+});
+
+try {
+  await runQueryThatWillFailBecauseDisconnection();
+  // From here on now, the client will be marked as "disconnected"
+} catch (e) {
+  if (e instanceof ConnectionError) {
+    // Reconnect manually
+    await client.connect();
+  } else {
+    throw e;
+  }
+}
+```
+
+#### SSL/TLS connection
 
 Using a database that supports TLS is quite simple. After providing your
 connection parameters, the client will check if the database accepts encrypted
@@ -102,7 +138,7 @@ possible without the `Deno.startTls` API, which is currently marked as unstable.
 This is a situation that will be solved once this API is stabilized, however I
 don't have an estimated time of when that might happen.
 
-#### About invalid TLS certificates
+##### About invalid TLS certificates
 
 There is a miriad of factors you have to take into account when using a
 certificate to encrypt your connection that, if not taken care of, can render
@@ -117,7 +153,27 @@ publicly reachable server.
 TLS can be disabled from your server by editing your `postgresql.conf` file and
 setting the `ssl` option to `off`.
 
-### Clients
+#### Env parameters
+
+The values required to connect to the database can be read directly from
+environmental variables, given the case that the user doesn't provide them while
+initializing the client. The only requirement for this variables to be read is
+for Deno to be run with `--allow-env` permissions
+
+The env variables that the client will recognize are taken from `libpq` to keep
+consistency with other PostgreSQL clients out there (see
+https://www.postgresql.org/docs/current/libpq-envars.html)
+
+```ts
+// PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env --unstable database.js
+import { Client } from "https://deno.land/x/postgres/mod.ts";
+
+const client = new Client();
+await client.connect();
+await client.end();
+```
+
+### Clients (Single clients)
 
 Clients are the most basic block for establishing communication with your
 database. They provide abstractions over queries, transactions and connection
