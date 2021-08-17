@@ -3,7 +3,7 @@
 ![Build Status](https://img.shields.io/github/workflow/status/denodrivers/postgres/ci?label=Build&logo=github&style=flat-square)
 [![Discord server](https://img.shields.io/discord/768918486575480863?color=blue&label=Ask%20for%20help%20here&logo=discord&style=flat-square)](https://discord.gg/HEdTCvZUSf)
 [![Manual](https://img.shields.io/github/v/release/denodrivers/postgres?color=orange&label=Manual&logo=deno&style=flat-square)](https://deno-postgres.com)
-[![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://doc.deno.land/https/deno.land/x/postgres@v0.11.3/mod.ts)
+[![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://doc.deno.land/https/deno.land/x/postgres@v0.12.0/mod.ts)
 [![License](https://img.shields.io/github/license/denodrivers/postgres?color=yellowgreen&label=License&style=flat-square)](LICENSE)
 
 A lightweight PostgreSQL driver for Deno focused on user experience
@@ -152,7 +152,8 @@ above indicating possible compatibility problems
 | ------------ | ------------------ | ------------------ |
 | 1.8.x        | 0.5.0              | 0.10.0             |
 | 1.9.0        | 0.11.0             | 0.11.1             |
-| 1.9.1 and up | 0.11.2             |                    |
+| 1.9.1 and up | 0.11.2             | 0.11.3             |
+| 1.11.x       | 0.12.0             |                    |
 
 ## Contributing guidelines
 
