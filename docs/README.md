@@ -310,8 +310,11 @@ single function call
 ```ts
 async function runQuery(query: string) {
   const client = await pool.connect();
-  const result = await client.queryObject(query);
-  client.release();
+  try {
+    const result = await client.queryObject(query);
+  } finally {
+    client.release();
+  }
   return result;
 }
 
