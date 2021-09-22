@@ -45,6 +45,14 @@ Deno.test("parseDsn", function () {
   assertEquals(c.hostname, "deno.land");
   assertEquals(c.port, "");
   assertEquals(c.database, "test_database");
+
+  c = parseDsn("postgres:////root:Mtx=@loalhost:9999/txdb");
+  assertEquals(c.user, "root");
+  assertEquals(c.password, "Mtx=");
+
+  c = parseDsn("postgres:////root:Mtx%3@loalhost:9999/txdb");
+  assertEquals(c.user, "root");
+  assertEquals(c.password, "Mtx%3");
 });
 
 Deno.test("DeferredAccessStack", async () => {
