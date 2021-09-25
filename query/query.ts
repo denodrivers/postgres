@@ -134,11 +134,14 @@ export class QueryArrayResult<T extends Array<unknown> = Array<unknown>>
   public rows: T[] = [];
 
   insertRow(row_data: Uint8Array[]) {
-    if (this._done) {
-      throw new Error(
-        "Tried to add a new row to the result after the result is done reading",
-      );
-    }
+    // TODO
+    // Investigate multiple query status report
+    // INSERT INTO X VALUES (1); SELECT PG_TERMINATE_BACKEND(PID) triggers an error here
+    // if (this._done) {
+    //   throw new Error(
+    //     "Tried to add a new row to the result after the result is done reading",
+    //   );
+    // }
 
     if (!this.rowDescription) {
       throw new Error(
@@ -166,11 +169,14 @@ export class QueryObjectResult<
   public rows: T[] = [];
 
   insertRow(row_data: Uint8Array[]) {
-    if (this._done) {
-      throw new Error(
-        "Tried to add a new row to the result after the result is done reading",
-      );
-    }
+    // TODO
+    // Investigate multiple query status report
+    // INSERT INTO X VALUES (1); SELECT PG_TERMINATE_BACKEND(PID) triggers an error here
+    // if (this._done) {
+    //   throw new Error(
+    //     "Tried to add a new row to the result after the result is done reading",
+    //   );
+    // }
 
     if (!this.rowDescription) {
       throw new Error(
@@ -240,7 +246,7 @@ export class Query<T extends ResultType> {
       // the result of the query
       if (fields) {
         const clean_fields = fields.filter((field) =>
-          /^[a-zA-Z_][a-zA-Z0-9_]+$/.test(field)
+          /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field)
         );
         if (fields.length !== clean_fields.length) {
           throw new TypeError(

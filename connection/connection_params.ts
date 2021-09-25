@@ -18,7 +18,7 @@ export type ConnectionString = string;
  *
  * It will throw if no env permission was provided on startup
  */
-function getPgEnv(): ConnectionOptions {
+function getPgEnv(): ClientOptions {
   return {
     database: Deno.env.get("PGDATABASE"),
     hostname: Deno.env.get("PGHOST"),
@@ -36,6 +36,18 @@ export class ConnectionParamsError extends Error {
   }
 }
 
+export interface ConnectionOptions {
+  /**
+   * By default, any client will only attempt to stablish
+   * connection with your database once. Setting this parameter
+   * will cause the client to attempt reconnection as many times
+   * as requested before erroring
+   *
+   * default: `1`
+   */
+  attempts: number;
+}
+
 export interface TLSOptions {
   /**
    * If TLS support is enabled or not. If the server requires TLS,
@@ -51,18 +63,20 @@ export interface TLSOptions {
   enforce: boolean;
 }
 
-export interface ConnectionOptions {
+export interface ClientOptions {
   applicationName?: string;
+  connection?: Partial<ConnectionOptions>;
   database?: string;
   hostname?: string;
   password?: string;
   port?: string | number;
-  tls?: TLSOptions;
+  tls?: Partial<TLSOptions>;
   user?: string;
 }
 
-export interface ConnectionParams {
+export interface ClientConfiguration {
   applicationName: string;
+  connection: ConnectionOptions;
   database: string;
   hostname: string;
   password?: string;
@@ -87,11 +101,11 @@ function formatMissingParams(missingParams: string[]) {
  * telling the user to pass env permissions in order to read environmental variables
  */
 function assertRequiredOptions(
-  options: ConnectionOptions,
-  requiredKeys: (keyof ConnectionOptions)[],
+  options: Partial<ClientConfiguration>,
+  requiredKeys: (keyof ClientOptions)[],
   has_env_access: boolean,
-) {
-  const missingParams: (keyof ConnectionOptions)[] = [];
+): asserts options is ClientConfiguration {
+  const missingParams: (keyof ClientOptions)[] = [];
   for (const key of requiredKeys) {
     if (
       options[key] === "" ||
@@ -113,7 +127,7 @@ function assertRequiredOptions(
   }
 }
 
-function parseOptionsFromDsn(connString: string): ConnectionOptions {
+function parseOptionsFromDsn(connString: string): ClientOptions {
   const dsn = parseDsn(connString);
 
   if (dsn.driver !== "postgres" && dsn.driver !== "postgresql") {
@@ -150,10 +164,13 @@ function parseOptionsFromDsn(connString: string): ConnectionOptions {
   };
 }
 
-const DEFAULT_OPTIONS = {
+const DEFAULT_OPTIONS: Omit<ClientConfiguration, "database" | "user"> = {
   applicationName: "deno_postgres",
+  connection: {
+    attempts: 1,
+  },
   hostname: "127.0.0.1",
-  port: "5432",
+  port: 5432,
   tls: {
     enabled: true,
     enforce: false,
@@ -161,13 +178,13 @@ const DEFAULT_OPTIONS = {
 };
 
 export function createParams(
-  params: string | ConnectionOptions = {},
-): ConnectionParams {
+  params: string | ClientOptions = {},
+): ClientConfiguration {
   if (typeof params === "string") {
     params = parseOptionsFromDsn(params);
   }
 
-  let pgEnv: ConnectionOptions = {};
+  let pgEnv: ClientOptions = {};
   let has_env_access = true;
   try {
     pgEnv = getPgEnv();
@@ -179,13 +196,18 @@ export function createParams(
     }
   }
 
-  let port: string;
+  let port: number;
   if (params.port) {
-    port = String(params.port);
+    port = Number(params.port);
   } else if (pgEnv.port) {
-    port = String(pgEnv.port);
+    port = Number(pgEnv.port);
   } else {
     port = DEFAULT_OPTIONS.port;
+  }
+  if (Number.isNaN(port) || port === 0) {
+    throw new ConnectionParamsError(
+      `"${params.port ?? pgEnv.port}" is not a valid port number`,
+    );
   }
 
   // TODO
@@ -193,6 +215,10 @@ export function createParams(
   const connection_options = {
     applicationName: params.applicationName ?? pgEnv.applicationName ??
       DEFAULT_OPTIONS.applicationName,
+    connection: {
+      attempts: params?.connection?.attempts ??
+        DEFAULT_OPTIONS.connection.attempts,
+    },
     database: params.database ?? pgEnv.database,
     hostname: params.hostname ?? pgEnv.hostname ?? DEFAULT_OPTIONS.hostname,
     password: params.password ?? pgEnv.password,
@@ -206,24 +232,9 @@ export function createParams(
 
   assertRequiredOptions(
     connection_options,
-    ["database", "hostname", "port", "user", "applicationName"],
+    ["applicationName", "database", "hostname", "port", "user"],
     has_env_access,
   );
 
-  // By this point all required parameters have been checked out
-  // by the assert function
-  const connection_parameters: ConnectionParams = {
-    ...connection_options,
-    database: connection_options.database as string,
-    port: parseInt(connection_options.port, 10),
-    user: connection_options.user as string,
-  };
-
-  if (isNaN(connection_parameters.port)) {
-    throw new ConnectionParamsError(
-      `Invalid port ${connection_parameters.port}`,
-    );
-  }
-
-  return connection_parameters;
+  return connection_options;
 }

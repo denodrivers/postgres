@@ -1,5 +1,5 @@
 // deno-lint-ignore-file camelcase
-import { ConnectionOptions } from "../connection/connection_params.ts";
+import { ClientOptions } from "../connection/connection_params.ts";
 
 interface EnvironmentConfig {
   postgres: {
@@ -50,7 +50,7 @@ const config = Deno.env.get("DEVELOPMENT") === "true"
   ? config_file.local
   : config_file.ci;
 
-export const getClearConfiguration = (): ConnectionOptions => {
+export const getClearConfiguration = (): ClientOptions => {
   return {
     applicationName: config.postgres.applicationName,
     database: config.postgres.database,
@@ -61,7 +61,7 @@ export const getClearConfiguration = (): ConnectionOptions => {
   };
 };
 
-export const getMainConfiguration = (): ConnectionOptions => {
+export const getMainConfiguration = (): ClientOptions => {
   return {
     applicationName: config.postgres.applicationName,
     database: config.postgres.database,
@@ -72,7 +72,7 @@ export const getMainConfiguration = (): ConnectionOptions => {
   };
 };
 
-export const getMd5Configuration = (): ConnectionOptions => {
+export const getMd5Configuration = (): ClientOptions => {
   return {
     applicationName: config.postgres.applicationName,
     database: config.postgres.database,
@@ -83,7 +83,7 @@ export const getMd5Configuration = (): ConnectionOptions => {
   };
 };
 
-export const getScramSha256Configuration = (): ConnectionOptions => {
+export const getScramSha256Configuration = (): ClientOptions => {
   return {
     applicationName: config.postgres_scram.applicationName,
     database: config.postgres_scram.database,
@@ -94,7 +94,7 @@ export const getScramSha256Configuration = (): ConnectionOptions => {
   };
 };
 
-export const getInvalidTlsConfiguration = (): ConnectionOptions => {
+export const getInvalidTlsConfiguration = (): ClientOptions => {
   return {
     applicationName: config.postgres_invalid_tls.applicationName,
     database: config.postgres_invalid_tls.database,
