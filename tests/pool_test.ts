@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { assertEquals, delay } from "./test_deps.ts";
 import { Pool } from "../pool.ts";
 import { getMainConfiguration } from "./config.ts";

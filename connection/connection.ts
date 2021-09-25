@@ -1,5 +1,3 @@
-// deno-lint-ignore-file camelcase
-
 /*!
  * Substantial parts adapted from https://github.com/brianc/node-postgres
  * which is licensed as follows:

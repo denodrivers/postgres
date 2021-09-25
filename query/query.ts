@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { encode, EncodedArg } from "./encode.ts";
 import { Column, decode } from "./decode.ts";
 import { WarningFields } from "../connection/warning.ts";
@@ -83,7 +82,7 @@ export interface QueryObjectConfig extends QueryConfig {
  *  20, // $2
  * );
  * ```
- * */
+ */
 // deno-lint-ignore no-explicit-any
 export type QueryArguments = any[];
 

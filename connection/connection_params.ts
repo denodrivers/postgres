@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { parseDsn } from "../utils/utils.ts";
 
 /**

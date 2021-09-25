@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 export const DEFAULT_SETUP = [
   "DROP TABLE IF EXISTS ids;",
   "CREATE TABLE ids(id integer);",

@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { assertEquals, base64, formatDate, parseDate } from "./test_deps.ts";
 import { Client } from "../mod.ts";
 import { getMainConfiguration } from "./config.ts";

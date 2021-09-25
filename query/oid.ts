@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 export const Oid = {
   bool: 16,
   bytea: 17,

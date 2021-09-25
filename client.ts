@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { Connection } from "./connection/connection.ts";
 import {
   ClientConfiguration,

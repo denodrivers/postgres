@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { ClientOptions } from "../connection/connection_params.ts";
 
 interface EnvironmentConfig {

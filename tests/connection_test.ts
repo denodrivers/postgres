@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { assertEquals, assertThrowsAsync, deferred } from "./test_deps.ts";
 import {
   getClearConfiguration,
