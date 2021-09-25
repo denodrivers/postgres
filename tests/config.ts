@@ -23,7 +23,7 @@ interface EnvironmentConfig {
       scram: string;
     };
   };
-  postgres_invalid_tls: {
+  postgres_tls: {
     applicationName: string;
     database: string;
     hostname: string;
@@ -93,31 +93,30 @@ export const getScramSha256Configuration = (): ClientOptions => {
   };
 };
 
-export const getInvalidTlsConfiguration = (): ClientOptions => {
+export const getTlsConfiguration = (): ClientOptions => {
   return {
-    applicationName: config.postgres_invalid_tls.applicationName,
-    database: config.postgres_invalid_tls.database,
-    hostname: config.postgres_invalid_tls.hostname,
-    password: config.postgres_invalid_tls.password,
-    port: config.postgres_invalid_tls.port,
+    applicationName: config.postgres_tls.applicationName,
+    database: config.postgres_tls.database,
+    hostname: config.postgres_tls.hostname,
+    password: config.postgres_tls.password,
+    port: config.postgres_tls.port,
     tls: {
-      enabled: true,
-      enforce: config.postgres_invalid_tls.tls.enforce,
+      enforce: config.postgres_tls.tls.enforce,
     },
-    user: config.postgres_invalid_tls.users.main,
+    user: config.postgres_tls.users.main,
   };
 };
 
 export const getInvalidSkippableTlsConfiguration = (): ClientOptions => {
   return {
-    applicationName: config.postgres_invalid_tls.applicationName,
-    database: config.postgres_invalid_tls.database,
-    hostname: config.postgres_invalid_tls.hostname,
-    password: config.postgres_invalid_tls.password,
-    port: config.postgres_invalid_tls.port,
+    applicationName: config.postgres_tls.applicationName,
+    database: config.postgres_tls.database,
+    hostname: config.postgres_tls.hostname,
+    password: config.postgres_tls.password,
+    port: config.postgres_tls.port,
     tls: {
       enabled: false,
     },
-    user: config.postgres_invalid_tls.users.main,
+    user: config.postgres_tls.users.main,
   };
 };

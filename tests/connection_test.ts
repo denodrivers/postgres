@@ -1,11 +1,15 @@
-import { assertEquals, assertThrowsAsync, deferred } from "./test_deps.ts";
+import {
+  assertEquals,
+  assertThrowsAsync,
+  deferred,
+  fromFileUrl,
+} from "./test_deps.ts";
 import {
   getClearConfiguration,
-  getInvalidSkippableTlsConfiguration,
-  getInvalidTlsConfiguration,
   getMainConfiguration,
   getMd5Configuration,
   getScramSha256Configuration,
+  getTlsConfiguration,
 } from "./config.ts";
 import { Client, PostgresError } from "../mod.ts";
 import { ConnectionError } from "../connection/warning.ts";
@@ -32,8 +36,8 @@ Deno.test("SCRAM-SHA-256 authentication (no tls)", async () => {
   await client.end();
 });
 
-Deno.test("Handles invalid TLS certificates correctly", async () => {
-  const client = new Client(getInvalidTlsConfiguration());
+Deno.test("TLS (certificate untrusted)", async () => {
+  const client = new Client(getTlsConfiguration());
 
   try {
     await assertThrowsAsync(
@@ -50,7 +54,7 @@ Deno.test("Handles invalid TLS certificates correctly", async () => {
 
 Deno.test("Skips TLS encryption when TLS disabled", async () => {
   const client = new Client({
-    ...getInvalidTlsConfiguration(),
+    ...getTlsConfiguration(),
     tls: { enabled: false },
   });
 
@@ -68,17 +72,25 @@ Deno.test("Skips TLS encryption when TLS disabled", async () => {
   }
 });
 
-Deno.test("Skips TLS connection when TLS disabled", async () => {
-  const client = new Client(getInvalidSkippableTlsConfiguration());
-
+Deno.test("TLS (certificate trusted)", async () => {
+  const config = {
+    ...getTlsConfiguration(),
+    tls: {
+      caFile: fromFileUrl(
+        new URL("../docker/postgres_tls/data/server.crt", import.meta.url),
+      ),
+      enable: true,
+      enforce: true,
+    },
+  };
+  const client = new Client(config);
   await client.connect();
+  await client.end();
+});
 
-  const { rows } = await client.queryObject<{ result: number }>({
-    fields: ["result"],
-    text: "SELECT 1",
-  });
-  assertEquals(rows[0], { result: 1 });
-
+Deno.test("Clear password authentication (no tls)", async () => {
+  const client = new Client(getClearConfiguration());
+  await client.connect();
   await client.end();
 });
 

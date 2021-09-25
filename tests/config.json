@@ -22,10 +22,10 @@
         "scram": "scram"
       }
     },
-    "postgres_invalid_tls": {
+    "postgres_tls": {
       "applicationName": "deno_postgres",
       "database": "postgres",
-      "hostname": "postgres_invalid_tls",
+      "hostname": "postgres_tls",
       "password": "postgres",
       "port": 5432,
       "tls": {
@@ -59,7 +59,7 @@
         "scram": "scram"
       }
     },
-    "postgres_invalid_tls": {
+    "postgres_tls": {
       "applicationName": "deno_postgres",
       "database": "postgres",
       "hostname": "localhost",
