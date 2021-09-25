@@ -117,7 +117,6 @@ export const getInvalidSkippableTlsConfiguration = (): ClientOptions => {
     port: config.postgres_invalid_tls.port,
     tls: {
       enabled: false,
-      enforce: config.postgres_invalid_tls.tls.enforce,
     },
     user: config.postgres_invalid_tls.users.main,
   };
