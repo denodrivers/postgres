@@ -248,7 +248,7 @@ export class Connection {
   } /**
    * Calling startup on a connection twice will create a new session and overwrite the previous one
    * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
-   * */
+   */
 
   async startup() {
     const {
@@ -264,17 +264,17 @@ export class Connection {
     await this.#createNonTlsConnection({ hostname, port });
 
     // If TLS is disabled, we don't even try to connect.
-    if (isTLSEnabled) {
-      const accepts_tls = await this.#serverAcceptsTLS()
-        .catch((e) => {
-          // Make sure to close the connection if the TLS validation throws
-          this.#conn.close();
-          throw e;
-        });
+    const accepts_tls = await this.#serverAcceptsTLS()
+      .catch((e) => {
+        // Make sure to close the connection if the TLS validation throws
+        this.#conn.close();
+        throw e;
+      });
 
+    if (isTLSEnabled) {
       /**
-     * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
-     * */
+       * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
+       */
       if (accepts_tls) {
         try {
           await this.#createTlsConnection(this.#conn, { hostname, port });

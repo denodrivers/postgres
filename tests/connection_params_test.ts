@@ -139,7 +139,7 @@ Deno.test("dsnStyleParametersWithInvalidSSLMode", function () {
         "postgres://some_user@some_host:10101/deno_postgres?sslmode=verify-full",
       ),
     undefined,
-    "Supplied DSN has invalid sslmode 'verify-full'. Only 'require' or 'prefer' are supported",
+    "Supplied DSN has invalid sslmode 'verify-full'. Only 'disable', 'require', and 'prefer' are supported",
   );
 });
 
