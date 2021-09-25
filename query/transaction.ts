@@ -82,7 +82,7 @@ export class Savepoint {
    * await savepoint.release(); // This will undo the last update and return the savepoint to the first instance
    * await transaction.rollback(); // Will rollback before the table was deleted
    * ```
-   * */
+   */
   async update() {
     await this.#update_callback(this.name);
     ++this.#instance_count;

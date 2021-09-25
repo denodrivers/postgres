@@ -308,7 +308,7 @@ export class Connection {
 
     /**
      * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
-     * */
+     */
     if (accepts_tls) {
       try {
         await this.#createTlsConnection(this.#conn, {
@@ -409,7 +409,7 @@ export class Connection {
    * a connection previously established, or if it should attempt to create a connection first
    *
    * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
-   * */
+   */
   async startup(is_reconnection: boolean) {
     if (is_reconnection && this.#connection_params.connection.attempts === 0) {
       throw new Error(

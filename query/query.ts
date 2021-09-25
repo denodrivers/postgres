@@ -83,7 +83,7 @@ export interface QueryObjectConfig extends QueryConfig {
  *  20, // $2
  * );
  * ```
- * */
+ */
 // deno-lint-ignore no-explicit-any
 export type QueryArguments = any[];
 

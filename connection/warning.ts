@@ -68,7 +68,7 @@ export function parseNotice(msg: Message): WarningFields {
 
 /**
  * https://www.postgresql.org/docs/current/protocol-error-fields.html
- * */
+ */
 function parseWarning(msg: Message): WarningFields {
   // https://www.postgresql.org/docs/current/protocol-error-fields.html
   // deno-lint-ignore no-explicit-any
