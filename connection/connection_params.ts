@@ -47,6 +47,8 @@ export interface ConnectionOptions {
   attempts: number;
 }
 
+// TODO
+// Refactor enabled and enforce into one single option for 1.0
 export interface TLSOptions {
   /**
    * If TLS support is enabled or not. If the server requires TLS,
