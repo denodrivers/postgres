@@ -1,11 +1,16 @@
 // deno-lint-ignore-file camelcase
-import { assertEquals, assertThrowsAsync, deferred } from "./test_deps.ts";
+import {
+  assertEquals,
+  assertThrowsAsync,
+  deferred,
+  fromFileUrl,
+} from "./test_deps.ts";
 import {
   getClearConfiguration,
-  getInvalidTlsConfiguration,
   getMainConfiguration,
   getMd5Configuration,
   getScramSha256Configuration,
+  getTlsConfiguration,
 } from "./config.ts";
 import { Client, PostgresError } from "../mod.ts";
 import { ConnectionError } from "../connection/warning.ts";
@@ -32,8 +37,8 @@ Deno.test("SCRAM-SHA-256 authentication (no tls)", async () => {
   await client.end();
 });
 
-Deno.test("Handles invalid TLS certificates correctly", async () => {
-  const client = new Client(getInvalidTlsConfiguration());
+Deno.test("TLS (certificate untrusted)", async () => {
+  const client = new Client(getTlsConfiguration());
 
   await assertThrowsAsync(
     async (): Promise<void> => {
@@ -45,6 +50,22 @@ Deno.test("Handles invalid TLS certificates correctly", async () => {
     .finally(async () => {
       await client.end();
     });
+});
+
+Deno.test("TLS (certificate trusted)", async () => {
+  const config = getTlsConfiguration();
+  config.tls!.caFile = fromFileUrl(
+    new URL("../docker/postgres_tls/data/server.crt", import.meta.url),
+  );
+  const client = new Client(config);
+  await client.connect();
+  await client.end();
+});
+
+Deno.test("Clear password authentication (no tls)", async () => {
+  const client = new Client(getClearConfiguration());
+  await client.connect();
+  await client.end();
 });
 
 Deno.test("Handles bad authentication correctly", async function () {

@@ -54,7 +54,7 @@ export interface TLSOptions {
    * If the server doesn't support TLS, the connection will fail
    *
    * default: `false`
-   * */
+   */
   enforce: boolean;
   /**
    * A custom CA file to use for the TLS connection to the server.
@@ -218,7 +218,7 @@ export function createParams(
     port,
     tls: {
       enforce: !!params?.tls?.enforce ?? DEFAULT_OPTIONS.tls.enforce,
-      caFile: params?.tls?.caFile
+      caFile: params?.tls?.caFile,
     },
     user: params.user ?? pgEnv.user,
   };
