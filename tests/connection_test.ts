@@ -47,6 +47,26 @@ Deno.test("Handles invalid TLS certificates correctly", async () => {
     });
 });
 
+Deno.test("Skips TLS encryption when TLS disabled", async () => {
+  const client = new Client({
+    ...getInvalidTlsConfiguration(),
+    tls: { enabled: false },
+  });
+
+  try {
+    await client.connect();
+
+    const { rows } = await client.queryObject<{ result: number }>({
+      fields: ["result"],
+      text: "SELECT 1",
+    });
+
+    assertEquals(rows[0], { result: 1 });
+  } finally {
+    await client.end();
+  }
+});
+
 Deno.test("Handles bad authentication correctly", async function () {
   const badConnectionData = getMainConfiguration();
   badConnectionData.password += getRandomString();

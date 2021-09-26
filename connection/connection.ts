@@ -299,15 +299,15 @@ export class Connection {
     // A BufWriter needs to be available in order to check if the server accepts TLS connections
     await this.#createNonTlsConnection({ hostname, port });
 
-    // If TLS is disabled, we don't even try to connect.
-    const accepts_tls = await this.#serverAcceptsTLS()
-      .catch((e) => {
-        // Make sure to close the connection if the TLS validation throws
-        this.#conn.close();
-        throw e;
-      });
-
     if (isTLSEnabled) {
+      // If TLS is disabled, we don't even try to connect.
+      const accepts_tls = await this.#serverAcceptsTLS()
+        .catch((e) => {
+          // Make sure to close the connection if the TLS validation throws
+          this.#conn.close();
+          throw e;
+        });
+
       /**
        * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
        */
