@@ -16,15 +16,6 @@ import {
   Timestamp,
 } from "../query/types.ts";
 
-const SETUP = [
-  "DROP TABLE IF EXISTS data_types;",
-  `CREATE TABLE data_types(
-     inet_t inet,
-     macaddr_t macaddr,
-     cidr_t cidr
-  );`,
-];
-
 /**
  * This will generate a random number with a precision of 2
  */
@@ -40,16 +31,12 @@ function generateRandomPoint(max_value = 100): Point {
 }
 
 const CLIENT = new Client(getMainConfiguration());
-const testClient = getTestClient(CLIENT, SETUP);
+const testClient = getTestClient(CLIENT);
 
 testClient(async function inet() {
   const url = "127.0.0.1";
-  await CLIENT.queryArray(
-    "INSERT INTO data_types (inet_t) VALUES($1)",
-    url,
-  );
   const selectRes = await CLIENT.queryArray(
-    "SELECT inet_t FROM data_types WHERE inet_t=$1",
+    "SELECT $1::INET",
     url,
   );
   assertEquals(selectRes.rows[0][0], url);
@@ -72,12 +59,8 @@ testClient(async function inetNestedArray() {
 testClient(async function macaddr() {
   const address = "08:00:2b:01:02:03";
 
-  await CLIENT.queryArray(
-    "INSERT INTO data_types (macaddr_t) VALUES($1)",
-    address,
-  );
   const selectRes = await CLIENT.queryArray(
-    "SELECT macaddr_t FROM data_types WHERE macaddr_t=$1",
+    "SELECT $1::MACADDR",
     address,
   );
   assertEquals(selectRes.rows[0][0], address);
@@ -102,12 +85,9 @@ testClient(async function macaddrNestedArray() {
 
 testClient(async function cidr() {
   const host = "192.168.100.128/25";
-  await CLIENT.queryArray(
-    "INSERT INTO data_types (cidr_t) VALUES($1)",
-    host,
-  );
+
   const selectRes = await CLIENT.queryArray(
-    "SELECT cidr_t FROM data_types WHERE cidr_t=$1",
+    "SELECT $1::CIDR",
     host,
   );
   assertEquals(selectRes.rows[0][0], host);
