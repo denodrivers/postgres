@@ -49,6 +49,7 @@ export interface QueryConfig {
   encoder?: (arg: unknown) => EncodedArg;
   name?: string;
   text: string;
+  snakeToCamel?: boolean;
 }
 
 export interface QueryObjectConfig extends QueryConfig {
@@ -234,7 +235,7 @@ export class Query<T extends ResultType> {
   public fields?: string[];
   public result_type: ResultType;
   public text: string;
-
+  public snakeToCamel?: boolean;
   constructor(config: QueryObjectConfig, result_type: T);
   constructor(text: string, result_type: T, ...args: unknown[]);
   constructor(
@@ -278,6 +279,11 @@ export class Query<T extends ResultType> {
     }
     this.text = config.text;
     this.args = this.#prepareArgs(config);
+
+    this.snakeToCamel = config.snakeToCamel;
+    if (this.snakeToCamel===undefined) {
+      this.snakeToCamel = false;            // default = do not convert to CamelCase
+    }
   }
 
   #prepareArgs(config: QueryConfig): EncodedArg[] {
