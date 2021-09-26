@@ -35,16 +35,37 @@ Deno.test("SCRAM-SHA-256 authentication (no tls)", async () => {
 Deno.test("Handles invalid TLS certificates correctly", async () => {
   const client = new Client(getInvalidTlsConfiguration());
 
-  await assertThrowsAsync(
-    async (): Promise<void> => {
-      await client.connect();
-    },
-    Error,
-    "The certificate used to secure the TLS connection is invalid",
-  )
-    .finally(async () => {
-      await client.end();
+  try {
+    await assertThrowsAsync(
+      async (): Promise<void> => {
+        await client.connect();
+      },
+      Error,
+      "The certificate used to secure the TLS connection is invalid",
+    );
+  } finally {
+    await client.end();
+  }
+});
+
+Deno.test("Skips TLS encryption when TLS disabled", async () => {
+  const client = new Client({
+    ...getInvalidTlsConfiguration(),
+    tls: { enabled: false },
+  });
+
+  try {
+    await client.connect();
+
+    const { rows } = await client.queryObject<{ result: number }>({
+      fields: ["result"],
+      text: "SELECT 1",
     });
+
+    assertEquals(rows[0], { result: 1 });
+  } finally {
+    await client.end();
+  }
 });
 
 Deno.test("Handles bad authentication correctly", async function () {

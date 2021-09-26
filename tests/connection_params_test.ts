@@ -56,7 +56,7 @@ function withNotAllowedEnv(fn: () => void) {
   };
 }
 
-Deno.test("dsnStyleParameters", function () {
+Deno.test("Parses connection string", function () {
   const p = createParams(
     "postgres://some_user@some_host:10101/deno_postgres",
   );
@@ -67,7 +67,7 @@ Deno.test("dsnStyleParameters", function () {
   assertEquals(p.port, 10101);
 });
 
-Deno.test("dsnStyleParametersWithPostgresqlDriver", function () {
+Deno.test('Parses connection string with "postgresql" as driver', function () {
   const p = createParams(
     "postgresql://some_user@some_host:10101/deno_postgres",
   );
@@ -78,7 +78,7 @@ Deno.test("dsnStyleParametersWithPostgresqlDriver", function () {
   assertEquals(p.port, 10101);
 });
 
-Deno.test("dsnStyleParametersWithoutExplicitPort", function () {
+Deno.test("Parses connection string without port", function () {
   const p = createParams(
     "postgres://some_user@some_host/deno_postgres",
   );
@@ -89,7 +89,7 @@ Deno.test("dsnStyleParametersWithoutExplicitPort", function () {
   assertEquals(p.port, 5432);
 });
 
-Deno.test("dsnStyleParametersWithApplicationName", function () {
+Deno.test("Parses connection string with application name", function () {
   const p = createParams(
     "postgres://some_user@some_host:10101/deno_postgres?application_name=test_app",
   );
@@ -101,7 +101,7 @@ Deno.test("dsnStyleParametersWithApplicationName", function () {
   assertEquals(p.port, 10101);
 });
 
-Deno.test("dsnStyleParametersWithSSLModeRequire", function () {
+Deno.test("Parses connection string with sslmode required", function () {
   const p = createParams(
     "postgres://some_user@some_host:10101/deno_postgres?sslmode=require",
   );
@@ -110,7 +110,7 @@ Deno.test("dsnStyleParametersWithSSLModeRequire", function () {
   assertEquals(p.tls.enforce, true);
 });
 
-Deno.test("dsnStyleParametersWithInvalidDriver", function () {
+Deno.test("Throws on connection string with invalid driver", function () {
   assertThrows(
     () =>
       createParams(
@@ -121,7 +121,7 @@ Deno.test("dsnStyleParametersWithInvalidDriver", function () {
   );
 });
 
-Deno.test("dsnStyleParametersWithInvalidPort", function () {
+Deno.test("Throws on connection string with invalid port", function () {
   assertThrows(
     () =>
       createParams(
@@ -132,7 +132,7 @@ Deno.test("dsnStyleParametersWithInvalidPort", function () {
   );
 });
 
-Deno.test("dsnStyleParametersWithInvalidSSLMode", function () {
+Deno.test("Throws on connection string with invalid ssl mode", function () {
   assertThrows(
     () =>
       createParams(
@@ -143,7 +143,7 @@ Deno.test("dsnStyleParametersWithInvalidSSLMode", function () {
   );
 });
 
-Deno.test("objectStyleParameters", function () {
+Deno.test("Parses connection options", function () {
   const p = createParams({
     user: "some_user",
     hostname: "some_host",
@@ -157,8 +157,22 @@ Deno.test("objectStyleParameters", function () {
   assertEquals(p.port, 10101);
 });
 
+Deno.test("Throws on invalid tls options", function () {
+  assertThrows(
+    () =>
+      createParams({
+        tls: {
+          enabled: false,
+          enforce: true,
+        },
+      }),
+    ConnectionParamsError,
+    "Can't enforce TLS when client has TLS encryption is disabled",
+  );
+});
+
 Deno.test({
-  name: "envParameters",
+  name: "Parses env connection options",
   ignore: !has_env_access,
   fn() {
     withEnv({
@@ -177,7 +191,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: "envParametersWithInvalidPort",
+  name: "Throws on env connection options with invalid port",
   ignore: !has_env_access,
   fn() {
     const port = "abc";
@@ -197,7 +211,7 @@ Deno.test({
 });
 
 Deno.test(
-  "envParametersWhenNotAllowed",
+  "Parses mixed connection options and env connection options",
   withNotAllowedEnv(function () {
     const p = createParams({
       database: "deno_postgres",
@@ -211,7 +225,7 @@ Deno.test(
   }),
 );
 
-Deno.test("defaultParameters", function () {
+Deno.test("Uses default connection options", function () {
   const database = "deno_postgres";
   const user = "deno_postgres";
 
@@ -233,7 +247,7 @@ Deno.test("defaultParameters", function () {
   );
 });
 
-Deno.test("requiredParameters", function () {
+Deno.test("Throws when required options are not passed", function () {
   if (has_env_access) {
     if (!(Deno.env.get("PGUSER") && Deno.env.get("PGDATABASE"))) {
       assertThrows(
