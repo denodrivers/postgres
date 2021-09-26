@@ -147,7 +147,7 @@ your total first-connection-attempts will ammount to four.
 Using a database that supports TLS is quite simple. After providing your
 connection parameters, the client will check if the database accepts encrypted
 connections and will attempt to connect with the parameters provided. If the
-connection is succesful, the following transactions will be carried over TLS.
+connection is successful, the following transactions will be carried over TLS.
 
 However, if the connection fails for whatever reason the user can choose to
 terminate the connection or to attempt to connect using a non-encrypted one.
@@ -159,7 +159,7 @@ established, otherwise the driver will attempt to connect without encryption
 after TLS connection has failed, but will display a warning containing the
 reason why the TLS connection failed. **This is the default configuration**.
 
-If you wish to skip TLS connections all together, you can do so by passing false
+If you wish to skip TLS connections altogether, you can do so by passing false
 as a parameter in the `tls.enabled` option or the "disable" option when using a
 connection string. Although discouraged, this option is pretty useful when
 dealing with development databases or versions of Postgres that didn't support
@@ -183,7 +183,8 @@ use TLS at all if you are going to use a non-secure certificate, specially on a
 publicly reachable server.
 
 TLS can be disabled from your server by editing your `postgresql.conf` file and
-setting the `ssl` option to `off`.
+setting the `ssl` option to `off`, or in the driver side by using the "disabled"
+option in the client configuration.
 
 #### Env parameters
 
