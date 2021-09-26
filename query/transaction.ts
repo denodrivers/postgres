@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import type { QueryClient } from "../client.ts";
 import {
   Query,
@@ -82,7 +81,7 @@ export class Savepoint {
    * await savepoint.release(); // This will undo the last update and return the savepoint to the first instance
    * await transaction.rollback(); // Will rollback before the table was deleted
    * ```
-   * */
+   */
   async update() {
     await this.#update_callback(this.name);
     ++this.#instance_count;
@@ -353,14 +352,10 @@ export class Transaction {
     try {
       return await this.#executeQuery(query) as QueryArrayResult<T>;
     } catch (e) {
-      // deno-lint-ignore no-unreachable
       if (e instanceof PostgresError) {
-        // deno-lint-ignore no-unreachable
         await this.commit();
-        // deno-lint-ignore no-unreachable
         throw new TransactionError(this.name, e);
       } else {
-        // deno-lint-ignore no-unreachable
         throw e;
       }
     }
@@ -447,14 +442,10 @@ export class Transaction {
     try {
       return await this.#executeQuery(query) as QueryObjectResult<T>;
     } catch (e) {
-      // deno-lint-ignore no-unreachable
       if (e instanceof PostgresError) {
-        // deno-lint-ignore no-unreachable
         await this.commit();
-        // deno-lint-ignore no-unreachable
         throw new TransactionError(this.name, e);
       } else {
-        // deno-lint-ignore no-unreachable
         throw e;
       }
     }

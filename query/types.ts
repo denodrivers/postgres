@@ -20,7 +20,7 @@ export interface Circle {
  * Example: 1.89, 2, 2.1
  *
  * https://www.postgresql.org/docs/13/datatype-numeric.html#DATATYPE-FLOAT
- * */
+ */
 export type Float4 = "string";
 
 /**
@@ -29,7 +29,7 @@ export type Float4 = "string";
  * Example: 1.89, 2, 2.1
  *
  * https://www.postgresql.org/docs/13/datatype-numeric.html#DATATYPE-FLOAT
- * */
+ */
 export type Float8 = "string";
 
 /**

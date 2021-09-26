@@ -1,5 +1,3 @@
-// deno-lint-ignore-file camelcase
-
 /*!
  * Substantial parts adapted from https://github.com/brianc/node-postgres
  * which is licensed as follows:
@@ -291,15 +289,15 @@ export class Connection {
       hostname,
       port,
       tls: {
-        enabled: isTLSEnabled,
-        enforce: enforceTLS,
+        enabled: tls_enabled,
+        enforce: tls_enforced,
       },
     } = this.#connection_params;
 
     // A BufWriter needs to be available in order to check if the server accepts TLS connections
     await this.#createNonTlsConnection({ hostname, port });
 
-    if (isTLSEnabled) {
+    if (tls_enabled) {
       // If TLS is disabled, we don't even try to connect.
       const accepts_tls = await this.#serverAcceptsTLS()
         .catch((e) => {
@@ -316,7 +314,7 @@ export class Connection {
           await this.#createTlsConnection(this.#conn, { hostname, port });
           this.#tls = true;
         } catch (e) {
-          if (!enforceTLS) {
+          if (!tls_enforced) {
             console.error(
               bold(yellow("TLS connection failed with message: ")) +
                 e.message +
@@ -329,7 +327,7 @@ export class Connection {
             throw e;
           }
         }
-      } else if (enforceTLS) {
+      } else if (tls_enforced) {
         // Make sure to close the connection before erroring
         this.#conn.close();
         throw new Error(
@@ -343,8 +341,8 @@ export class Connection {
       try {
         startup_response = await this.#sendStartupMessage();
       } catch (e) {
-        if (e instanceof Deno.errors.InvalidData && isTLSEnabled) {
-          if (enforceTLS) {
+        if (e instanceof Deno.errors.InvalidData && tls_enabled) {
+          if (tls_enforced) {
             throw new Error(
               "The certificate used to secure the TLS connection is invalid.",
             );

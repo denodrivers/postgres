@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { assertEquals, assertThrows } from "./test_deps.ts";
 import {
   ConnectionParamsError,

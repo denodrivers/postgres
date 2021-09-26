@@ -1,4 +1,4 @@
-FROM denoland/deno:alpine-1.11.0
+FROM denoland/deno:alpine-1.14.1
 WORKDIR /app
 
 # Install wait utility
@@ -18,7 +18,7 @@ ADD . .
 RUN deno cache mod.ts
 
 # Code health checks
-RUN deno lint
+RUN deno lint --config=deno.json
 RUN deno fmt --check
 
 # Run tests

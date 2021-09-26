@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { PoolClient } from "./client.ts";
 import {
   ClientConfiguration,

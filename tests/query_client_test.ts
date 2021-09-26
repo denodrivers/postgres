@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { Client, ConnectionError, Pool } from "../mod.ts";
 import { assert, assertEquals, assertThrowsAsync } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";

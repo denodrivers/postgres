@@ -1,7 +1,7 @@
-// deno-lint-ignore-file camelcase
 import { assertEquals, assertThrowsAsync, deferred } from "./test_deps.ts";
 import {
   getClearConfiguration,
+  getInvalidSkippableTlsConfiguration,
   getInvalidTlsConfiguration,
   getMainConfiguration,
   getMd5Configuration,
@@ -66,6 +66,20 @@ Deno.test("Skips TLS encryption when TLS disabled", async () => {
   } finally {
     await client.end();
   }
+});
+
+Deno.test("Skips TLS connection when TLS disabled", async () => {
+  const client = new Client(getInvalidSkippableTlsConfiguration());
+
+  await client.connect();
+
+  const { rows } = await client.queryObject<{ result: number }>({
+    fields: ["result"],
+    text: "SELECT 1",
+  });
+  assertEquals(rows[0], { result: 1 });
+
+  await client.end();
 });
 
 Deno.test("Handles bad authentication correctly", async function () {
