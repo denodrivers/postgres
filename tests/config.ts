@@ -102,6 +102,7 @@ export const getTlsConfiguration = (): ClientOptions => {
     password: config.postgres_tls.password,
     port: config.postgres_tls.port,
     tls: {
+      enabled: true,
       enforce: config.postgres_tls.tls.enforce,
     },
     user: config.postgres_tls.users.main,

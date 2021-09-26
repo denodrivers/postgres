@@ -291,6 +291,7 @@ export class Connection {
       hostname,
       port,
       tls: {
+        enabled: isTLSEnabled,
         enforce: enforceTLS,
         caFile,
       },
@@ -299,6 +300,7 @@ export class Connection {
     // A BufWriter needs to be available in order to check if the server accepts TLS connections
     await this.#createNonTlsConnection({ hostname, port });
 
+    // If TLS is disabled, we don't even try to connect.
     const accepts_tls = await this.#serverAcceptsTLS()
       .catch((e) => {
         // Make sure to close the connection if the TLS validation throws
@@ -306,36 +308,38 @@ export class Connection {
         throw e;
       });
 
-    /**
-     * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
-     */
-    if (accepts_tls) {
-      try {
-        await this.#createTlsConnection(this.#conn, {
-          hostname,
-          certFile: caFile,
-        });
-        this.#tls = true;
-      } catch (e) {
-        if (!enforceTLS) {
-          console.error(
-            bold(yellow("TLS connection failed with message: ")) +
-              e.message +
-              "\n" +
-              bold("Defaulting to non-encrypted connection"),
-          );
-          await this.#createNonTlsConnection({ hostname, port });
-          this.#tls = false;
-        } else {
-          throw e;
+    if (isTLSEnabled) {
+      /**
+       * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
+       */
+      if (accepts_tls) {
+        try {
+          await this.#createTlsConnection(this.#conn, {
+            hostname,
+            certFile: caFile,
+          });
+          this.#tls = true;
+        } catch (e) {
+          if (!enforceTLS) {
+            console.error(
+              bold(yellow("TLS connection failed with message: ")) +
+                e.message +
+                "\n" +
+                bold("Defaulting to non-encrypted connection"),
+            );
+            await this.#createNonTlsConnection({ hostname, port });
+            this.#tls = false;
+          } else {
+            throw e;
+          }
         }
+      } else if (enforceTLS) {
+        // Make sure to close the connection before erroring
+        this.#conn.close();
+        throw new Error(
+          "The server isn't accepting TLS connections. Change the client configuration so TLS configuration isn't required to connect",
+        );
       }
-    } else if (enforceTLS) {
-      // Make sure to close the connection before erroring
-      this.#conn.close();
-      throw new Error(
-        "The server isn't accepting TLS connections. Change the client configuration so TLS configuration isn't required to connect",
-      );
     }
 
     try {
@@ -343,10 +347,10 @@ export class Connection {
       try {
         startup_response = await this.#sendStartupMessage();
       } catch (e) {
-        if (e instanceof Deno.errors.InvalidData) {
+        if (e instanceof Deno.errors.InvalidData && isTLSEnabled) {
           if (enforceTLS) {
             throw new Error(
-              "The certificate used to secure the TLS connection is invalid",
+              "The certificate used to secure the TLS connection is invalid.",
             );
           } else {
             console.error(
