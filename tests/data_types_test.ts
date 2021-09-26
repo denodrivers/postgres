@@ -16,15 +16,6 @@ import {
   Timestamp,
 } from "../query/types.ts";
 
-const SETUP = [
-  "DROP TABLE IF EXISTS data_types;",
-  `CREATE TABLE data_types(
-     inet_t inet,
-     macaddr_t macaddr,
-     cidr_t cidr
-  );`,
-];
-
 /**
  * This will generate a random number with a precision of 2
  */
@@ -40,16 +31,12 @@ function generateRandomPoint(max_value = 100): Point {
 }
 
 const CLIENT = new Client(getMainConfiguration());
-const testClient = getTestClient(CLIENT, SETUP);
+const testClient = getTestClient(CLIENT);
 
 testClient(async function inet() {
   const url = "127.0.0.1";
-  await CLIENT.queryArray(
-    "INSERT INTO data_types (inet_t) VALUES($1)",
-    url,
-  );
   const selectRes = await CLIENT.queryArray(
-    "SELECT inet_t FROM data_types WHERE inet_t=$1",
+    "SELECT $1::INET",
     url,
   );
   assertEquals(selectRes.rows[0][0], url);
@@ -72,12 +59,8 @@ testClient(async function inetNestedArray() {
 testClient(async function macaddr() {
   const address = "08:00:2b:01:02:03";
 
-  await CLIENT.queryArray(
-    "INSERT INTO data_types (macaddr_t) VALUES($1)",
-    address,
-  );
   const selectRes = await CLIENT.queryArray(
-    "SELECT macaddr_t FROM data_types WHERE macaddr_t=$1",
+    "SELECT $1::MACADDR",
     address,
   );
   assertEquals(selectRes.rows[0][0], address);
@@ -102,12 +85,9 @@ testClient(async function macaddrNestedArray() {
 
 testClient(async function cidr() {
   const host = "192.168.100.128/25";
-  await CLIENT.queryArray(
-    "INSERT INTO data_types (cidr_t) VALUES($1)",
-    host,
-  );
+
   const selectRes = await CLIENT.queryArray(
-    "SELECT cidr_t FROM data_types WHERE cidr_t=$1",
+    "SELECT $1::CIDR",
     host,
   );
   assertEquals(selectRes.rows[0][0], host);
@@ -196,15 +176,46 @@ testClient(async function regoperatorArray() {
 });
 
 testClient(async function regclass() {
-  const result = await CLIENT.queryArray(`SELECT 'data_types'::regclass`);
-  assertEquals(result.rows, [["data_types"]]);
+  const object_name = "TEST_REGCLASS";
+
+  await CLIENT.queryArray(`CREATE TEMP TABLE ${object_name} (X INT)`);
+
+  const result = await CLIENT.queryObject<{ table_name: string }>({
+    args: [object_name],
+    fields: ["table_name"],
+    text: "SELECT $1::REGCLASS",
+  });
+
+  assertEquals(result.rows.length, 1);
+  // Objects in postgres are case insensitive unless indicated otherwise
+  assertEquals(
+    result.rows[0].table_name.toLowerCase(),
+    object_name.toLowerCase(),
+  );
 });
 
 testClient(async function regclassArray() {
-  const result = await CLIENT.queryArray(
-    `SELECT ARRAY['data_types'::regclass, 'pg_type']`,
+  const object_1 = "TEST_REGCLASS_1";
+  const object_2 = "TEST_REGCLASS_2";
+
+  await CLIENT.queryArray(`CREATE TEMP TABLE ${object_1} (X INT)`);
+  await CLIENT.queryArray(`CREATE TEMP TABLE ${object_2} (X INT)`);
+
+  const { rows: result } = await CLIENT.queryObject<
+    { tables: [string, string] }
+  >({
+    args: [object_1, object_2],
+    fields: ["tables"],
+    text: "SELECT ARRAY[$1::REGCLASS, $2]",
+  });
+
+  assertEquals(result.length, 1);
+  assertEquals(result[0].tables.length, 2);
+  // Objects in postgres are case insensitive unless indicated otherwise
+  assertEquals(
+    result[0].tables.map((x) => x.toLowerCase()),
+    [object_1, object_2].map((x) => x.toLowerCase()),
   );
-  assertEquals(result.rows[0][0], ["data_types", "pg_type"]);
 });
 
 testClient(async function regtype() {
