@@ -654,15 +654,18 @@ export class Connection {
 
     msg = await this.#readMessage();
 
+    // https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.4
     // Query startup message, executed only once
     switch (msg.type) {
-      // row description
-      case "T":
-        result.loadColumnDescriptions(this.#parseRowDescription(msg));
-        break;
       // no data
       case "n":
         break;
+      case "C": {
+        const commandTag = this.#getCommandTag(msg);
+        result.handleCommandComplete(commandTag);
+        result.done();
+        break;
+      }
       // error response
       case "E":
         await this.#processError(msg);
@@ -671,14 +674,14 @@ export class Connection {
       case "N":
         result.warnings.push(await this.#processNotice(msg));
         break;
-      // command complete
-      // TODO: this is duplicated in next loop
-      case "C": {
-        const commandTag = this.#getCommandTag(msg);
-        result.handleCommandComplete(commandTag);
-        result.done();
+      // row description
+      case "T":
+        result.loadColumnDescriptions(this.#parseRowDescription(msg));
         break;
-      }
+      // Ready for query message, will be sent on startup due to a variety of reasons
+      // On this initialization fase, discard and continue
+      case "Z":
+        break;
       default:
         throw new Error(`Unexpected frame: ${msg.type}`);
     }

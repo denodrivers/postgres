@@ -71,6 +71,29 @@ testClient("Prepared statements", async function (generateClient) {
   assertEquals(result.rows, [{ id: 1 }]);
 });
 
+testClient(
+  "Prepared statement error is recoverable",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    await client.queryArray`CREATE TEMP TABLE PREPARED_STATEMENT_ERROR (X INT)`;
+
+    await assertThrowsAsync(() =>
+      client.queryArray(
+        "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
+        "TEXT",
+      )
+    );
+
+    const { rows } = await client.queryObject<{ result: number }>({
+      fields: ["result"],
+      text: "SELECT 1",
+    });
+
+    assertEquals(rows[0], { result: 1 });
+  },
+);
+
 testClient("Terminated connections", async function (generateClient) {
   const client = await generateClient();
   await client.end();
