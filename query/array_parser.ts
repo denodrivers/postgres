@@ -1,21 +1,17 @@
 // Based of https://github.com/bendrucker/postgres-array
 // Copyright (c) Ben Drucker <bvdrucker@gmail.com> (bendrucker.me). MIT License.
 
+type AllowedSeparators = "," | ";";
 /** Incorrectly parsed data types default to null */
 type ArrayResult<T> = Array<T | null | ArrayResult<T>>;
 type Transformer<T> = (value: string) => T;
 
-function defaultValue(value: string): string {
-  return value;
-}
-
-export function parseArray(source: string): ArrayResult<string>;
 export function parseArray<T>(
   source: string,
   transform: Transformer<T>,
-): ArrayResult<T>;
-export function parseArray(source: string, transform = defaultValue) {
-  return new ArrayParser(source, transform).parse();
+  separator: AllowedSeparators = ",",
+) {
+  return new ArrayParser(source, transform, separator).parse();
 }
 
 class ArrayParser<T> {
@@ -27,6 +23,7 @@ class ArrayParser<T> {
   constructor(
     public source: string,
     public transform: Transformer<T>,
+    public separator: AllowedSeparators,
   ) {}
 
   isEof(): boolean {
@@ -73,23 +70,7 @@ class ArrayParser<T> {
     }
   }
 
-  /**
-   * Arrays can contain items separated by semicolon (such as boxes)
-   * and commas
-   *
-   * This checks if there is an instance of a semicolon on the top level
-   * of the array. If it were to be found, the separator will be
-   * a semicolon, otherwise it will default to a comma
-   */
-  getSeparator() {
-    if (/;(?![^(]*\))/.test(this.source.substr(1, this.source.length - 1))) {
-      return ";";
-    }
-    return ",";
-  }
-
   parse(nested = false): ArrayResult<T> {
-    const separator = this.getSeparator();
     let character, parser, quote;
     this.consumeDimensions();
     while (!this.isEof()) {
@@ -100,6 +81,7 @@ class ArrayParser<T> {
           parser = new ArrayParser(
             this.source.substr(this.position - 1),
             this.transform,
+            this.separator,
           );
           this.entries.push(parser.parse(true));
           this.position += parser.position - 2;
@@ -113,7 +95,7 @@ class ArrayParser<T> {
       } else if (character.value === '"' && !character.escaped) {
         if (quote) this.newEntry(true);
         quote = !quote;
-      } else if (character.value === separator && !quote) {
+      } else if (character.value === this.separator && !quote) {
         this.newEntry();
       } else {
         this.record(character.value);

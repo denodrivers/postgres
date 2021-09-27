@@ -49,7 +49,7 @@ export function decodeBox(value: string): Box {
 }
 
 export function decodeBoxArray(value: string) {
-  return parseArray(value, decodeBox);
+  return parseArray(value, decodeBox, ";");
 }
 
 export function decodeBytea(byteaStr: string): Uint8Array {
@@ -293,7 +293,7 @@ export function decodePolygonArray(value: string) {
 
 export function decodeStringArray(value: string) {
   if (!value) return null;
-  return parseArray(value);
+  return parseArray(value, (value) => value);
 }
 
 /**
