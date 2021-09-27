@@ -381,6 +381,18 @@ testClient(async function varcharArray() {
   assertEquals(result.rows[0], [["(ZYX)-(PQR)-456", "(ABC)-987-(?=+)"]]);
 });
 
+testClient(async function varcharArrayWithSemicolon() {
+  const item_1 = "Test;Azer";
+  const item_2 = "123;456";
+
+  const { rows: result_1 } = await CLIENT.queryArray(
+    `SELECT ARRAY[$1, $2]`,
+    item_1,
+    item_2,
+  );
+  assertEquals(result_1[0], [[item_1, item_2]]);
+});
+
 testClient(async function varcharNestedArray() {
   const result = await CLIENT.queryArray(
     `SELECT '{{"(ZYX)-(PQR)-456"},{"(ABC)-987-(?=+)"}}'::varchar[]`,
