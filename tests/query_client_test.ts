@@ -1,4 +1,4 @@
-import { Client, ConnectionError, Pool } from "../mod.ts";
+import { Client, ConnectionError, Pool, PostgresError } from "../mod.ts";
 import { assert, assertEquals, assertThrowsAsync } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
 import { PoolClient, QueryClient } from "../client.ts";
@@ -72,7 +72,7 @@ testClient("Prepared statements", async function (generateClient) {
 });
 
 testClient(
-  "Prepared statement error is recoverable",
+  "Simple query handles recovery after error state",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -93,6 +93,83 @@ testClient(
     assertEquals(rows[0], { result: 1 });
   },
 );
+
+testClient(
+  "Simple query can handle multiple query failures at once",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    await assertThrowsAsync(
+      () =>
+        client.queryArray(
+          "SELECT 1; SELECT '2'::INT; SELECT 'A'::INT",
+        ),
+      PostgresError,
+      "invalid input syntax for type integer",
+    );
+
+    const { rows } = await client.queryObject<{ result: number }>({
+      fields: ["result"],
+      text: "SELECT 1",
+    });
+
+    assertEquals(rows[0], { result: 1 });
+  },
+);
+
+testClient(
+  "Simple query can return multiple queries",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    const { rows: result } = await client.queryObject<{ result: number }>({
+      text: "SELECT 1; SELECT '2'::INT",
+      fields: ["result"],
+    });
+
+    assertEquals(result, [{ result: 1 }, { result: 2 }]);
+  },
+);
+
+// testClient(
+//   "Prepared query handles recovery after error state",
+//   async function (generateClient) {
+//     const client = await generateClient();
+
+//     await client.queryArray`CREATE TEMP TABLE PREPARED_STATEMENT_ERROR (X INT)`;
+
+//     await assertThrowsAsync(() =>
+//       client.queryArray(
+//         "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
+//         "TEXT",
+//       ), PostgresError);
+
+//     // try {
+//     //   await client.queryArray(
+//     //     "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
+//     //     "TEXT",
+//     //   );
+//     // } catch (e) {
+//     //   console.log(e);
+//     // }
+
+//     try {
+//       const { rows } = await client.queryArray(
+//         "SELECT $1",
+//         "TEXT",
+//       );
+//       console.log(rows);
+//     } catch (e) {
+//       console.log(e);
+//     }
+
+//     // await assertThrowsAsync(() =>
+//     //   client.queryArray(
+//     //     "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
+//     //     "TEXT",
+//     //   ), PostgresError);
+//   },
+// );
 
 testClient("Terminated connections", async function (generateClient) {
   const client = await generateClient();
@@ -392,6 +469,23 @@ testClient(
       },
       RangeError,
       "The fields provided for the query don't match the ones returned as a result (1 expected, 2 received)",
+    );
+  },
+);
+
+testClient(
+  "Object query throws when multiple query results don't have the same number of rows",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    await assertThrowsAsync(
+      () =>
+        client.queryObject<{ result: number }>({
+          text: "SELECT 1; SELECT '2'::INT, '3'",
+          fields: ["result"],
+        }),
+      RangeError,
+      "The fields provided for the query don't match the ones returned as a result",
     );
   },
 );

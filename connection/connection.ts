@@ -57,7 +57,6 @@ function assertArgumentsResponse(msg: Message) {
   switch (msg.type) {
     // bind completed
     case "2":
-      // no-op
       break;
     // error response
     case "E":
@@ -88,7 +87,7 @@ function assertSuccessfulAuthentication(auth_message: Message) {
 }
 
 /**
- * This asserts the query parse response is succesful
+ * This asserts the query parse response is successful
  */
 function assertQueryResponse(msg: Message) {
   switch (msg.type) {
@@ -849,23 +848,23 @@ export class Connection {
     msg = await this.#readMessage();
 
     switch (msg.type) {
+      // no data
+      case "n":
+        break;
+        // error
+      case "E":
+        await this.#processError(msg);
+        break;
+      // notice response
+      case "N":
+        result.warnings.push(await this.#processNotice(msg));
+        break;
       // row description
       case "T": {
         const rowDescription = this.#parseRowDescription(msg);
         result.loadColumnDescriptions(rowDescription);
         break;
       }
-      // no data
-      case "n":
-        break;
-      // notice response
-      case "N":
-        result.warnings.push(await this.#processNotice(msg));
-        break;
-      // error
-      case "E":
-        await this.#processError(msg);
-        break;
       default:
         throw new Error(`Unexpected frame: ${msg.type}`);
     }
