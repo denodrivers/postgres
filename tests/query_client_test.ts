@@ -131,45 +131,27 @@ testClient(
   },
 );
 
-// testClient(
-//   "Prepared query handles recovery after error state",
-//   async function (generateClient) {
-//     const client = await generateClient();
+testClient(
+  "Prepared query handles recovery after error state",
+  async function (generateClient) {
+    const client = await generateClient();
 
-//     await client.queryArray`CREATE TEMP TABLE PREPARED_STATEMENT_ERROR (X INT)`;
+    await client.queryArray`CREATE TEMP TABLE PREPARED_STATEMENT_ERROR (X INT)`;
 
-//     await assertThrowsAsync(() =>
-//       client.queryArray(
-//         "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
-//         "TEXT",
-//       ), PostgresError);
+    await assertThrowsAsync(() =>
+      client.queryArray(
+        "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
+        "TEXT",
+      ), PostgresError);
 
-//     // try {
-//     //   await client.queryArray(
-//     //     "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
-//     //     "TEXT",
-//     //   );
-//     // } catch (e) {
-//     //   console.log(e);
-//     // }
+    const { rows: result } = await client.queryObject({
+      text: "SELECT 1",
+      fields: ["result"],
+    });
 
-//     try {
-//       const { rows } = await client.queryArray(
-//         "SELECT $1",
-//         "TEXT",
-//       );
-//       console.log(rows);
-//     } catch (e) {
-//       console.log(e);
-//     }
-
-//     // await assertThrowsAsync(() =>
-//     //   client.queryArray(
-//     //     "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
-//     //     "TEXT",
-//     //   ), PostgresError);
-//   },
-// );
+    assertEquals(result[0], { result: 1 });
+  },
+);
 
 testClient("Terminated connections", async function (generateClient) {
   const client = await generateClient();
