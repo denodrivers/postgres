@@ -55,9 +55,6 @@ enum TransactionStatus {
  */
 function assertBindResponse(msg: Message) {
   switch (msg.type) {
-    // Returned in case a previous query was aborted
-    case "1":
-      break;
     // bind completed
     case "2":
       break;
@@ -103,8 +100,6 @@ function assertParseResponse(msg: Message) {
     case "E":
       throw parseError(msg);
     // Ready for query, returned in case a previous transaction was aborted
-    case "Z":
-      break;
     default:
       throw new Error(`Unexpected query parse response: ${msg.type}`);
   }
@@ -846,22 +841,21 @@ export class Connection {
     // send all messages to backend
     await this.#bufWriter.flush();
 
-    await assertParseResponse(await this.#readMessage());
-    await assertBindResponse(await this.#readMessage());
-
-    let row_description;
+    let parse_response: Message;
     {
-      // An error might be returned from a previous aborted transaction instead of the row description
-      // If that is the case, ignore the error and request for the row description
-      const maybe_row_description = await this.#readMessage();
-      switch (maybe_row_description.type) {
-        case "2":
-          row_description = await this.#readMessage();
-          break;
-        default:
-          row_description = maybe_row_description;
+      // A ready for query message might have been sent instead of the parse response
+      // in case the previous transaction had been aborted
+      let maybe_parse_response = await this.#readMessage();
+      if (maybe_parse_response.type === "Z") {
+        // Request the next message containing the actual parse response
+        parse_response = await this.#readMessage();
+      } else {
+        parse_response = maybe_parse_response;
       }
     }
+
+    await assertParseResponse(parse_response);
+    await assertBindResponse(await this.#readMessage());
 
     let result;
     if (query.result_type === ResultType.ARRAY) {
@@ -870,6 +864,7 @@ export class Connection {
       result = new QueryObjectResult(query);
     }
 
+    const row_description = await this.#readMessage();
     // Load row descriptions to process incoming results
     switch (row_description.type) {
       // no data
