@@ -53,17 +53,16 @@ enum TransactionStatus {
 /**
  * This asserts the argument bind response is succesful
  */
-function assertArgumentsResponse(msg: Message) {
+function assertBindResponse(msg: Message) {
   switch (msg.type) {
     // bind completed
     case "2":
-      // no-op
       break;
     // error response
     case "E":
       throw parseError(msg);
     default:
-      throw new Error(`Unexpected frame: ${msg.type}`);
+      throw new Error(`Unexpected query bind response: ${msg.type}`);
   }
 }
 
@@ -88,9 +87,9 @@ function assertSuccessfulAuthentication(auth_message: Message) {
 }
 
 /**
- * This asserts the query parse response is succesful
+ * This asserts the query parse response is successful
  */
-function assertQueryResponse(msg: Message) {
+function assertParseResponse(msg: Message) {
   switch (msg.type) {
     // parse completed
     case "1":
@@ -100,8 +99,9 @@ function assertQueryResponse(msg: Message) {
     // error response
     case "E":
       throw parseError(msg);
+    // Ready for query, returned in case a previous transaction was aborted
     default:
-      throw new Error(`Unexpected frame: ${msg.type}`);
+      throw new Error(`Unexpected query parse response: ${msg.type}`);
   }
 }
 
@@ -683,7 +683,7 @@ export class Connection {
       case "Z":
         break;
       default:
-        throw new Error(`Unexpected frame: ${msg.type}`);
+        throw new Error(`Unexpected row description message: ${msg.type}`);
     }
 
     // Handle each row returned by the query
@@ -719,7 +719,7 @@ export class Connection {
           result.loadColumnDescriptions(this.#parseRowDescription(msg));
           break;
         default:
-          throw new Error(`Unexpected frame: ${msg.type}`);
+          throw new Error(`Unexpected result message: ${msg.type}`);
       }
     }
   }
@@ -782,7 +782,7 @@ export class Connection {
    * This function appends the query type (in this case prepared statement)
    * to the message
    */
-  async #appendQueryTypeToMessage() {
+  async #appendDescribeToMessage() {
     this.#packetWriter.clear();
 
     const buffer = this.#packetWriter.addCString("P").flush(0x44);
@@ -828,16 +828,34 @@ export class Connection {
   async #preparedQuery<T extends ResultType>(
     query: Query<T>,
   ): Promise<QueryResult> {
+    // The parse messages declares the statement, query arguments and the cursor used in the transaction
+    // The database will respond with a parse response
     await this.#appendQueryToMessage(query);
     await this.#appendArgumentsToMessage(query);
-    await this.#appendQueryTypeToMessage();
+    // The describe message will specify the query type and the cursor in which the current query will be running
+    // The database will respond with a bind response
+    await this.#appendDescribeToMessage();
+    // The execute response contains the portal in which the query will be run and how many rows should it return
     await this.#appendExecuteToMessage();
     await this.#appendSyncToMessage();
     // send all messages to backend
     await this.#bufWriter.flush();
 
-    await assertQueryResponse(await this.#readMessage());
-    await assertArgumentsResponse(await this.#readMessage());
+    let parse_response: Message;
+    {
+      // A ready for query message might have been sent instead of the parse response
+      // in case the previous transaction had been aborted
+      let maybe_parse_response = await this.#readMessage();
+      if (maybe_parse_response.type === "Z") {
+        // Request the next message containing the actual parse response
+        parse_response = await this.#readMessage();
+      } else {
+        parse_response = maybe_parse_response;
+      }
+    }
+
+    await assertParseResponse(parse_response);
+    await assertBindResponse(await this.#readMessage());
 
     let result;
     if (query.result_type === ResultType.ARRAY) {
@@ -845,32 +863,36 @@ export class Connection {
     } else {
       result = new QueryObjectResult(query);
     }
-    let msg: Message;
-    msg = await this.#readMessage();
 
-    switch (msg.type) {
-      // row description
-      case "T": {
-        const rowDescription = this.#parseRowDescription(msg);
-        result.loadColumnDescriptions(rowDescription);
-        break;
-      }
+    const row_description = await this.#readMessage();
+    // Load row descriptions to process incoming results
+    switch (row_description.type) {
       // no data
       case "n":
         break;
+        // error
+      case "E":
+        await this.#processError(row_description);
+        break;
       // notice response
       case "N":
-        result.warnings.push(await this.#processNotice(msg));
+        result.warnings.push(await this.#processNotice(row_description));
         break;
-      // error
-      case "E":
-        await this.#processError(msg);
+      // row description
+      case "T": {
+        const rowDescription = this.#parseRowDescription(row_description);
+        result.loadColumnDescriptions(rowDescription);
         break;
+      }
       default:
-        throw new Error(`Unexpected frame: ${msg.type}`);
+        throw new Error(
+          `Unexpected row description message: ${row_description.type}`,
+        );
     }
 
-    outerLoop:
+    let msg: Message;
+
+    result_handling:
     while (true) {
       msg = await this.#readMessage();
       switch (msg.type) {
@@ -886,7 +908,7 @@ export class Connection {
           const commandTag = this.#getCommandTag(msg);
           result.handleCommandComplete(commandTag);
           result.done();
-          break outerLoop;
+          break result_handling;
         }
         // notice response
         case "N":
@@ -897,7 +919,7 @@ export class Connection {
           await this.#processError(msg);
           break;
         default:
-          throw new Error(`Unexpected frame: ${msg.type}`);
+          throw new Error(`Unexpected result message: ${msg.type}`);
       }
     }
 
