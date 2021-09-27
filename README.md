@@ -131,7 +131,7 @@ inspection and permission filtering can be achieved by setting up a local
 testing environment, as shown in the following steps:
 
 1. Start the development databases using the Docker service with the command\
-   `docker-compose up postgres postgres_scram postgres_tls`\
+   `docker-compose up postgres postgres_scram postgres_invalid_tls`\
    Though using the detach (`-d`) option is recommended, this will make the
    databases run in the background unless you use docker itself to stop them.
    You can find more info about this

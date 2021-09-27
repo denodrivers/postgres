@@ -35,8 +35,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
     volumes:
-      # Make sure to mark the volume as writable so the certificates can be generated locally
-      - ./docker/postgres_tls/data/:/var/lib/postgresql/host/:rw
+      - ./docker/postgres_tls/data/:/var/lib/postgresql/host/
       - ./docker/postgres_tls/init/:/docker-entrypoint-initdb.d/
     ports:
       - "6003:5432"
