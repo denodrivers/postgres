@@ -1,5 +1,3 @@
-// deno-lint-ignore-file camelcase
-
 /*!
  * Substantial parts adapted from https://github.com/brianc/node-postgres
  * which is licensed as follows:
@@ -291,8 +289,8 @@ export class Connection {
       hostname,
       port,
       tls: {
-        enabled: isTLSEnabled,
-        enforce: enforceTLS,
+        enabled: tls_enabled,
+        enforce: tls_enforced,
         caFile,
       },
     } = this.#connection_params;
@@ -300,15 +298,15 @@ export class Connection {
     // A BufWriter needs to be available in order to check if the server accepts TLS connections
     await this.#createNonTlsConnection({ hostname, port });
 
-    // If TLS is disabled, we don't even try to connect.
-    const accepts_tls = await this.#serverAcceptsTLS()
-      .catch((e) => {
-        // Make sure to close the connection if the TLS validation throws
-        this.#conn.close();
-        throw e;
-      });
+    if (tls_enabled) {
+      // If TLS is disabled, we don't even try to connect.
+      const accepts_tls = await this.#serverAcceptsTLS()
+        .catch((e) => {
+          // Make sure to close the connection if the TLS validation throws
+          this.#conn.close();
+          throw e;
+        });
 
-    if (isTLSEnabled) {
       /**
        * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
        */
@@ -320,7 +318,7 @@ export class Connection {
           });
           this.#tls = true;
         } catch (e) {
-          if (!enforceTLS) {
+          if (!tls_enforced) {
             console.error(
               bold(yellow("TLS connection failed with message: ")) +
                 e.message +
@@ -333,7 +331,7 @@ export class Connection {
             throw e;
           }
         }
-      } else if (enforceTLS) {
+      } else if (tls_enforced) {
         // Make sure to close the connection before erroring
         this.#conn.close();
         throw new Error(
@@ -347,8 +345,8 @@ export class Connection {
       try {
         startup_response = await this.#sendStartupMessage();
       } catch (e) {
-        if (e instanceof Deno.errors.InvalidData && isTLSEnabled) {
-          if (enforceTLS) {
+        if (e instanceof Deno.errors.InvalidData && tls_enabled) {
+          if (tls_enforced) {
             throw new Error(
               "The certificate used to secure the TLS connection is invalid.",
             );
@@ -660,15 +658,18 @@ export class Connection {
 
     msg = await this.#readMessage();
 
+    // https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.4
     // Query startup message, executed only once
     switch (msg.type) {
-      // row description
-      case "T":
-        result.loadColumnDescriptions(this.#parseRowDescription(msg));
-        break;
       // no data
       case "n":
         break;
+      case "C": {
+        const commandTag = this.#getCommandTag(msg);
+        result.handleCommandComplete(commandTag);
+        result.done();
+        break;
+      }
       // error response
       case "E":
         await this.#processError(msg);
@@ -677,14 +678,14 @@ export class Connection {
       case "N":
         result.warnings.push(await this.#processNotice(msg));
         break;
-      // command complete
-      // TODO: this is duplicated in next loop
-      case "C": {
-        const commandTag = this.#getCommandTag(msg);
-        result.handleCommandComplete(commandTag);
-        result.done();
+      // row description
+      case "T":
+        result.loadColumnDescriptions(this.#parseRowDescription(msg));
         break;
-      }
+      // Ready for query message, will be sent on startup due to a variety of reasons
+      // On this initialization fase, discard and continue
+      case "Z":
+        break;
       default:
         throw new Error(`Unexpected frame: ${msg.type}`);
     }

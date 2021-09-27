@@ -18,7 +18,7 @@ ADD . .
 RUN deno cache mod.ts
 
 # Code health checks
-RUN deno lint
+RUN deno lint --config=deno.json
 RUN deno fmt --check
 
 # Run tests

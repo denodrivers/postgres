@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { encode, EncodedArg } from "./encode.ts";
 import { Column, decode } from "./decode.ts";
 import { WarningFields } from "../connection/warning.ts";

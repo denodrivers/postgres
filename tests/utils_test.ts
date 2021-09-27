@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { assertEquals } from "./test_deps.ts";
 import { DsnResult, parseDsn } from "../utils/utils.ts";
 import { DeferredAccessStack } from "../utils/deferred.ts";

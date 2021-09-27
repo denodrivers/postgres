@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { ClientOptions } from "../connection/connection_params.ts";
 
 interface EnvironmentConfig {
@@ -104,6 +103,20 @@ export const getTlsConfiguration = (): ClientOptions => {
     tls: {
       enabled: true,
       enforce: config.postgres_tls.tls.enforce,
+    },
+    user: config.postgres_tls.users.main,
+  };
+};
+
+export const getSkippableTlsConfiguration = (): ClientOptions => {
+  return {
+    applicationName: config.postgres_tls.applicationName,
+    database: config.postgres_tls.database,
+    hostname: config.postgres_tls.hostname,
+    password: config.postgres_tls.password,
+    port: config.postgres_tls.port,
+    tls: {
+      enabled: false,
     },
     user: config.postgres_tls.users.main,
   };

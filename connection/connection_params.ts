@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { parseDsn } from "../utils/utils.ts";
 
 /**
@@ -48,6 +47,8 @@ export interface ConnectionOptions {
   attempts: number;
 }
 
+// TODO
+// Refactor enabled and enforce into one single option for 1.0
 export interface TLSOptions {
   /**
    * If TLS support is enabled or not. If the server requires TLS,
@@ -140,8 +141,7 @@ function parseOptionsFromDsn(connString: string): ClientOptions {
     );
   }
 
-  let enabled = true;
-  let enforceTls = false;
+  let tls: TLSOptions = { enabled: true, enforce: false };
   if (dsn.params.sslmode) {
     const sslmode = dsn.params.sslmode;
     delete dsn.params.sslmode;
@@ -153,18 +153,18 @@ function parseOptionsFromDsn(connString: string): ClientOptions {
     }
 
     if (sslmode === "require") {
-      enforceTls = true;
+      tls = { enabled: true, enforce: true };
     }
 
     if (sslmode === "disable") {
-      enabled = false;
+      tls = { enabled: false, enforce: false };
     }
   }
 
   return {
     ...dsn,
-    tls: { enabled, enforce: enforceTls },
     applicationName: dsn.params.application_name,
+    tls,
   };
 }
 
@@ -214,6 +214,15 @@ export function createParams(
     );
   }
 
+  const tls_enabled = !!(params?.tls?.enabled ?? DEFAULT_OPTIONS.tls.enabled);
+  const tls_enforced = !!(params?.tls?.enforce ?? DEFAULT_OPTIONS.tls.enforce);
+
+  if (!tls_enabled && tls_enforced) {
+    throw new ConnectionParamsError(
+      "Can't enforce TLS when client has TLS encryption is disabled",
+    );
+  }
+
   // TODO
   // Perhaps username should be taken from the PC user as a default?
   const connection_options = {
@@ -228,8 +237,8 @@ export function createParams(
     password: params.password ?? pgEnv.password,
     port,
     tls: {
-      enabled: !!params?.tls?.enabled ?? DEFAULT_OPTIONS.tls.enabled,
-      enforce: !!params?.tls?.enforce ?? DEFAULT_OPTIONS.tls.enforce,
+      enabled: tls_enabled,
+      enforce: tls_enforced,
       caFile: params?.tls?.caFile,
     },
     user: params.user ?? pgEnv.user,

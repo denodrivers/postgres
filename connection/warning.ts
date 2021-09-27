@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import { PacketReader } from "./packet_reader.ts";
 
 export class Message {

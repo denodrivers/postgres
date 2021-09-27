@@ -1,4 +1,3 @@
-// deno-lint-ignore-file camelcase
 import type { QueryClient } from "../client.ts";
 import {
   Query,
