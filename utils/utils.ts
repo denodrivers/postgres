@@ -80,12 +80,12 @@ export function parseDsn(dsn: string): DsnResult {
   // Special characters in the password may be url-encoded by URL(), such as =
   try {
     password = decodeURIComponent(password);
-  } catch (e) {
+  } catch (_e) {
     console.error(
-      bold(yellow("URL-encoded password decode failed with message: ")) +
-        e.message +
-        "\n" +
-        bold("Defaulting to take the URL-encoded password"),
+      bold(
+        yellow("Failed to decode URL password") +
+          "\nDefaulting to raw password",
+      ),
     );
   }
 
