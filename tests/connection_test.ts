@@ -75,7 +75,9 @@ Deno.test("Skips TLS encryption when TLS disabled", async () => {
 
 Deno.test("Skips TLS connection when TLS disabled", async () => {
   const client = new Client(getSkippableTlsConfiguration());
+
   await client.connect();
+
   const { rows } = await client.queryObject<{ result: number }>({
     fields: ["result"],
     text: "SELECT 1",
