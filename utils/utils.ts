@@ -1,4 +1,4 @@
-import { createHash } from "../deps.ts";
+import { bold, createHash, yellow } from "../deps.ts";
 
 export function readInt16BE(buffer: Uint8Array, offset: number): number {
   offset = offset >>> 0;
@@ -76,10 +76,23 @@ export function parseDsn(dsn: string): DsnResult {
   const [protocol, strippedUrl] = dsn.match(/(?:(?!:\/\/).)+/g) ?? ["", ""];
   const url = new URL(`http:${strippedUrl}`);
 
+  let password = url.password;
+  // Special characters in the password may be url-encoded by URL(), such as =
+  try {
+    password = decodeURIComponent(password);
+  } catch (_e) {
+    console.error(
+      bold(
+        yellow("Failed to decode URL password") +
+          "\nDefaulting to raw password",
+      ),
+    );
+  }
+
   return {
+    password,
     driver: protocol,
     user: url.username,
-    password: url.password,
     hostname: url.hostname,
     port: url.port,
     // remove leading slash from path

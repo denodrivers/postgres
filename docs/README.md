@@ -76,6 +76,29 @@ be available in a client configuration, with the following structure:
 driver://user:password@host:port/database_name
 ```
 
+#### Password encoding
+
+One thing that must be taken into consideration is that passwords contained
+inside the URL must be properly encoded in order to be passed down to the
+database. You can achieve that by using the JavaScript API `encodeURIComponent`
+and passing your password as an argument.
+
+**Invalid**:
+
+- `postgres://me:Mtx%3@localhost:5432/my_database`
+- `postgres://me:pássword!=with_symbols@localhost:5432/my_database`
+
+**Valid**:
+
+- `postgres://me:Mtx%253@localhost:5432/my_database`
+- `postgres://me:p%C3%A1ssword!%3Dwith_symbols@localhost:5432/my_database`
+
+When possible and if the password is not encoded correctly, the driver will try
+and pass the raw password to the database, however it's highly recommended that
+all passwords are always encoded.
+
+#### URL parameters
+
 Additional to the basic structure, connection strings may contain a variety of
 search parameters such as the following:
 
