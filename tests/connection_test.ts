@@ -94,12 +94,6 @@ Deno.test("TLS (certificate trusted)", async () => {
   await client.end();
 });
 
-Deno.test("Clear password authentication (no tls)", async () => {
-  const client = new Client(getClearConfiguration());
-  await client.connect();
-  await client.end();
-});
-
 Deno.test("Handles bad authentication correctly", async function () {
   const badConnectionData = getMainConfiguration();
   badConnectionData.password += getRandomString();
