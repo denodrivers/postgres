@@ -176,15 +176,46 @@ testClient(async function regoperatorArray() {
 });
 
 testClient(async function regclass() {
-  const result = await CLIENT.queryArray(`SELECT 'data_types'::regclass`);
-  assertEquals(result.rows, [["data_types"]]);
+  const object_name = "TEST_REGCLASS";
+
+  await CLIENT.queryArray(`CREATE TEMP TABLE ${object_name} (X INT)`);
+
+  const result = await CLIENT.queryObject<{ table_name: string }>({
+    args: [object_name],
+    fields: ["table_name"],
+    text: "SELECT $1::REGCLASS",
+  });
+
+  assertEquals(result.rows.length, 1);
+  // Objects in postgres are case insensitive unless indicated otherwise
+  assertEquals(
+    result.rows[0].table_name.toLowerCase(),
+    object_name.toLowerCase(),
+  );
 });
 
 testClient(async function regclassArray() {
-  const result = await CLIENT.queryArray(
-    `SELECT ARRAY['data_types'::regclass, 'pg_type']`,
+  const object_1 = "TEST_REGCLASS_1";
+  const object_2 = "TEST_REGCLASS_2";
+
+  await CLIENT.queryArray(`CREATE TEMP TABLE ${object_1} (X INT)`);
+  await CLIENT.queryArray(`CREATE TEMP TABLE ${object_2} (X INT)`);
+
+  const { rows: result } = await CLIENT.queryObject<
+    { tables: [string, string] }
+  >({
+    args: [object_1, object_2],
+    fields: ["tables"],
+    text: "SELECT ARRAY[$1::REGCLASS, $2]",
+  });
+
+  assertEquals(result.length, 1);
+  assertEquals(result[0].tables.length, 2);
+  // Objects in postgres are case insensitive unless indicated otherwise
+  assertEquals(
+    result[0].tables.map((x) => x.toLowerCase()),
+    [object_1, object_2].map((x) => x.toLowerCase()),
   );
-  assertEquals(result.rows[0][0], ["data_types", "pg_type"]);
 });
 
 testClient(async function regtype() {
@@ -348,6 +379,18 @@ testClient(async function varcharArray() {
     `SELECT '{"(ZYX)-(PQR)-456","(ABC)-987-(?=+)"}'::varchar[]`,
   );
   assertEquals(result.rows[0], [["(ZYX)-(PQR)-456", "(ABC)-987-(?=+)"]]);
+});
+
+testClient(async function varcharArrayWithSemicolon() {
+  const item_1 = "Test;Azer";
+  const item_2 = "123;456";
+
+  const { rows: result_1 } = await CLIENT.queryArray(
+    `SELECT ARRAY[$1, $2]`,
+    item_1,
+    item_2,
+  );
+  assertEquals(result_1[0], [[item_1, item_2]]);
 });
 
 testClient(async function varcharNestedArray() {

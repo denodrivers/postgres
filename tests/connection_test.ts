@@ -9,7 +9,6 @@ import {
   getMainConfiguration,
   getMd5Configuration,
   getScramSha256Configuration,
-  getSkippableTlsConfiguration,
   getTlsConfiguration,
 } from "./config.ts";
 import { Client, PostgresError } from "../mod.ts";
@@ -73,17 +72,25 @@ Deno.test("Skips TLS encryption when TLS disabled", async () => {
   }
 });
 
-Deno.test("Skips TLS connection when TLS disabled", async () => {
-  const client = new Client(getSkippableTlsConfiguration());
-
+Deno.test("TLS (certificate trusted)", async () => {
+  const config = {
+    ...getTlsConfiguration(),
+    tls: {
+      caFile: fromFileUrl(
+        new URL("../docker/postgres_tls/data/server.crt", import.meta.url),
+      ),
+      enable: true,
+      enforce: true,
+    },
+  };
+  const client = new Client(config);
   await client.connect();
+  await client.end();
+});
 
-  const { rows } = await client.queryObject<{ result: number }>({
-    fields: ["result"],
-    text: "SELECT 1",
-  });
-  assertEquals(rows[0], { result: 1 });
-
+Deno.test("Clear password authentication (no tls)", async () => {
+  const client = new Client(getClearConfiguration());
+  await client.connect();
   await client.end();
 });
 
