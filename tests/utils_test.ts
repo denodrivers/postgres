@@ -22,8 +22,17 @@ class LazilyInitializedObject {
   }
 }
 
-Deno.test("parseDsn", function () {
+Deno.test("Parses connection string into config", function () {
   let c: DsnResult;
+
+  c = parseDsn("postgres://deno.land/test_database");
+
+  assertEquals(c.driver, "postgres");
+  assertEquals(c.user, "");
+  assertEquals(c.password, "");
+  assertEquals(c.hostname, "deno.land");
+  assertEquals(c.port, "");
+  assertEquals(c.database, "test_database");
 
   c = parseDsn(
     "postgres://fizz:buzz@deno.land:8000/test_database?application_name=myapp",
@@ -36,15 +45,53 @@ Deno.test("parseDsn", function () {
   assertEquals(c.port, "8000");
   assertEquals(c.database, "test_database");
   assertEquals(c.params.application_name, "myapp");
+});
 
-  c = parseDsn("postgres://deno.land/test_database");
+Deno.test("Parses connection string params into param object", function () {
+  const params = {
+    param_1: "asd",
+    param_2: "xyz",
+    param_3: "3541",
+  };
 
-  assertEquals(c.driver, "postgres");
-  assertEquals(c.user, "");
-  assertEquals(c.password, "");
-  assertEquals(c.hostname, "deno.land");
-  assertEquals(c.port, "");
-  assertEquals(c.database, "test_database");
+  const base_url = new URL("postgres://fizz:buzz@deno.land:8000/test_database");
+  for (const [key, value] of Object.entries(params)) {
+    base_url.searchParams.set(key, value);
+  }
+
+  const parsed_dsn = parseDsn(base_url.toString());
+
+  assertEquals(parsed_dsn.params, params);
+});
+
+Deno.test("Decodes connection string password correctly", function () {
+  let parsed_dsn: DsnResult;
+  let password: string;
+
+  password = "Mtx=";
+  parsed_dsn = parseDsn(
+    `postgres://root:${encodeURIComponent(password)}@localhost:9999/txdb`,
+  );
+  assertEquals(parsed_dsn.password, password);
+
+  password = "pássword!=?with_symbols";
+  parsed_dsn = parseDsn(
+    `postgres://root:${encodeURIComponent(password)}@localhost:9999/txdb`,
+  );
+  assertEquals(parsed_dsn.password, password);
+});
+
+Deno.test("Defaults to connection string password literal if decoding fails", function () {
+  let parsed_dsn: DsnResult;
+  let password: string;
+
+  password = "Mtx%3";
+  parsed_dsn = parseDsn(`postgres://root:${password}@localhost:9999/txdb`);
+  assertEquals(parsed_dsn.password, password);
+
+  password = "%E0%A4%A";
+  parsed_dsn = parseDsn(`postgres://root:${password}@localhost:9999/txdb`);
+  assertEquals(parsed_dsn.password, password);
 });
 
 Deno.test("DeferredAccessStack", async () => {
