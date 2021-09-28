@@ -62,6 +62,10 @@ export interface TLSOptions {
    * default: `false`
    */
   enforce: boolean;
+  /**
+   * A custom CA file to use for the TLS connection to the server.
+   */
+  caFile?: string;
 }
 
 export interface ClientOptions {
@@ -235,6 +239,7 @@ export function createParams(
     tls: {
       enabled: tls_enabled,
       enforce: tls_enforced,
+      caFile: params?.tls?.caFile,
     },
     user: params.user ?? pgEnv.user,
   };

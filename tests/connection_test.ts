@@ -1,11 +1,16 @@
-import { assertEquals, assertThrowsAsync, deferred } from "./test_deps.ts";
+import {
+  assertEquals,
+  assertThrowsAsync,
+  deferred,
+  fromFileUrl,
+} from "./test_deps.ts";
 import {
   getClearConfiguration,
-  getInvalidSkippableTlsConfiguration,
-  getInvalidTlsConfiguration,
   getMainConfiguration,
   getMd5Configuration,
   getScramSha256Configuration,
+  getSkippableTlsConfiguration,
+  getTlsConfiguration,
 } from "./config.ts";
 import { Client, PostgresError } from "../mod.ts";
 import { ConnectionError } from "../connection/warning.ts";
@@ -32,8 +37,8 @@ Deno.test("SCRAM-SHA-256 authentication (no tls)", async () => {
   await client.end();
 });
 
-Deno.test("Handles invalid TLS certificates correctly", async () => {
-  const client = new Client(getInvalidTlsConfiguration());
+Deno.test("TLS (certificate untrusted)", async () => {
+  const client = new Client(getTlsConfiguration());
 
   try {
     await assertThrowsAsync(
@@ -50,7 +55,7 @@ Deno.test("Handles invalid TLS certificates correctly", async () => {
 
 Deno.test("Skips TLS encryption when TLS disabled", async () => {
   const client = new Client({
-    ...getInvalidTlsConfiguration(),
+    ...getTlsConfiguration(),
     tls: { enabled: false },
   });
 
@@ -69,7 +74,7 @@ Deno.test("Skips TLS encryption when TLS disabled", async () => {
 });
 
 Deno.test("Skips TLS connection when TLS disabled", async () => {
-  const client = new Client(getInvalidSkippableTlsConfiguration());
+  const client = new Client(getSkippableTlsConfiguration());
 
   await client.connect();
 
@@ -78,7 +83,16 @@ Deno.test("Skips TLS connection when TLS disabled", async () => {
     text: "SELECT 1",
   });
   assertEquals(rows[0], { result: 1 });
+  await client.end();
+});
 
+Deno.test("TLS (certificate trusted)", async () => {
+  const config = getTlsConfiguration();
+  config.tls!.caFile = fromFileUrl(
+    new URL("../docker/postgres_tls/data/ca.crt", import.meta.url),
+  );
+  const client = new Client(config);
+  await client.connect();
   await client.end();
 });
 
