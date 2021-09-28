@@ -1,19 +1,11 @@
 # Generate CA certificate and key
-openssl genrsa -out ./postgres_tls/data/ca.key 2048
-openssl req -new -x509 -nodes -days 365 \
-   -key ./postgres_tls/data/ca.key \
-   -out ./postgres_tls/data/ca.crt \
-   -subj "/C=CO/ST=Cundinamarca/L=Bogota/O=deno-postgres.com/CN=deno-postgres.com"
+openssl req -x509 -nodes -new -sha256 -days 36135 -newkey rsa:2048 -keyout ./postgres_tls/data/ca.key -out ./postgres_tls/data/ca.pem -subj "/C=US/CN=Example-Root-CA"
+openssl x509 -outform pem -in ./postgres_tls/data/ca.pem -out ./postgres_tls/data/ca.crt
 
 # Generate leaf certificate
-openssl req -newkey rsa:2048 -nodes -days 365 \
-   -keyout ./postgres_tls/data/server.key \
-   -out ./postgres_tls/data/server.csr \
-   -subj "/C=CO/ST=Cundinamarca/L=Bogota/O=deno-postgres.com/CN=deno-postgres.com"
-openssl x509 -req -days 365 -set_serial 01 \
-   -in ./postgres_tls/data/server.csr \
-   -out ./postgres_tls/data/server.crt \
-   -CA ./postgres_tls/data/ca.crt \
-   -CAkey ./postgres_tls/data/ca.key
+openssl req -new -nodes -newkey rsa:2048 -keyout ./postgres_tls/data/server.key -out ./postgres_tls/data/server.csr -subj "/C=US/ST=YourState/L=YourCity/O=Example-Certificates/CN=localhost"
+openssl x509 -req -sha256 -days 36135 -in ./postgres_tls/data/server.csr -CA ./postgres_tls/data/ca.pem -CAkey ./postgres_tls/data/ca.key -CAcreateserial -extfile ./postgres_tls/data/domains.txt -out ./postgres_tls/data/server.crt
 
+rm ./postgres_tls/data/ca.pem
 rm ./postgres_tls/data/server.csr
+rm ./.srl
