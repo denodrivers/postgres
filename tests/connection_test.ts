@@ -90,7 +90,7 @@ Deno.test("Skips TLS connection when TLS disabled", async () => {
 Deno.test("TLS (certificate trusted)", async () => {
   const config = getTlsConfiguration();
   config.tls!.caFile = fromFileUrl(
-    new URL("../docker/postgres_tls/data/server.crt", import.meta.url),
+    new URL("../docker/postgres_tls/data/ca.crt", import.meta.url),
   );
   const client = new Client(config);
   await client.connect();
