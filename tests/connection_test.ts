@@ -18,31 +18,56 @@ function getRandomString() {
 Deno.test("Clear password authentication (unencrypted)", async () => {
   const client = new Client(getUnencryptedClearConfiguration());
   await client.connect();
-  await client.end();
+
+  try {
+    assertEquals(client.session.tls, false);
+  } finally {
+    await client.end();
+  }
 });
 
 Deno.test("Clear password authentication (tls)", async () => {
   const client = new Client(getTlsClearConfiguration());
   await client.connect();
-  await client.end();
+
+  try {
+    assertEquals(client.session.tls, true);
+  } finally {
+    await client.end();
+  }
 });
 
 Deno.test("MD5 authentication (unencrypted)", async () => {
   const client = new Client(getUnencryptedMd5Configuration());
   await client.connect();
-  await client.end();
+
+  try {
+    assertEquals(client.session.tls, false);
+  } finally {
+    await client.end();
+  }
 });
 
 Deno.test("MD5 authentication (tls)", async () => {
   const client = new Client(getTlsMd5Configuration());
   await client.connect();
-  await client.end();
+
+  try {
+    assertEquals(client.session.tls, true);
+  } finally {
+    await client.end();
+  }
 });
 
 Deno.test("SCRAM-SHA-256 authentication (no tls)", async () => {
   const client = new Client(getUnencryptedScramConfiguration());
   await client.connect();
-  await client.end();
+
+  try {
+    assertEquals(client.session.tls, false);
+  } finally {
+    await client.end();
+  }
 });
 
 Deno.test("TLS (certificate untrusted)", async () => {
@@ -74,12 +99,15 @@ Deno.test("Skips TLS connection when TLS disabled", async () => {
 
   await client.connect();
 
-  const { rows } = await client.queryObject<{ result: number }>({
-    fields: ["result"],
-    text: "SELECT 1",
-  });
-  assertEquals(rows[0], { result: 1 });
-  await client.end();
+  try {
+    const { rows } = await client.queryObject<{ result: number }>({
+      fields: ["result"],
+      text: "SELECT 1",
+    });
+    assertEquals(rows[0], { result: 1 });
+  } finally {
+    await client.end();
+  }
 });
 
 Deno.test("Handles bad authentication correctly", async function () {
@@ -87,16 +115,17 @@ Deno.test("Handles bad authentication correctly", async function () {
   badConnectionData.password += getRandomString();
   const client = new Client(badConnectionData);
 
-  await assertThrowsAsync(
-    async (): Promise<void> => {
-      await client.connect();
-    },
-    PostgresError,
-    "password authentication failed for user",
-  )
-    .finally(async () => {
-      await client.end();
-    });
+  try {
+    await assertThrowsAsync(
+      async (): Promise<void> => {
+        await client.connect();
+      },
+      PostgresError,
+      "password authentication failed for user",
+    );
+  } finally {
+    await client.end();
+  }
 });
 
 // This test requires current user database connection permissions
@@ -106,32 +135,37 @@ Deno.test("Startup error when database does not exist", async function () {
   badConnectionData.database += getRandomString();
   const client = new Client(badConnectionData);
 
-  await assertThrowsAsync(
-    async (): Promise<void> => {
-      await client.connect();
-    },
-    PostgresError,
-    "does not exist",
-  )
-    .finally(async () => {
-      await client.end();
-    });
+  try {
+    await assertThrowsAsync(
+      async (): Promise<void> => {
+        await client.connect();
+      },
+      PostgresError,
+      "does not exist",
+    );
+  } finally {
+    await client.end();
+  }
 });
 
 Deno.test("Exposes session PID", async () => {
   const client = new Client(getUnencryptedClearConfiguration());
   await client.connect();
-  const { rows } = await client.queryObject<{ pid: string }>(
-    "SELECT PG_BACKEND_PID() AS PID",
-  );
-  assertEquals(client.session.pid, rows[0].pid);
 
-  await client.end();
-  assertEquals(
-    client.session.pid,
-    undefined,
-    "PID is not cleared after disconnection",
-  );
+  try {
+    const { rows } = await client.queryObject<{ pid: string }>(
+      "SELECT PG_BACKEND_PID() AS PID",
+    );
+    assertEquals(client.session.pid, rows[0].pid);
+  } finally {
+    await client.end();
+
+    assertEquals(
+      client.session.pid,
+      undefined,
+      "PID was not cleared after disconnection",
+    );
+  }
 });
 
 Deno.test("Closes connection on bad TLS availability verification", async function () {
@@ -296,46 +330,48 @@ Deno.test("Attempts reconnection on disconnection", async function () {
   });
   await client.connect();
 
-  const test_table = "TEST_DENO_RECONNECTION_1";
-  const test_value = 1;
+  try {
+    const test_table = "TEST_DENO_RECONNECTION_1";
+    const test_value = 1;
 
-  await client.queryArray(`DROP TABLE IF EXISTS ${test_table}`);
-  await client.queryArray(`CREATE TABLE ${test_table} (X INT)`);
+    await client.queryArray(`DROP TABLE IF EXISTS ${test_table}`);
+    await client.queryArray(`CREATE TABLE ${test_table} (X INT)`);
 
-  await assertThrowsAsync(
-    () =>
-      client.queryArray(
-        `INSERT INTO ${test_table} VALUES (${test_value}); COMMIT; SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
-      ),
-    ConnectionError,
-    "The session was terminated by the database",
-  );
-  assertEquals(client.connected, false);
+    await assertThrowsAsync(
+      () =>
+        client.queryArray(
+          `INSERT INTO ${test_table} VALUES (${test_value}); COMMIT; SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
+        ),
+      ConnectionError,
+      "The session was terminated by the database",
+    );
+    assertEquals(client.connected, false);
 
-  const { rows: result_1 } = await client.queryObject<{ pid: string }>({
-    text: "SELECT PG_BACKEND_PID() AS PID",
-    fields: ["pid"],
-  });
-  assertEquals(
-    client.session.pid,
-    result_1[0].pid,
-    "The PID is not reseted after reconnection",
-  );
+    const { rows: result_1 } = await client.queryObject<{ pid: string }>({
+      text: "SELECT PG_BACKEND_PID() AS PID",
+      fields: ["pid"],
+    });
+    assertEquals(
+      client.session.pid,
+      result_1[0].pid,
+      "The PID is not reseted after reconnection",
+    );
 
-  const { rows: result_2 } = await client.queryObject<{ x: number }>({
-    text: `SELECT X FROM ${test_table}`,
-    fields: ["x"],
-  });
-  assertEquals(
-    result_2.length,
-    1,
-  );
-  assertEquals(
-    result_2[0].x,
-    test_value,
-  );
-
-  await client.end();
+    const { rows: result_2 } = await client.queryObject<{ x: number }>({
+      text: `SELECT X FROM ${test_table}`,
+      fields: ["x"],
+    });
+    assertEquals(
+      result_2.length,
+      1,
+    );
+    assertEquals(
+      result_2[0].x,
+      test_value,
+    );
+  } finally {
+    await client.end();
+  }
 });
 
 Deno.test("Doesn't attempt reconnection when attempts are set to zero", async function () {
@@ -344,14 +380,20 @@ Deno.test("Doesn't attempt reconnection when attempts are set to zero", async fu
     connection: { attempts: 0 },
   });
   await client.connect();
-  await assertThrowsAsync(() =>
-    client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`
-  );
-  assertEquals(client.connected, false);
 
-  await assertThrowsAsync(
-    () => client.queryArray`SELECT 1`,
-    Error,
-    "The client has been disconnected from the database",
-  );
+  try {
+    await assertThrowsAsync(() =>
+      client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`
+    );
+    assertEquals(client.connected, false);
+
+    await assertThrowsAsync(
+      () => client.queryArray`SELECT 1`,
+      Error,
+      "The client has been disconnected from the database",
+    );
+  } finally {
+    // End the connection in case the previous assertions failed
+    await client.end();
+  }
 });
