@@ -31,9 +31,10 @@ export interface Session {
    */
   pid: number | undefined;
   /**
-   * Indicates if the connection is being carried over TLS
+   * Indicates if the connection is being carried over TLS. It will be undefined when
+   * there is no connection stablished
    */
-  tls: boolean;
+  tls: boolean | undefined;
 }
 
 export abstract class QueryClient {

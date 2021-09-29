@@ -133,7 +133,7 @@ export class Connection {
   // Find out what the secret key is for
   // Clean on startup
   #secretKey?: number;
-  #tls = false;
+  #tls?: boolean;
   // TODO
   // Find out what the transaction status is used for
   // Clean on startup
@@ -273,7 +273,7 @@ export class Connection {
       [undefined],
     );
     this.#secretKey = undefined;
-    this.#tls = false;
+    this.#tls = undefined;
     this.#transactionStatus = undefined;
   }
 
@@ -282,12 +282,13 @@ export class Connection {
       this.#conn.close();
     } catch (_e) {
       // Swallow if the connection had errored or been closed beforehand
+    } finally {
+      this.#resetConnectionMetadata();
     }
   }
 
   async #startup() {
     this.#closeConnection();
-    this.#resetConnectionMetadata();
 
     const {
       hostname,
@@ -301,6 +302,7 @@ export class Connection {
 
     // A BufWriter needs to be available in order to check if the server accepts TLS connections
     await this.#createNonTlsConnection({ hostname, port });
+    this.#tls = false;
 
     if (tls_enabled) {
       // If TLS is disabled, we don't even try to connect.
@@ -1028,7 +1030,6 @@ export class Connection {
       } catch (_e) {
         // This steps can fail if the underlying connection had been closed ungracefully
       } finally {
-        this.#resetConnectionMetadata();
         this.#onDisconnection();
       }
     }
