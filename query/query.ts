@@ -49,7 +49,6 @@ export interface QueryConfig {
   encoder?: (arg: unknown) => EncodedArg;
   name?: string;
   text: string;
-  snakeToCamel?: boolean;
 }
 
 export interface QueryObjectConfig extends QueryConfig {
@@ -64,6 +63,7 @@ export interface QueryObjectConfig extends QueryConfig {
    * A field can not start with a number, just like JavaScript variables
    */
   fields?: string[];
+  camelcase?: boolean; // if true the output field names will be converted from snake_case to camelCase, omited, defaults to "false"
 }
 
 // TODO
@@ -161,9 +161,7 @@ export class QueryArrayResult<T extends Array<unknown> = Array<unknown>>
   }
 }
 
-export class QueryObjectResult<
-  T = Record<string, unknown>,
-> extends QueryResult {
+export class QueryObjectResult< T = Record<string, unknown>,> extends QueryResult {
   public rows: T[] = [];
 
   private snakeToCamelCase = (input: string) =>
@@ -207,14 +205,11 @@ export class QueryObjectResult<
       (row: Record<string, unknown>, raw_value, index) => {
         const column = this.rowDescription!.columns[index];
 
-        // convert snake_case to camelCase
-        const snakeToCamel: boolean = true;
-        let name;
-        if (snakeToCamel) name = this.snakeToCamelCase(this.query.fields?.[index] ?? column.name);
-        else name = this.query.fields?.[index] ?? column.name;
-
         // Find the field name provided by the user
         // default to database provided name
+        let name;
+        if (this.query.snakeToCamel) name = this.snakeToCamelCase(this.query.fields?.[index] ?? column.name); // convert snake_case to camelCase
+        else name = this.query.fields?.[index] ?? column.name;
         if (raw_value === null) {
           row[name] = null;
         } else {
@@ -251,6 +246,7 @@ export class Query<T extends ResultType> {
     } else {
       const {
         fields,
+        camelcase,
         ...query_config
       } = config_or_text;
 
@@ -273,17 +269,16 @@ export class Query<T extends ResultType> {
         }
 
         this.fields = clean_fields;
+
+        this.snakeToCamel = false;    // if fields are defined, omit conversion
+      } else if (camelcase) {      // omit conversion if fields are defined
+        this.snakeToCamel = camelcase;
       }
 
       config = query_config;
     }
     this.text = config.text;
     this.args = this.#prepareArgs(config);
-
-    this.snakeToCamel = config.snakeToCamel;
-    if (this.snakeToCamel===undefined) {
-      this.snakeToCamel = false;            // default = do not convert to CamelCase
-    }
   }
 
   #prepareArgs(config: QueryConfig): EncodedArg[] {
