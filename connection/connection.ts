@@ -345,6 +345,8 @@ export class Connection {
       try {
         startup_response = await this.#sendStartupMessage();
       } catch (e) {
+        // Make sure to close the connection before erroring or reseting
+        this.#conn.close();
         if (e instanceof Deno.errors.InvalidData && tls_enabled) {
           if (tls_enforced) {
             throw new Error(
