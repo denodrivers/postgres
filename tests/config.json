@@ -30,8 +30,8 @@
       "port": 5432,
       "users": {
         "clear": "clear",
-        "main": "postgres",
-        "md5": "md5"
+        "md5": "md5",
+        "tls_only": "tls_only"
       }
     }
   },
@@ -66,8 +66,8 @@
       "port": 6003,
       "users": {
         "clear": "clear",
-        "main": "postgres",
-        "md5": "md5"
+        "md5": "md5",
+        "tls_only": "tls_only"
       }
     }
   }

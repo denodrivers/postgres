@@ -277,12 +277,16 @@ export class Connection {
     this.#transactionStatus = undefined;
   }
 
-  async #startup() {
+  #closeConnection() {
     try {
       this.#conn.close();
     } catch (_e) {
-      // Swallow error
+      // Swallow if the connection had errored or been closed beforehand
     }
+  }
+
+  async #startup() {
+    this.#closeConnection();
     this.#resetConnectionMetadata();
 
     const {
@@ -303,7 +307,7 @@ export class Connection {
       const accepts_tls = await this.#serverAcceptsTLS()
         .catch((e) => {
           // Make sure to close the connection if the TLS validation throws
-          this.#conn.close();
+          this.#closeConnection();
           throw e;
         });
 
@@ -333,7 +337,7 @@ export class Connection {
         }
       } else if (tls_enforced) {
         // Make sure to close the connection before erroring
-        this.#conn.close();
+        this.#closeConnection();
         throw new Error(
           "The server isn't accepting TLS connections. Change the client configuration so TLS configuration isn't required to connect",
         );
@@ -346,7 +350,7 @@ export class Connection {
         startup_response = await this.#sendStartupMessage();
       } catch (e) {
         // Make sure to close the connection before erroring or reseting
-        this.#conn.close();
+        this.#closeConnection();
         if (e instanceof Deno.errors.InvalidData && tls_enabled) {
           if (tls_enforced) {
             throw new Error(
@@ -401,7 +405,7 @@ export class Connection {
 
       this.connected = true;
     } catch (e) {
-      this.#conn.close();
+      this.#closeConnection();
       throw e;
     }
   }
@@ -1020,9 +1024,9 @@ export class Connection {
       await this.#bufWriter.write(terminationMessage);
       try {
         await this.#bufWriter.flush();
-        this.#conn.close();
+        this.#closeConnection();
       } catch (_e) {
-        // This steps can fail if the underlying connection has been closed ungracefully
+        // This steps can fail if the underlying connection had been closed ungracefully
       } finally {
         this.#resetConnectionMetadata();
         this.#onDisconnection();

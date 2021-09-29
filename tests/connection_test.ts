@@ -1,8 +1,9 @@
 import { assertEquals, assertThrowsAsync, deferred } from "./test_deps.ts";
 import {
   getTlsClearConfiguration,
-  getTlsMainConfiguration,
   getTlsMd5Configuration,
+  getTlsOnlyConfiguration,
+  getTlsScramConfiguration,
   getUnencryptedClearConfiguration,
   getUnencryptedMainConfiguration,
   getUnencryptedMd5Configuration,
@@ -59,7 +60,7 @@ Deno.test("MD5 authentication (tls)", async () => {
   }
 });
 
-Deno.test("SCRAM-SHA-256 authentication (no tls)", async () => {
+Deno.test("SCRAM-SHA-256 authentication (unencrypted)", async () => {
   const client = new Client(getUnencryptedScramConfiguration());
   await client.connect();
 
@@ -70,9 +71,21 @@ Deno.test("SCRAM-SHA-256 authentication (no tls)", async () => {
   }
 });
 
+Deno.test("SCRAM-SHA-256 authentication (tls)", async () => {
+  const client = new Client(getTlsScramConfiguration());
+  await client.connect();
+
+  try {
+    assertEquals(client.session.tls, true);
+  } finally {
+    await client.end();
+  }
+});
+
 Deno.test("TLS (certificate untrusted)", async () => {
+  // Force TLS but don't provide CA
   const client = new Client({
-    ...getTlsMainConfiguration(),
+    ...getTlsOnlyConfiguration(),
     tls: {
       enabled: true,
       enforce: true,
@@ -93,18 +106,17 @@ Deno.test("TLS (certificate untrusted)", async () => {
 });
 Deno.test("Skips TLS connection when TLS disabled", async () => {
   const client = new Client({
-    ...getTlsMainConfiguration(),
+    ...getTlsOnlyConfiguration(),
     tls: { enabled: false },
   });
 
-  await client.connect();
-
+  // Connection will fail due to TLS only user
   try {
-    const { rows } = await client.queryObject<{ result: number }>({
-      fields: ["result"],
-      text: "SELECT 1",
-    });
-    assertEquals(rows[0], { result: 1 });
+    await assertThrowsAsync(
+      () => client.connect(),
+      PostgresError,
+      "no pg_hba.conf",
+    );
   } finally {
     await client.end();
   }

@@ -6,7 +6,21 @@ type ConfigFileConnection = Pick<
   "applicationName" | "database" | "hostname" | "password" | "port"
 >;
 
-type ClassicAuthentication = ConfigFileConnection & {
+type Scram = ConfigFileConnection & {
+  users: {
+    scram: string;
+  };
+};
+
+type Tls = ConfigFileConnection & {
+  users: {
+    clear: string;
+    md5: string;
+    tls_only: string;
+  };
+};
+
+type Unencrypted = ConfigFileConnection & {
   users: {
     clear: string;
     main: string;
@@ -14,16 +28,10 @@ type ClassicAuthentication = ConfigFileConnection & {
   };
 };
 
-type Scram = ConfigFileConnection & {
-  users: {
-    scram: string;
-  };
-};
-
 interface EnvironmentConfig {
-  postgres: ClassicAuthentication;
+  postgres: Unencrypted;
   postgres_scram: Scram;
-  postgres_tls: ClassicAuthentication;
+  postgres_tls: Tls;
 }
 
 const config_file: {
@@ -37,6 +45,10 @@ const config = Deno.env.get("DEVELOPMENT") === "true"
   ? config_file.local
   : config_file.ci;
 
+const disabled_tls = {
+  enabled: false,
+};
+
 export const getUnencryptedClearConfiguration = (): ClientOptions => {
   return {
     applicationName: config.postgres.applicationName,
@@ -44,6 +56,7 @@ export const getUnencryptedClearConfiguration = (): ClientOptions => {
     hostname: config.postgres.hostname,
     password: config.postgres.password,
     port: config.postgres.port,
+    tls: disabled_tls,
     user: config.postgres.users.clear,
   };
 };
@@ -56,6 +69,7 @@ export const getUnencryptedMainConfiguration = (): ClientOptions => {
     hostname: config.postgres.hostname,
     password: config.postgres.password,
     port: config.postgres.port,
+    tls: disabled_tls,
     user: config.postgres.users.main,
   };
 };
@@ -67,6 +81,7 @@ export const getUnencryptedMd5Configuration = (): ClientOptions => {
     hostname: config.postgres.hostname,
     password: config.postgres.password,
     port: config.postgres.port,
+    tls: disabled_tls,
     user: config.postgres.users.md5,
   };
 };
@@ -78,6 +93,7 @@ export const getUnencryptedScramConfiguration = (): ClientOptions => {
     hostname: config.postgres_scram.hostname,
     password: config.postgres_scram.password,
     port: config.postgres_scram.port,
+    tls: disabled_tls,
     user: config.postgres_scram.users.scram,
   };
 };
@@ -100,18 +116,6 @@ export const getTlsClearConfiguration = (): ClientOptions => {
   };
 };
 
-export const getTlsMainConfiguration = (): ClientOptions => {
-  return {
-    applicationName: config.postgres_tls.applicationName,
-    database: config.postgres_tls.database,
-    hostname: config.postgres_tls.hostname,
-    password: config.postgres_tls.password,
-    port: config.postgres_tls.port,
-    tls: strict_tls_config,
-    user: config.postgres_tls.users.main,
-  };
-};
-
 export const getTlsMd5Configuration = (): ClientOptions => {
   return {
     applicationName: config.postgres_tls.applicationName,
@@ -124,13 +128,26 @@ export const getTlsMd5Configuration = (): ClientOptions => {
   };
 };
 
-// export const getTlsScramConfiguration = (): ClientOptions => {
-//   return {
-//     applicationName: config.postgres_scram.applicationName,
-//     database: config.postgres_scram.database,
-//     hostname: config.postgres_scram.hostname,
-//     password: config.postgres_scram.password,
-//     port: config.postgres_scram.port,
-//     user: config.postgres_scram.users.scram,
-//   };
-// };
+export const getTlsOnlyConfiguration = (): ClientOptions => {
+  return {
+    applicationName: config.postgres_tls.applicationName,
+    database: config.postgres_tls.database,
+    hostname: config.postgres_tls.hostname,
+    password: config.postgres_tls.password,
+    port: config.postgres_tls.port,
+    tls: strict_tls_config,
+    user: config.postgres_tls.users.tls_only,
+  };
+};
+
+export const getTlsScramConfiguration = (): ClientOptions => {
+  return {
+    applicationName: config.postgres_scram.applicationName,
+    database: config.postgres_scram.database,
+    hostname: config.postgres_scram.hostname,
+    password: config.postgres_scram.password,
+    port: config.postgres_scram.port,
+    tls: strict_tls_config,
+    user: config.postgres_scram.users.scram,
+  };
+};
