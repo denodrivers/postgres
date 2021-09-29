@@ -1,13 +1,10 @@
 import { assertEquals, assertThrowsAsync, deferred } from "./test_deps.ts";
 import {
-  getTlsClearConfiguration,
-  getTlsMd5Configuration,
+  getClearConfiguration,
+  getMainConfiguration,
+  getMd5Configuration,
+  getScramConfiguration,
   getTlsOnlyConfiguration,
-  getTlsScramConfiguration,
-  getUnencryptedClearConfiguration,
-  getUnencryptedMainConfiguration,
-  getUnencryptedMd5Configuration,
-  getUnencryptedScramConfiguration,
 } from "./config.ts";
 import { Client, PostgresError } from "../mod.ts";
 import { ConnectionError } from "../connection/warning.ts";
@@ -17,7 +14,7 @@ function getRandomString() {
 }
 
 Deno.test("Clear password authentication (unencrypted)", async () => {
-  const client = new Client(getUnencryptedClearConfiguration());
+  const client = new Client(getClearConfiguration(false));
   await client.connect();
 
   try {
@@ -28,7 +25,7 @@ Deno.test("Clear password authentication (unencrypted)", async () => {
 });
 
 Deno.test("Clear password authentication (tls)", async () => {
-  const client = new Client(getTlsClearConfiguration());
+  const client = new Client(getClearConfiguration(true));
   await client.connect();
 
   try {
@@ -39,7 +36,7 @@ Deno.test("Clear password authentication (tls)", async () => {
 });
 
 Deno.test("MD5 authentication (unencrypted)", async () => {
-  const client = new Client(getUnencryptedMd5Configuration());
+  const client = new Client(getMd5Configuration(false));
   await client.connect();
 
   try {
@@ -50,7 +47,7 @@ Deno.test("MD5 authentication (unencrypted)", async () => {
 });
 
 Deno.test("MD5 authentication (tls)", async () => {
-  const client = new Client(getTlsMd5Configuration());
+  const client = new Client(getMd5Configuration(true));
   await client.connect();
 
   try {
@@ -61,7 +58,7 @@ Deno.test("MD5 authentication (tls)", async () => {
 });
 
 Deno.test("SCRAM-SHA-256 authentication (unencrypted)", async () => {
-  const client = new Client(getUnencryptedScramConfiguration());
+  const client = new Client(getScramConfiguration(false));
   await client.connect();
 
   try {
@@ -72,7 +69,7 @@ Deno.test("SCRAM-SHA-256 authentication (unencrypted)", async () => {
 });
 
 Deno.test("SCRAM-SHA-256 authentication (tls)", async () => {
-  const client = new Client(getTlsScramConfiguration());
+  const client = new Client(getScramConfiguration(true));
   await client.connect();
 
   try {
@@ -122,8 +119,25 @@ Deno.test("Skips TLS connection when TLS disabled", async () => {
   }
 });
 
+Deno.test("Default to unencrypted when TLS invalid and not enforced", async () => {
+  // Remove CA, request tls and disable enforce
+  const client = new Client({
+    ...getMainConfiguration(),
+    tls: { enabled: true, enforce: false },
+  });
+
+  await client.connect();
+
+  // Connection will fail due to TLS only user
+  try {
+    assertEquals(client.session.tls, false);
+  } finally {
+    await client.end();
+  }
+});
+
 Deno.test("Handles bad authentication correctly", async function () {
-  const badConnectionData = getUnencryptedMainConfiguration();
+  const badConnectionData = getMainConfiguration();
   badConnectionData.password += getRandomString();
   const client = new Client(badConnectionData);
 
@@ -143,7 +157,7 @@ Deno.test("Handles bad authentication correctly", async function () {
 // This test requires current user database connection permissions
 // on "pg_hba.conf" set to "all"
 Deno.test("Startup error when database does not exist", async function () {
-  const badConnectionData = getUnencryptedMainConfiguration();
+  const badConnectionData = getMainConfiguration();
   badConnectionData.database += getRandomString();
   const client = new Client(badConnectionData);
 
@@ -161,7 +175,7 @@ Deno.test("Startup error when database does not exist", async function () {
 });
 
 Deno.test("Exposes session PID", async () => {
-  const client = new Client(getUnencryptedClearConfiguration());
+  const client = new Client(getMainConfiguration());
   await client.connect();
 
   try {
@@ -335,7 +349,7 @@ Deno.test("Attempts reconnection on connection startup", async function () {
 // status report is only executed one (regression test)
 Deno.test("Attempts reconnection on disconnection", async function () {
   const client = new Client({
-    ...getUnencryptedMainConfiguration(),
+    ...getMainConfiguration(),
     connection: {
       attempts: 1,
     },
@@ -388,7 +402,7 @@ Deno.test("Attempts reconnection on disconnection", async function () {
 
 Deno.test("Doesn't attempt reconnection when attempts are set to zero", async function () {
   const client = new Client({
-    ...getUnencryptedMainConfiguration(),
+    ...getMainConfiguration(),
     connection: { attempts: 0 },
   });
   await client.connect();
