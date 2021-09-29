@@ -78,8 +78,29 @@ Deno.test("SCRAM-SHA-256 authentication (tls)", async () => {
     await client.end();
   }
 });
+Deno.test("Skips TLS connection when TLS disabled", async () => {
+  const client = new Client({
+    ...getTlsOnlyConfiguration(),
+    tls: { enabled: false },
+  });
 
-Deno.test("TLS (certificate untrusted)", async () => {
+  // Connection will fail due to TLS only user
+  try {
+    await assertThrowsAsync(
+      () => client.connect(),
+      PostgresError,
+      "no pg_hba.conf",
+    );
+  } finally {
+    try {
+      assertEquals(client.session.tls, undefined);
+    } finally {
+      await client.end();
+    }
+  }
+});
+
+Deno.test("Aborts TLS connection when certificate is untrusted", async () => {
   // Force TLS but don't provide CA
   const client = new Client({
     ...getTlsOnlyConfiguration(),
@@ -98,28 +119,15 @@ Deno.test("TLS (certificate untrusted)", async () => {
       "The certificate used to secure the TLS connection is invalid",
     );
   } finally {
-    await client.end();
-  }
-});
-Deno.test("Skips TLS connection when TLS disabled", async () => {
-  const client = new Client({
-    ...getTlsOnlyConfiguration(),
-    tls: { enabled: false },
-  });
-
-  // Connection will fail due to TLS only user
-  try {
-    await assertThrowsAsync(
-      () => client.connect(),
-      PostgresError,
-      "no pg_hba.conf",
-    );
-  } finally {
-    await client.end();
+    try {
+      assertEquals(client.session.tls, undefined);
+    } finally {
+      await client.end();
+    }
   }
 });
 
-Deno.test("Default to unencrypted when TLS invalid and not enforced", async () => {
+Deno.test("Defaults to unencrypted when certificate is invalid and TLS is not enforced", async () => {
   // Remove CA, request tls and disable enforce
   const client = new Client({
     ...getMainConfiguration(),
@@ -190,6 +198,23 @@ Deno.test("Exposes session PID", async () => {
       client.session.pid,
       undefined,
       "PID was not cleared after disconnection",
+    );
+  }
+});
+
+Deno.test("Exposes session encryption", async () => {
+  const client = new Client(getMainConfiguration());
+  await client.connect();
+
+  try {
+    assertEquals(client.session.tls, true);
+  } finally {
+    await client.end();
+
+    assertEquals(
+      client.session.tls,
+      undefined,
+      "TLS was not cleared after disconnection",
     );
   }
 });
