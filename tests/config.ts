@@ -6,32 +6,24 @@ type ConfigFileConnection = Pick<
   "applicationName" | "database" | "hostname" | "password" | "port"
 >;
 
+type Classic = ConfigFileConnection & {
+  users: {
+    clear: string;
+    main: string;
+    md5: string;
+    tls_only: string;
+  };
+};
+
 type Scram = ConfigFileConnection & {
   users: {
     scram: string;
   };
 };
 
-type Tls = ConfigFileConnection & {
-  users: {
-    clear: string;
-    md5: string;
-    tls_only: string;
-  };
-};
-
-type Unencrypted = ConfigFileConnection & {
-  users: {
-    clear: string;
-    main: string;
-    md5: string;
-  };
-};
-
 interface EnvironmentConfig {
-  postgres: Unencrypted;
+  postgres_classic: Classic;
   postgres_scram: Scram;
-  postgres_tls: Tls;
 }
 
 const config_file: {
@@ -51,38 +43,38 @@ const disabled_tls = {
 
 export const getUnencryptedClearConfiguration = (): ClientOptions => {
   return {
-    applicationName: config.postgres.applicationName,
-    database: config.postgres.database,
-    hostname: config.postgres.hostname,
-    password: config.postgres.password,
-    port: config.postgres.port,
+    applicationName: config.postgres_classic.applicationName,
+    database: config.postgres_classic.database,
+    hostname: config.postgres_classic.hostname,
+    password: config.postgres_classic.password,
+    port: config.postgres_classic.port,
     tls: disabled_tls,
-    user: config.postgres.users.clear,
+    user: config.postgres_classic.users.clear,
   };
 };
 
 /** MD5 authenticated user with privileged access to the database */
 export const getUnencryptedMainConfiguration = (): ClientOptions => {
   return {
-    applicationName: config.postgres.applicationName,
-    database: config.postgres.database,
-    hostname: config.postgres.hostname,
-    password: config.postgres.password,
-    port: config.postgres.port,
+    applicationName: config.postgres_classic.applicationName,
+    database: config.postgres_classic.database,
+    hostname: config.postgres_classic.hostname,
+    password: config.postgres_classic.password,
+    port: config.postgres_classic.port,
     tls: disabled_tls,
-    user: config.postgres.users.main,
+    user: config.postgres_classic.users.main,
   };
 };
 
 export const getUnencryptedMd5Configuration = (): ClientOptions => {
   return {
-    applicationName: config.postgres.applicationName,
-    database: config.postgres.database,
-    hostname: config.postgres.hostname,
-    password: config.postgres.password,
-    port: config.postgres.port,
+    applicationName: config.postgres_classic.applicationName,
+    database: config.postgres_classic.database,
+    hostname: config.postgres_classic.hostname,
+    password: config.postgres_classic.password,
+    port: config.postgres_classic.port,
     tls: disabled_tls,
-    user: config.postgres.users.md5,
+    user: config.postgres_classic.users.md5,
   };
 };
 
@@ -106,37 +98,37 @@ const strict_tls_config = {
 
 export const getTlsClearConfiguration = (): ClientOptions => {
   return {
-    applicationName: config.postgres_tls.applicationName,
-    database: config.postgres_tls.database,
-    hostname: config.postgres_tls.hostname,
-    password: config.postgres_tls.password,
-    port: config.postgres_tls.port,
+    applicationName: config.postgres_classic.applicationName,
+    database: config.postgres_classic.database,
+    hostname: config.postgres_classic.hostname,
+    password: config.postgres_classic.password,
+    port: config.postgres_classic.port,
     tls: strict_tls_config,
-    user: config.postgres_tls.users.clear,
+    user: config.postgres_classic.users.clear,
   };
 };
 
 export const getTlsMd5Configuration = (): ClientOptions => {
   return {
-    applicationName: config.postgres_tls.applicationName,
-    database: config.postgres_tls.database,
-    hostname: config.postgres_tls.hostname,
-    password: config.postgres_tls.password,
-    port: config.postgres_tls.port,
+    applicationName: config.postgres_classic.applicationName,
+    database: config.postgres_classic.database,
+    hostname: config.postgres_classic.hostname,
+    password: config.postgres_classic.password,
+    port: config.postgres_classic.port,
     tls: strict_tls_config,
-    user: config.postgres_tls.users.md5,
+    user: config.postgres_classic.users.md5,
   };
 };
 
 export const getTlsOnlyConfiguration = (): ClientOptions => {
   return {
-    applicationName: config.postgres_tls.applicationName,
-    database: config.postgres_tls.database,
-    hostname: config.postgres_tls.hostname,
-    password: config.postgres_tls.password,
-    port: config.postgres_tls.port,
+    applicationName: config.postgres_classic.applicationName,
+    database: config.postgres_classic.database,
+    hostname: config.postgres_classic.hostname,
+    password: config.postgres_classic.password,
+    port: config.postgres_classic.port,
     tls: strict_tls_config,
-    user: config.postgres_tls.users.tls_only,
+    user: config.postgres_classic.users.tls_only,
   };
 };
 

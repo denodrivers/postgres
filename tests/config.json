@@ -1,15 +1,16 @@
 {
   "ci": {
-    "postgres": {
+    "postgres_classic": {
       "applicationName": "deno_postgres",
       "database": "postgres",
-      "hostname": "postgres",
+      "hostname": "postgres_classic",
       "password": "postgres",
       "port": 5432,
       "users": {
         "clear": "clear",
         "main": "postgres",
-        "md5": "md5"
+        "md5": "md5",
+        "tls_only": "tls_only"
       }
     },
     "postgres_scram": {
@@ -21,22 +22,10 @@
       "users": {
         "scram": "scram"
       }
-    },
-    "postgres_tls": {
-      "applicationName": "deno_postgres",
-      "database": "postgres",
-      "hostname": "postgres_tls",
-      "password": "postgres",
-      "port": 5432,
-      "users": {
-        "clear": "clear",
-        "md5": "md5",
-        "tls_only": "tls_only"
-      }
     }
   },
   "local": {
-    "postgres": {
+    "postgres_classic": {
       "applicationName": "deno_postgres",
       "database": "postgres",
       "hostname": "localhost",
@@ -45,7 +34,8 @@
       "users": {
         "clear": "clear",
         "main": "postgres",
-        "md5": "md5"
+        "md5": "md5",
+        "tls_only": "tls_only"
       }
     },
     "postgres_scram": {
@@ -56,18 +46,6 @@
       "port": 6002,
       "users": {
         "scram": "scram"
-      }
-    },
-    "postgres_tls": {
-      "applicationName": "deno_postgres",
-      "database": "postgres",
-      "hostname": "localhost",
-      "password": "postgres",
-      "port": 6003,
-      "users": {
-        "clear": "clear",
-        "md5": "md5",
-        "tls_only": "tls_only"
       }
     }
   }
