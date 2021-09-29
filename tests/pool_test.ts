@@ -1,6 +1,6 @@
 import { assertEquals, delay } from "./test_deps.ts";
 import { Pool } from "../pool.ts";
-import { getMainConfiguration } from "./config.ts";
+import { getUnencryptedMainConfiguration } from "./config.ts";
 
 function testPool(
   name: string,
@@ -9,7 +9,7 @@ function testPool(
   lazy = false,
 ) {
   const fn = async () => {
-    const POOL = new Pool(getMainConfiguration(), size, lazy);
+    const POOL = new Pool(getUnencryptedMainConfiguration(), size, lazy);
     // If the connection is not lazy, create a client to await
     // for initialization
     if (!lazy) {

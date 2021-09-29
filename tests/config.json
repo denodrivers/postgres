@@ -28,11 +28,10 @@
       "hostname": "postgres_tls",
       "password": "postgres",
       "port": 5432,
-      "tls": {
-        "enforce": true
-      },
       "users": {
-        "main": "postgres"
+        "clear": "clear",
+        "main": "postgres",
+        "md5": "md5"
       }
     }
   },
@@ -65,11 +64,10 @@
       "hostname": "localhost",
       "password": "postgres",
       "port": 6003,
-      "tls": {
-        "enforce": true
-      },
       "users": {
-        "main": "postgres"
+        "clear": "clear",
+        "main": "postgres",
+        "md5": "md5"
       }
     }
   }

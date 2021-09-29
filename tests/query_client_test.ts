@@ -1,6 +1,6 @@
 import { Client, ConnectionError, Pool, PostgresError } from "../mod.ts";
 import { assert, assertEquals, assertThrowsAsync } from "./test_deps.ts";
-import { getMainConfiguration } from "./config.ts";
+import { getUnencryptedMainConfiguration } from "./config.ts";
 import { PoolClient, QueryClient } from "../client.ts";
 
 function testClient(
@@ -11,7 +11,7 @@ function testClient(
     const clients: Client[] = [];
     try {
       await t(async () => {
-        const client = new Client(getMainConfiguration());
+        const client = new Client(getUnencryptedMainConfiguration());
         await client.connect();
         clients.push(client);
         return client;
@@ -24,7 +24,7 @@ function testClient(
   }
 
   async function poolWrapper() {
-    const pool = new Pool(getMainConfiguration(), 10);
+    const pool = new Pool(getUnencryptedMainConfiguration(), 10);
     const clients: PoolClient[] = [];
     try {
       await t(async () => {

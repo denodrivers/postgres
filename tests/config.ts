@@ -1,41 +1,28 @@
 import { ClientOptions } from "../connection/connection_params.ts";
 
+type ConfigFileConnection = Pick<
+  ClientOptions,
+  "applicationName" | "database" | "hostname" | "password" | "port"
+>;
+
+type ClassicAuthentication = ConfigFileConnection & {
+  users: {
+    clear: string;
+    main: string;
+    md5: string;
+  };
+};
+
+type Scram = ConfigFileConnection & {
+  users: {
+    scram: string;
+  };
+};
+
 interface EnvironmentConfig {
-  postgres: {
-    applicationName: string;
-    database: string;
-    hostname: string;
-    password: string;
-    port: string | number;
-    users: {
-      clear: string;
-      main: string;
-      md5: string;
-    };
-  };
-  postgres_scram: {
-    applicationName: string;
-    database: string;
-    hostname: string;
-    password: string;
-    port: string | number;
-    users: {
-      scram: string;
-    };
-  };
-  postgres_tls: {
-    applicationName: string;
-    database: string;
-    hostname: string;
-    password: string;
-    port: string | number;
-    tls: {
-      enforce: boolean;
-    };
-    users: {
-      main: string;
-    };
-  };
+  postgres: ClassicAuthentication;
+  postgres_scram: Scram;
+  postgres_tls: ClassicAuthentication;
 }
 
 const config_file: {
@@ -49,7 +36,7 @@ const config = Deno.env.get("DEVELOPMENT") === "true"
   ? config_file.local
   : config_file.ci;
 
-export const getClearConfiguration = (): ClientOptions => {
+export const getUnencryptedClearConfiguration = (): ClientOptions => {
   return {
     applicationName: config.postgres.applicationName,
     database: config.postgres.database,
@@ -60,7 +47,8 @@ export const getClearConfiguration = (): ClientOptions => {
   };
 };
 
-export const getMainConfiguration = (): ClientOptions => {
+/** MD5 authenticated user with privileged access to the database */
+export const getUnencryptedMainConfiguration = (): ClientOptions => {
   return {
     applicationName: config.postgres.applicationName,
     database: config.postgres.database,
@@ -71,7 +59,7 @@ export const getMainConfiguration = (): ClientOptions => {
   };
 };
 
-export const getMd5Configuration = (): ClientOptions => {
+export const getUnencryptedMd5Configuration = (): ClientOptions => {
   return {
     applicationName: config.postgres.applicationName,
     database: config.postgres.database,
@@ -82,7 +70,7 @@ export const getMd5Configuration = (): ClientOptions => {
   };
 };
 
-export const getScramSha256Configuration = (): ClientOptions => {
+export const getUnencryptedScramConfiguration = (): ClientOptions => {
   return {
     applicationName: config.postgres_scram.applicationName,
     database: config.postgres_scram.database,
@@ -93,31 +81,13 @@ export const getScramSha256Configuration = (): ClientOptions => {
   };
 };
 
-export const getTlsConfiguration = (): ClientOptions => {
+export const getTlsMainConfiguration = (): ClientOptions => {
   return {
     applicationName: config.postgres_tls.applicationName,
     database: config.postgres_tls.database,
     hostname: config.postgres_tls.hostname,
     password: config.postgres_tls.password,
     port: config.postgres_tls.port,
-    tls: {
-      enabled: true,
-      enforce: config.postgres_tls.tls.enforce,
-    },
-    user: config.postgres_tls.users.main,
-  };
-};
-
-export const getSkippableTlsConfiguration = (): ClientOptions => {
-  return {
-    applicationName: config.postgres_tls.applicationName,
-    database: config.postgres_tls.database,
-    hostname: config.postgres_tls.hostname,
-    password: config.postgres_tls.password,
-    port: config.postgres_tls.port,
-    tls: {
-      enabled: false,
-    },
     user: config.postgres_tls.users.main,
   };
 };

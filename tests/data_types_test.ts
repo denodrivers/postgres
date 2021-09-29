@@ -1,6 +1,6 @@
 import { assertEquals, base64, formatDate, parseDate } from "./test_deps.ts";
 import { Client } from "../mod.ts";
-import { getMainConfiguration } from "./config.ts";
+import { getUnencryptedMainConfiguration } from "./config.ts";
 import { getTestClient } from "./helpers.ts";
 import {
   Box,
@@ -30,7 +30,7 @@ function generateRandomPoint(max_value = 100): Point {
   };
 }
 
-const CLIENT = new Client(getMainConfiguration());
+const CLIENT = new Client(getUnencryptedMainConfiguration());
 const testClient = getTestClient(CLIENT);
 
 testClient(async function inet() {
@@ -231,7 +231,7 @@ testClient(async function regtypeArray() {
 });
 
 testClient(async function regrole() {
-  const user = getMainConfiguration().user;
+  const user = getUnencryptedMainConfiguration().user;
 
   const result = await CLIENT.queryArray(
     `SELECT ($1)::regrole`,
@@ -242,7 +242,7 @@ testClient(async function regrole() {
 });
 
 testClient(async function regroleArray() {
-  const user = getMainConfiguration().user;
+  const user = getUnencryptedMainConfiguration().user;
 
   const result = await CLIENT.queryArray(
     `SELECT ARRAY[($1)::regrole]`,
