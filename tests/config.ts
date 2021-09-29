@@ -1,4 +1,5 @@
 import { ClientOptions } from "../connection/connection_params.ts";
+import { fromFileUrl } from "./test_deps.ts";
 
 type ConfigFileConnection = Pick<
   ClientOptions,
@@ -81,6 +82,24 @@ export const getUnencryptedScramConfiguration = (): ClientOptions => {
   };
 };
 
+const strict_tls_config = {
+  caFile: fromFileUrl(new URL("../docker/certs/ca.crt", import.meta.url)),
+  enabled: true,
+  enforce: true,
+};
+
+export const getTlsClearConfiguration = (): ClientOptions => {
+  return {
+    applicationName: config.postgres_tls.applicationName,
+    database: config.postgres_tls.database,
+    hostname: config.postgres_tls.hostname,
+    password: config.postgres_tls.password,
+    port: config.postgres_tls.port,
+    tls: strict_tls_config,
+    user: config.postgres_tls.users.clear,
+  };
+};
+
 export const getTlsMainConfiguration = (): ClientOptions => {
   return {
     applicationName: config.postgres_tls.applicationName,
@@ -88,6 +107,30 @@ export const getTlsMainConfiguration = (): ClientOptions => {
     hostname: config.postgres_tls.hostname,
     password: config.postgres_tls.password,
     port: config.postgres_tls.port,
+    tls: strict_tls_config,
     user: config.postgres_tls.users.main,
   };
 };
+
+export const getTlsMd5Configuration = (): ClientOptions => {
+  return {
+    applicationName: config.postgres_tls.applicationName,
+    database: config.postgres_tls.database,
+    hostname: config.postgres_tls.hostname,
+    password: config.postgres_tls.password,
+    port: config.postgres_tls.port,
+    tls: strict_tls_config,
+    user: config.postgres_tls.users.md5,
+  };
+};
+
+// export const getTlsScramConfiguration = (): ClientOptions => {
+//   return {
+//     applicationName: config.postgres_scram.applicationName,
+//     database: config.postgres_scram.database,
+//     hostname: config.postgres_scram.hostname,
+//     password: config.postgres_scram.password,
+//     port: config.postgres_scram.port,
+//     user: config.postgres_scram.users.scram,
+//   };
+// };

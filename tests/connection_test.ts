@@ -1,11 +1,8 @@
+import { assertEquals, assertThrowsAsync, deferred } from "./test_deps.ts";
 import {
-  assertEquals,
-  assertThrowsAsync,
-  deferred,
-  fromFileUrl,
-} from "./test_deps.ts";
-import {
+  getTlsClearConfiguration,
   getTlsMainConfiguration,
+  getTlsMd5Configuration,
   getUnencryptedClearConfiguration,
   getUnencryptedMainConfiguration,
   getUnencryptedMd5Configuration,
@@ -18,14 +15,26 @@ function getRandomString() {
   return Math.random().toString(36).substring(7);
 }
 
-Deno.test("Clear password authentication (no tls)", async () => {
+Deno.test("Clear password authentication (unencrypted)", async () => {
   const client = new Client(getUnencryptedClearConfiguration());
   await client.connect();
   await client.end();
 });
 
-Deno.test("MD5 authentication (no tls)", async () => {
+Deno.test("Clear password authentication (tls)", async () => {
+  const client = new Client(getTlsClearConfiguration());
+  await client.connect();
+  await client.end();
+});
+
+Deno.test("MD5 authentication (unencrypted)", async () => {
   const client = new Client(getUnencryptedMd5Configuration());
+  await client.connect();
+  await client.end();
+});
+
+Deno.test("MD5 authentication (tls)", async () => {
+  const client = new Client(getTlsMd5Configuration());
   await client.connect();
   await client.end();
 });
@@ -57,27 +66,6 @@ Deno.test("TLS (certificate untrusted)", async () => {
     await client.end();
   }
 });
-
-Deno.test("Skips TLS encryption when TLS disabled", async () => {
-  const client = new Client({
-    ...getTlsMainConfiguration(),
-    tls: { enabled: false },
-  });
-
-  try {
-    await client.connect();
-
-    const { rows } = await client.queryObject<{ result: number }>({
-      fields: ["result"],
-      text: "SELECT 1",
-    });
-
-    assertEquals(rows[0], { result: 1 });
-  } finally {
-    await client.end();
-  }
-});
-
 Deno.test("Skips TLS connection when TLS disabled", async () => {
   const client = new Client({
     ...getTlsMainConfiguration(),
@@ -91,21 +79,6 @@ Deno.test("Skips TLS connection when TLS disabled", async () => {
     text: "SELECT 1",
   });
   assertEquals(rows[0], { result: 1 });
-  await client.end();
-});
-
-Deno.test("TLS (certificate trusted)", async () => {
-  const client = new Client({
-    ...getTlsMainConfiguration(),
-    tls: {
-      caFile: fromFileUrl(
-        new URL("../docker/certs/ca.crt", import.meta.url),
-      ),
-      enabled: true,
-      enforce: true,
-    },
-  });
-  await client.connect();
   await client.end();
 });
 
