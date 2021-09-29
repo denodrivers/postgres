@@ -30,6 +30,10 @@ export interface Session {
    * on connection. This id will undefined when there is no connection stablished
    */
   pid: number | undefined;
+  /**
+   * Indicates if the connection is being carried over TLS
+   */
+  tls: boolean;
 }
 
 export abstract class QueryClient {
@@ -51,6 +55,7 @@ export abstract class QueryClient {
     return {
       current_transaction: this.#transaction,
       pid: this.#connection.pid,
+      tls: this.#connection.tls,
     };
   }
 
