@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  postgres:
+  postgres_classic:
     image: postgres
     hostname: postgres
     environment:
@@ -9,8 +9,8 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
     volumes:
-      - ./docker/postgres/data/:/var/lib/postgresql/host/
-      - ./docker/postgres/init/:/docker-entrypoint-initdb.d/
+      - ./docker/postgres_classic/data/:/var/lib/postgresql/host/
+      - ./docker/postgres_classic/init/:/docker-entrypoint-initdb.d/
     ports:
       - "6001:5432"
   postgres_scram:
@@ -27,26 +27,13 @@ services:
       - ./docker/postgres_scram/init/:/docker-entrypoint-initdb.d/
     ports:
       - "6002:5432"
-  postgres_tls:
-    image: postgres
-    hostname: postgres_tls
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-    volumes:
-      - ./docker/postgres_tls/data/:/var/lib/postgresql/host/
-      - ./docker/postgres_tls/init/:/docker-entrypoint-initdb.d/
-    ports:
-      - "6003:5432"
   tests:
     build: .
     depends_on:
-      - postgres
+      - postgres_classic
       - postgres_scram
-      - postgres_tls
     environment:
-      - WAIT_HOSTS=postgres:5432,postgres_scram:5432,postgres_tls:5432
+      - WAIT_HOSTS=postgres_classic:5432,postgres_scram:5432
       # Wait thirty seconds after database goes online
       # For database metadata initialization
       - WAIT_AFTER_HOSTS=15

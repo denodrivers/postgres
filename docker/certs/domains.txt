@@ -4,4 +4,5 @@ keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
 subjectAltName = @alt_names
 [alt_names]
 DNS.1 = localhost
-DNS.2 = postgres_tls
+DNS.2 = postgres_classic
+DNS.3 = postgres_scram

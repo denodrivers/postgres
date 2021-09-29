@@ -1,0 +1,5 @@
+*
+
+!.gitignore
+!ca.crt
+!domains.txt
