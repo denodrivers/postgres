@@ -34,7 +34,7 @@ function testClient(
       });
     } finally {
       for (const client of clients) {
-        await client.release();
+        client.release();
       }
       await pool.end();
     }

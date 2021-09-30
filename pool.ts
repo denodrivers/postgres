@@ -24,7 +24,7 @@ import { DeferredAccessStack } from "./utils/deferred.ts";
  *
  * const client = await pool.connect();
  * await client.queryArray`SELECT 1`;
- * await client.release();
+ * client.release();
  * ```
  *
  * You can also opt to not initialize all your connections at once by passing the `lazy`
@@ -116,7 +116,7 @@ export class Pool {
    * ```ts
    * const client = pool.connect();
    * await client.queryArray`UPDATE MY_TABLE SET X = 1`;
-   * await client.release();
+   * client.release();
    * ```
    */
   async connect(): Promise<PoolClient> {
