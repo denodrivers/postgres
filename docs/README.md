@@ -289,7 +289,7 @@ const dbPool = new Pool({
 
 const client = await dbPool.connect(); // 19 connections are still available
 await client.queryArray`UPDATE X SET Y = 'Z'`;
-await client.release(); // This connection is now available for use again
+client.release(); // This connection is now available for use again
 ```
 
 The number of pools is up to you, but a pool of 20 is good for small
@@ -359,8 +359,9 @@ single function call
 ```ts
 async function runQuery(query: string) {
   const client = await pool.connect();
+  let result;
   try {
-    const result = await client.queryObject(query);
+    result = await client.queryObject(query);
   } finally {
     client.release();
   }

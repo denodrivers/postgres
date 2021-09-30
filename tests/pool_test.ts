@@ -14,7 +14,7 @@ function testPool(
     // for initialization
     if (!lazy) {
       const client = await POOL.connect();
-      await client.release();
+      client.release();
     }
     try {
       await t(POOL, size, lazy);
@@ -35,7 +35,7 @@ testPool(
     assertEquals(POOL.available, 9);
     assertEquals(POOL.size, 10);
     await p;
-    await client.release();
+    client.release();
     assertEquals(POOL.available, 10);
 
     const qsThunks = [...Array(25)].map(async (_, i) => {
@@ -44,7 +44,7 @@ testPool(
         "SELECT pg_sleep(0.1) is null, $1::text as id",
         i,
       );
-      await client.release();
+      client.release();
       return query;
     });
     const qsPromises = Promise.all(qsThunks);
@@ -86,7 +86,7 @@ testPool(
         "SELECT pg_sleep(0.1) is null, $1::text as id",
         i,
       );
-      await client.release();
+      client.release();
       return query;
     });
     const qsPromises = Promise.all(qsThunks);
@@ -114,7 +114,7 @@ testPool("Pool can be reinitialized after termination", async function (POOL) {
 
   const client = await POOL.connect();
   await client.queryArray`SELECT 1`;
-  await client.release();
+  client.release();
   assertEquals(POOL.available, 10);
 });
 
@@ -127,7 +127,7 @@ testPool(
 
     const client = await POOL.connect();
     await client.queryArray`SELECT 1`;
-    await client.release();
+    client.release();
     assertEquals(await POOL.initialized(), 1);
     assertEquals(POOL.available, size);
   },
