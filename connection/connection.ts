@@ -30,7 +30,7 @@ import { bold, BufReader, BufWriter, yellow } from "../deps.ts";
 import { DeferredStack } from "../utils/deferred.ts";
 import { hashMd5Password, readUInt32BE } from "../utils/utils.ts";
 import { PacketWriter } from "./packet_writer.ts";
-import { Message, parseError, parseNotice, PostgresError } from "./warning.ts";
+import { Message, parseError, parseNotice } from "./warning.ts";
 import {
   Query,
   QueryArrayResult,
@@ -815,7 +815,7 @@ export class Connection {
   async #processError(
     msg: Message,
     recoverable = true,
-  ): Promise<PostgresError> {
+  ) {
     const error = parseError(msg);
     if (recoverable) {
       let maybe_ready_message = await this.#readMessage();
