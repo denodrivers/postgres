@@ -152,27 +152,53 @@ testClient(async function regprocedureArray() {
 });
 
 testClient(async function regoper() {
-  const result = await CLIENT.queryArray(`SELECT '!'::regoper`);
-  assertEquals(result.rows[0][0], "!");
+  const operator = "!!";
+
+  const { rows } = await CLIENT.queryObject({
+    args: [operator],
+    fields: ["result"],
+    text: "SELECT $1::regoper",
+  });
+
+  assertEquals(rows[0], { result: operator });
 });
 
 testClient(async function regoperArray() {
-  const result = await CLIENT.queryArray(`SELECT ARRAY['!'::regoper]`);
-  assertEquals(result.rows[0][0], ["!"]);
+  const operator_1 = "!!";
+  const operator_2 = "|/";
+
+  const { rows } = await CLIENT.queryObject({
+    args: [operator_1, operator_2],
+    fields: ["result"],
+    text: "SELECT ARRAY[$1::regoper, $2]",
+  });
+
+  assertEquals(rows[0], { result: [operator_1, operator_2] });
 });
 
 testClient(async function regoperator() {
-  const result = await CLIENT.queryArray(
-    `SELECT '!(bigint,NONE)'::regoperator`,
-  );
-  assertEquals(result.rows[0][0], "!(bigint,NONE)");
+  const regoperator = "-(NONE,integer)";
+
+  const { rows } = await CLIENT.queryObject({
+    args: [regoperator],
+    fields: ["result"],
+    text: "SELECT $1::regoperator",
+  });
+
+  assertEquals(rows[0], { result: regoperator });
 });
 
 testClient(async function regoperatorArray() {
-  const result = await CLIENT.queryArray(
-    `SELECT ARRAY['!(bigint,NONE)'::regoperator, '*(integer,integer)']`,
-  );
-  assertEquals(result.rows[0][0], ["!(bigint,NONE)", "*(integer,integer)"]);
+  const regoperator_1 = "-(NONE,integer)";
+  const regoperator_2 = "*(integer,integer)";
+
+  const { rows } = await CLIENT.queryObject({
+    args: [regoperator_1, regoperator_2],
+    fields: ["result"],
+    text: "SELECT ARRAY[$1::regoperator, $2]",
+  });
+
+  assertEquals(rows[0], { result: [regoperator_1, regoperator_2] });
 });
 
 testClient(async function regclass() {
