@@ -121,9 +121,6 @@ export class Connection {
   #connection_params: ClientConfiguration;
   #onDisconnection: () => Promise<void>;
   #packetWriter = new PacketWriter();
-  // TODO
-  // Find out what parameters are for
-  #parameters: { [key: string]: string } = {};
   #pid?: number;
   #queryLock: DeferredStack<undefined> = new DeferredStack(
     1,
@@ -266,7 +263,6 @@ export class Connection {
   #resetConnectionMetadata() {
     this.connected = false;
     this.#packetWriter = new PacketWriter();
-    this.#parameters = {};
     this.#pid = undefined;
     this.#queryLock = new DeferredStack(
       1,
@@ -391,7 +387,6 @@ export class Connection {
             break;
           // parameter status
           case "S":
-            this.#processParameterStatus(msg);
             break;
           // ready for query
           case "Z": {
@@ -611,30 +606,11 @@ export class Connection {
     this.#secretKey = msg.reader.readInt32();
   }
 
-  #processParameterStatus(msg: Message) {
-    // TODO: should we save all parameters?
-    const key = msg.reader.readCString();
-    const value = msg.reader.readCString();
-    this.#parameters[key] = value;
-  }
-
   #processReadyForQuery(msg: Message) {
     const txStatus = msg.reader.readByte();
     this.#transactionStatus = String.fromCharCode(
       txStatus,
     ) as TransactionStatus;
-  }
-
-  async #readReadyForQuery() {
-    const msg = await this.#readMessage();
-
-    if (msg.type !== "Z") {
-      throw new Error(
-        `Unexpected message type: ${msg.type}, expected "Z" (ReadyForQuery)`,
-      );
-    }
-
-    this.#processReadyForQuery(msg);
   }
 
   async #simpleQuery(
@@ -684,6 +660,10 @@ export class Connection {
       case "N":
         result.warnings.push(await this.#processNotice(msg));
         break;
+      // Parameter status message
+      case "S":
+        msg = await this.#readMessage();
+        break;
       // row description
       case "T":
         result.loadColumnDescriptions(this.#parseRowDescription(msg));
@@ -701,11 +681,6 @@ export class Connection {
       msg = await this.#readMessage();
       switch (msg.type) {
         // data row
-        case "D": {
-          // this is actually packet read
-          result.insertRow(this.#parseRowData(msg));
-          break;
-        }
         // command complete
         case "C": {
           const commandTag = this.#getCommandTag(msg);
@@ -713,10 +688,11 @@ export class Connection {
           result.done();
           break;
         }
-        // ready for query
-        case "Z":
-          this.#processReadyForQuery(msg);
-          return result;
+        case "D": {
+          // this is actually packet read
+          result.insertRow(this.#parseRowData(msg));
+          break;
+        }
         // error response
         case "E":
           await this.#processError(msg);
@@ -725,9 +701,15 @@ export class Connection {
         case "N":
           result.warnings.push(await this.#processNotice(msg));
           break;
+        case "S":
+          break;
         case "T":
           result.loadColumnDescriptions(this.#parseRowDescription(msg));
           break;
+        // ready for query
+        case "Z":
+          this.#processReadyForQuery(msg);
+          return result;
         default:
           throw new Error(`Unexpected result message: ${msg.type}`);
       }
@@ -816,10 +798,19 @@ export class Connection {
     await this.#bufWriter.write(buffer);
   }
 
-  async #processError(msg: Message, recoverable = true) {
+  // TODO
+  // Rename process function to a more meaningful name and move out of class
+  async #processError(
+    msg: Message,
+    recoverable = true,
+  ) {
     const error = parseError(msg);
     if (recoverable) {
-      await this.#readReadyForQuery();
+      let maybe_ready_message = await this.#readMessage();
+      while (maybe_ready_message.type !== "Z") {
+        maybe_ready_message = await this.#readMessage();
+      }
+      await this.#processReadyForQuery(maybe_ready_message);
     }
     throw error;
   }
@@ -880,13 +871,15 @@ export class Connection {
       // no data
       case "n":
         break;
-        // error
+      // error
       case "E":
         await this.#processError(row_description);
         break;
       // notice response
       case "N":
         result.warnings.push(await this.#processNotice(row_description));
+        break;
+      case "S":
         break;
       // row description
       case "T": {
@@ -906,13 +899,6 @@ export class Connection {
     while (true) {
       msg = await this.#readMessage();
       switch (msg.type) {
-        // data row
-        case "D": {
-          // this is actually packet read
-          const rawDataRow = this.#parseRowData(msg);
-          result.insertRow(rawDataRow);
-          break;
-        }
         // command complete
         case "C": {
           const commandTag = this.#getCommandTag(msg);
@@ -920,20 +906,33 @@ export class Connection {
           result.done();
           break result_handling;
         }
+        // data row
+        case "D": {
+          // this is actually packet read
+          const rawDataRow = this.#parseRowData(msg);
+          result.insertRow(rawDataRow);
+          break;
+        }
+        // error response
+        case "E":
+          await this.#processError(msg);
+          break;
         // notice response
         case "N":
           result.warnings.push(await this.#processNotice(msg));
           break;
-        // error response
-        case "E":
-          await this.#processError(msg);
+        case "S":
           break;
         default:
           throw new Error(`Unexpected result message: ${msg.type}`);
       }
     }
 
-    await this.#readReadyForQuery();
+    let maybe_ready_message = await this.#readMessage();
+    while (maybe_ready_message.type !== "Z") {
+      maybe_ready_message = await this.#readMessage();
+    }
+    await this.#processReadyForQuery(maybe_ready_message);
 
     return result;
   }
