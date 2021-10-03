@@ -313,9 +313,7 @@ export class Connection {
           throw e;
         });
 
-      /**
-       * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.11
-       */
+      // https://www.postgresql.org/docs/14/protocol-flow.html#id-1.10.5.7.11
       if (accepts_tls) {
         try {
           await this.#createTlsConnection(this.#conn, {
@@ -418,7 +416,7 @@ export class Connection {
    * @param is_reconnection This indicates whether the startup should behave as if there was
    * a connection previously established, or if it should attempt to create a connection first
    *
-   * https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.3
+   * https://www.postgresql.org/docs/14/protocol-flow.html#id-1.10.5.7.3
    */
   async startup(is_reconnection: boolean) {
     if (is_reconnection && this.#connection_params.connection.attempts === 0) {
@@ -666,7 +664,7 @@ export class Connection {
 
     msg = await this.#readMessage();
 
-    // https://www.postgresql.org/docs/13/protocol-flow.html#id-1.10.5.7.4
+    // https://www.postgresql.org/docs/14/protocol-flow.html#id-1.10.5.7.4
     // Query startup message, executed only once
     switch (msg.type) {
       // no data
@@ -835,7 +833,7 @@ export class Connection {
   // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
   //  sent after error response is received in prepared statements?
   /**
-   * https://www.postgresql.org/docs/13/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
+   * https://www.postgresql.org/docs/14/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
    */
   async #preparedQuery<T extends ResultType>(
     query: Query<T>,

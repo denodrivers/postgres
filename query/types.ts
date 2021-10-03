@@ -1,5 +1,5 @@
 /**
- * https://www.postgresql.org/docs/13/datatype-geometric.html#id-1.5.7.16.8
+ * https://www.postgresql.org/docs/14/datatype-geometric.html#id-1.5.7.16.8
  */
 export interface Box {
   a: Point;
@@ -7,7 +7,7 @@ export interface Box {
 }
 
 /**
- * https://www.postgresql.org/docs/13/datatype-geometric.html#DATATYPE-CIRCLE
+ * https://www.postgresql.org/docs/14/datatype-geometric.html#DATATYPE-CIRCLE
  */
 export interface Circle {
   point: Point;
@@ -19,7 +19,7 @@ export interface Circle {
  *
  * Example: 1.89, 2, 2.1
  *
- * https://www.postgresql.org/docs/13/datatype-numeric.html#DATATYPE-FLOAT
+ * https://www.postgresql.org/docs/14/datatype-numeric.html#DATATYPE-FLOAT
  */
 export type Float4 = "string";
 
@@ -28,12 +28,12 @@ export type Float4 = "string";
  *
  * Example: 1.89, 2, 2.1
  *
- * https://www.postgresql.org/docs/13/datatype-numeric.html#DATATYPE-FLOAT
+ * https://www.postgresql.org/docs/14/datatype-numeric.html#DATATYPE-FLOAT
  */
 export type Float8 = "string";
 
 /**
- * https://www.postgresql.org/docs/13/datatype-geometric.html#DATATYPE-LINE
+ * https://www.postgresql.org/docs/14/datatype-geometric.html#DATATYPE-LINE
  */
 export interface Line {
   a: Float8;
@@ -42,7 +42,7 @@ export interface Line {
 }
 
 /**
- * https://www.postgresql.org/docs/13/datatype-geometric.html#DATATYPE-LSEG
+ * https://www.postgresql.org/docs/14/datatype-geometric.html#DATATYPE-LSEG
  */
 export interface LineSegment {
   a: Point;
@@ -50,12 +50,12 @@ export interface LineSegment {
 }
 
 /**
- * https://www.postgresql.org/docs/13/datatype-geometric.html#id-1.5.7.16.9
+ * https://www.postgresql.org/docs/14/datatype-geometric.html#id-1.5.7.16.9
  */
 export type Path = Point[];
 
 /**
- * https://www.postgresql.org/docs/13/datatype-geometric.html#id-1.5.7.16.5
+ * https://www.postgresql.org/docs/14/datatype-geometric.html#id-1.5.7.16.5
  */
 export interface Point {
   x: Float8;
@@ -63,12 +63,12 @@ export interface Point {
 }
 
 /**
- * https://www.postgresql.org/docs/13/datatype-geometric.html#DATATYPE-POLYGON
+ * https://www.postgresql.org/docs/14/datatype-geometric.html#DATATYPE-POLYGON
  */
 export type Polygon = Point[];
 
 /**
- * https://www.postgresql.org/docs/13/datatype-oid.html
+ * https://www.postgresql.org/docs/14/datatype-oid.html
  */
 export type TID = [BigInt, BigInt];
 
@@ -76,6 +76,6 @@ export type TID = [BigInt, BigInt];
  * Additional to containing normal dates, they can contain 'Infinity'
  * values, so handle them with care
  *
- * https://www.postgresql.org/docs/13/datatype-datetime.html
+ * https://www.postgresql.org/docs/14/datatype-datetime.html
  */
 export type Timestamp = Date | number;
