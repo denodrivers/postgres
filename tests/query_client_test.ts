@@ -1,5 +1,10 @@
 import { Client, ConnectionError, Pool, PostgresError } from "../mod.ts";
-import { assert, assertEquals, assertThrowsAsync } from "./test_deps.ts";
+import {
+  assert,
+  assertEquals,
+  assertObjectMatch,
+  assertThrowsAsync,
+} from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
 import { PoolClient, QueryClient } from "../client.ts";
 
@@ -310,6 +315,47 @@ testClient("Handling of query notices", async function (generateClient) {
 
   assert(warnings[0].message.includes("already exists"));
 });
+
+testClient(
+  "Handling of messages between data fetching",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    await client.queryArray
+      `CREATE OR REPLACE FUNCTION PG_TEMP.MESSAGE_BETWEEN_DATA(MESSAGE VARCHAR) RETURNS VARCHAR AS $$
+			BEGIN
+			RAISE NOTICE '%', MESSAGE;
+			RETURN MESSAGE;
+			END;
+			$$ LANGUAGE PLPGSQL;`;
+
+    const message_1 = "MESSAGE_1";
+    const message_2 = "MESSAGE_2";
+    const message_3 = "MESSAGE_3";
+
+    const { rows: result, warnings } = await client.queryObject({
+      args: [message_1, message_2, message_3],
+      fields: ["result"],
+      text: `SELECT * FROM PG_TEMP.MESSAGE_BETWEEN_DATA($1)
+			UNION ALL
+			SELECT * FROM PG_TEMP.MESSAGE_BETWEEN_DATA($2)
+			UNION ALL
+			SELECT * FROM PG_TEMP.MESSAGE_BETWEEN_DATA($3)`,
+    });
+
+    assertEquals(result.length, 3);
+    assertEquals(warnings.length, 3);
+
+    assertEquals(result[0], { result: message_1 });
+    assertObjectMatch(warnings[0], { message: message_1 });
+
+    assertEquals(result[1], { result: message_2 });
+    assertObjectMatch(warnings[1], { message: message_2 });
+
+    assertEquals(result[2], { result: message_3 });
+    assertObjectMatch(warnings[2], { message: message_3 });
+  },
+);
 
 testClient("nativeType", async function (generateClient) {
   const client = await generateClient();
