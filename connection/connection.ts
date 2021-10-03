@@ -613,18 +613,6 @@ export class Connection {
     ) as TransactionStatus;
   }
 
-  async #readReadyForQuery() {
-    const msg = await this.#readMessage();
-
-    if (msg.type !== "Z") {
-      throw new Error(
-        `Unexpected message type: ${msg.type}, expected "Z" (ReadyForQuery)`,
-      );
-    }
-
-    this.#processReadyForQuery(msg);
-  }
-
   async #simpleQuery(
     _query: Query<ResultType.ARRAY>,
   ): Promise<QueryArrayResult>;
@@ -822,6 +810,7 @@ export class Connection {
       while (maybe_ready_message.type !== "Z") {
         maybe_ready_message = await this.#readMessage();
       }
+      await this.#processReadyForQuery(maybe_ready_message);
     }
     throw error;
   }
@@ -939,7 +928,11 @@ export class Connection {
       }
     }
 
-    await this.#readReadyForQuery();
+    let maybe_ready_message = await this.#readMessage();
+    while (maybe_ready_message.type !== "Z") {
+      maybe_ready_message = await this.#readMessage();
+    }
+    await this.#processReadyForQuery(maybe_ready_message);
 
     return result;
   }
