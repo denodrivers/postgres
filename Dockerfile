@@ -22,4 +22,4 @@ RUN deno lint --config=deno.json
 RUN deno fmt --check
 
 # Run tests
-CMD /wait && deno test --unstable -A
+CMD /wait && deno test --unstable -A --jobs

@@ -159,8 +159,8 @@ export abstract class QueryClient {
    * // transaction_2 now shares the same starting state that transaction_1 had
    * ```
    *
-   * https://www.postgresql.org/docs/13/tutorial-transactions.html
-   * https://www.postgresql.org/docs/13/sql-set-transaction.html
+   * https://www.postgresql.org/docs/14/tutorial-transactions.html
+   * https://www.postgresql.org/docs/14/sql-set-transaction.html
    */
   createTransaction(name: string, options?: TransactionOptions): Transaction {
     this.#assertOpenConnection();

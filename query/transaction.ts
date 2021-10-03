@@ -152,7 +152,7 @@ export class Transaction {
    * // Important operations
    * await transaction.commit(); // Session is unlocked, external operations can now take place
    * ```
-   * https://www.postgresql.org/docs/13/sql-begin.html
+   * https://www.postgresql.org/docs/14/sql-begin.html
    */
   async begin() {
     if (this.#client.session.current_transaction !== null) {
@@ -235,7 +235,7 @@ export class Transaction {
    * await transaction.commit(); // The transaction finishes for good
    * ```
    *
-   * https://www.postgresql.org/docs/13/sql-commit.html
+   * https://www.postgresql.org/docs/14/sql-commit.html
    */
   async commit(options?: { chain?: boolean }) {
     this.#assertTransactionOpen();
@@ -284,7 +284,7 @@ export class Transaction {
    * const transaction_2 = client_2.createTransaction("new_transaction", { isolation_level: "repeatable_read", snapshot });
    * // transaction_2 now shares the same starting state that transaction_1 had
    * ```
-   * https://www.postgresql.org/docs/13/functions-admin.html#FUNCTIONS-SNAPSHOT-SYNCHRONIZATION
+   * https://www.postgresql.org/docs/14/functions-admin.html#FUNCTIONS-SNAPSHOT-SYNCHRONIZATION
    */
   async getSnapshot(): Promise<string> {
     this.#assertTransactionOpen();
@@ -494,7 +494,7 @@ export class Transaction {
    * ```ts
    * await transaction.rollback({ chain: true, savepoint: my_savepoint }); // Error, can't both return to savepoint and reset transaction
    * ```
-   * https://www.postgresql.org/docs/13/sql-rollback.html
+   * https://www.postgresql.org/docs/14/sql-rollback.html
    */
   async rollback(savepoint?: string | Savepoint): Promise<void>;
   async rollback(options?: { savepoint?: string | Savepoint }): Promise<void>;
@@ -613,7 +613,7 @@ export class Transaction {
    * const savepoint_b = await transaction.save("a"); // They will be the same savepoint, but the savepoint will be updated to this position
    * await transaction.rollback(savepoint_a); // Rolls back to savepoint_b
    * ```
-   * https://www.postgresql.org/docs/13/sql-savepoint.html
+   * https://www.postgresql.org/docs/14/sql-savepoint.html
    */
   async savepoint(name: string): Promise<Savepoint> {
     this.#assertTransactionOpen();

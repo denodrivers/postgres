@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres_classic:
-    image: postgres
+    image: postgres:14
     hostname: postgres
     environment:
       - POSTGRES_DB=postgres
@@ -14,7 +14,7 @@ services:
     ports:
       - "6001:5432"
   postgres_scram:
-    image: postgres
+    image: postgres:14
     hostname: postgres_scram
     environment:
       - POSTGRES_DB=postgres
