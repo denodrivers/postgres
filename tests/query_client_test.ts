@@ -153,6 +153,84 @@ testClient(
   },
 );
 
+testClient(
+  "Handles parameter status messages on simple query",
+  async (generateClient) => {
+    const client = await generateClient();
+
+    const { rows: result_1 } = await client.queryArray
+      `SET TIME ZONE 'HongKong'`;
+
+    assertEquals(result_1, []);
+
+    const { rows: result_2 } = await client.queryObject({
+      fields: ["result"],
+      text: "SET TIME ZONE 'HongKong'; SELECT 1",
+    });
+
+    assertEquals(result_2, [{ result: 1 }]);
+  },
+);
+
+testClient(
+  "Handles parameter status messages on prepared query",
+  async (generateClient) => {
+    const client = await generateClient();
+
+    const result = 10;
+
+    await client.queryArray
+      `CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE(RES INTEGER) RETURNS INT AS $$
+			BEGIN
+			SET TIME ZONE 'HongKong';
+			END;
+			$$ LANGUAGE PLPGSQL;`;
+
+    await assertThrowsAsync(
+      () =>
+        client.queryArray("SELECT * FROM PG_TEMP.CHANGE_TIMEZONE($1)", result),
+      PostgresError,
+      "control reached end of function without RETURN",
+    );
+
+    await client.queryArray
+      `CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE(RES INTEGER) RETURNS INT AS $$
+			BEGIN
+			SET TIME ZONE 'HongKong';
+			RETURN RES;
+			END;
+			$$ LANGUAGE PLPGSQL;`;
+
+    const { rows: result_1 } = await client.queryObject({
+      args: [result],
+      fields: ["result"],
+      text: "SELECT * FROM PG_TEMP.CHANGE_TIMEZONE($1)",
+    });
+
+    assertEquals(result_1, [{ result }]);
+  },
+);
+
+testClient(
+  "Handles parameter status after error",
+  async (generateClient) => {
+    const client = await generateClient();
+
+    await client.queryArray
+      `CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE() RETURNS INT AS $$
+			BEGIN
+			SET TIME ZONE 'HongKong';
+			END;
+			$$ LANGUAGE PLPGSQL;`;
+
+    await assertThrowsAsync(
+      () => client.queryArray`SELECT * FROM PG_TEMP.CHANGE_TIMEZONE()`,
+      PostgresError,
+      "control reached end of function without RETURN",
+    );
+  },
+);
+
 testClient("Terminated connections", async function (generateClient) {
   const client = await generateClient();
   await client.end();
@@ -174,9 +252,7 @@ testClient("Default reconnection", async (generateClient) => {
   await assertThrowsAsync(
     () => client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
     ConnectionError,
-    "The session was terminated by the database",
   );
-  assertEquals(client.connected, false);
 
   const { rows: result } = await client.queryObject<{ res: number }>({
     text: `SELECT 1`,
@@ -186,6 +262,7 @@ testClient("Default reconnection", async (generateClient) => {
     result[0].res,
     1,
   );
+
   assertEquals(client.connected, true);
 });
 
