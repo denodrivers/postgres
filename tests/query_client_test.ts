@@ -154,6 +154,22 @@ testClient(
 );
 
 testClient(
+  "Handles array with semicolon separator",
+  async (generateClient) => {
+    const client = await generateClient();
+    const item_1 = "Test;Azer";
+    const item_2 = "123;456";
+
+    const { rows: result_1 } = await client.queryArray(
+      `SELECT ARRAY[$1, $2]`,
+      item_1,
+      item_2,
+    );
+    assertEquals(result_1[0], [[item_1, item_2]]);
+  },
+);
+
+testClient(
   "Handles parameter status messages on simple query",
   async (generateClient) => {
     const client = await generateClient();
