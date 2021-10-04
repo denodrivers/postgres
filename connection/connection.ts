@@ -60,20 +60,6 @@ import {
   INCOMING_TLS_MESSAGES,
 } from "./message_code.ts";
 
-/**
- * This asserts the argument bind response is successful
- */
-function assertBindResponse(msg: Message) {
-  switch (msg.type) {
-    case INCOMING_QUERY_MESSAGES.BIND_COMPLETE:
-      break;
-    case ERROR_MESSAGE:
-      throw new PostgresError(parseNoticeMessage(msg));
-    default:
-      throw new Error(`Unexpected query bind response: ${msg.type}`);
-  }
-}
-
 function assertSuccessfulStartup(msg: Message) {
   switch (msg.type) {
     case ERROR_MESSAGE:
@@ -95,22 +81,6 @@ function assertSuccessfulAuthentication(auth_message: Message) {
   const responseCode = auth_message.reader.readInt32();
   if (responseCode !== 0) {
     throw new Error(`Unexpected auth response code: ${responseCode}.`);
-  }
-}
-
-/**
- * This asserts the query parse response is successful
- */
-function assertParseResponse(msg: Message) {
-  switch (msg.type) {
-    case INCOMING_QUERY_MESSAGES.PARSE_COMPLETE:
-      // TODO: add to already parsed queries if
-      // query has name, so it's not parsed again
-      break;
-    case ERROR_MESSAGE:
-      throw new PostgresError(parseNoticeMessage(msg));
-    default:
-      throw new Error(`Unexpected query parse response: ${msg.type}`);
   }
 }
 
@@ -644,12 +614,6 @@ export class Connection {
     let error: Error | undefined;
     let current_message = await this.#readMessage();
 
-    // TODO
-    // Remove first message handling after prepared query handles ready correctly
-    if (current_message.type === INCOMING_QUERY_MESSAGES.READY) {
-      current_message = await this.#readMessage();
-    }
-
     // Process messages until ready signal is sent
     // Delay error handling until after the ready signal is sent
     while (current_message.type !== INCOMING_QUERY_MESSAGES.READY) {
@@ -678,14 +642,14 @@ export class Connection {
         }
         case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
           break;
+        case INCOMING_QUERY_MESSAGES.READY:
+          break;
         case INCOMING_QUERY_MESSAGES.ROW_DESCRIPTION: {
           result.loadColumnDescriptions(
             parseRowDescriptionMessage(current_message),
           );
           break;
         }
-        case INCOMING_QUERY_MESSAGES.READY:
-          break;
         default:
           throw new Error(
             `Unexpected simple query message: ${current_message.type}`,
@@ -819,22 +783,6 @@ export class Connection {
     // send all messages to backend
     await this.#bufWriter.flush();
 
-    let parse_response: Message;
-    {
-      // A ready for query message might have been sent instead of the parse response
-      // in case the previous transaction had been aborted
-      let maybe_parse_response = await this.#readMessage();
-      if (maybe_parse_response.type === INCOMING_QUERY_MESSAGES.READY) {
-        // Request the next message containing the actual parse response
-        parse_response = await this.#readMessage();
-      } else {
-        parse_response = maybe_parse_response;
-      }
-    }
-
-    await assertParseResponse(parse_response);
-    await assertBindResponse(await this.#readMessage());
-
     let result;
     if (query.result_type === ResultType.ARRAY) {
       result = new QueryArrayResult(query);
@@ -842,70 +790,58 @@ export class Connection {
       result = new QueryObjectResult(query);
     }
 
-    const row_description = await this.#readMessage();
-    // Load row descriptions to process incoming results
-    switch (row_description.type) {
-      case INCOMING_QUERY_MESSAGES.NO_DATA:
-        break;
-      case ERROR_MESSAGE:
-        await this.#processErrorUnsafe(row_description);
-        break;
-      case INCOMING_QUERY_MESSAGES.NOTICE_WARNING: {
-        const notice = parseNoticeMessage(row_description);
-        logNotice(notice);
-        result.warnings.push(notice);
-        break;
-      }
-      case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
-        break;
-      case INCOMING_QUERY_MESSAGES.ROW_DESCRIPTION: {
-        result.loadColumnDescriptions(
-          parseRowDescriptionMessage(row_description),
-        );
-        break;
-      }
-      default:
-        throw new Error(
-          `Unexpected row description message: ${row_description.type}`,
-        );
-    }
+    let error: Error | undefined;
+    let current_message = await this.#readMessage();
 
-    let msg: Message;
-
-    result_handling:
-    while (true) {
-      msg = await this.#readMessage();
-      switch (msg.type) {
+    while (current_message.type !== INCOMING_QUERY_MESSAGES.READY) {
+      switch (current_message.type) {
+        case ERROR_MESSAGE: {
+          error = new PostgresError(parseNoticeMessage(current_message));
+          break;
+        }
+        case INCOMING_QUERY_MESSAGES.BIND_COMPLETE:
+          break;
         case INCOMING_QUERY_MESSAGES.COMMAND_COMPLETE: {
-          result.handleCommandComplete(parseCommandCompleteMessage(msg));
+          result.handleCommandComplete(
+            parseCommandCompleteMessage(current_message),
+          );
           result.done();
-          break result_handling;
+          break;
         }
         case INCOMING_QUERY_MESSAGES.DATA_ROW: {
-          const rawDataRow = parseRowDataMessage(msg);
-          result.insertRow(rawDataRow);
+          result.insertRow(parseRowDataMessage(current_message));
           break;
         }
-        case ERROR_MESSAGE:
-          await this.#processErrorUnsafe(msg);
+        case INCOMING_QUERY_MESSAGES.NO_DATA:
           break;
         case INCOMING_QUERY_MESSAGES.NOTICE_WARNING: {
-          const notice = parseNoticeMessage(msg);
+          const notice = parseNoticeMessage(current_message);
           logNotice(notice);
           result.warnings.push(notice);
           break;
         }
         case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
           break;
+        case INCOMING_QUERY_MESSAGES.PARSE_COMPLETE:
+          // TODO: add to already parsed queries if
+          // query has name, so it's not parsed again
+          break;
+        case INCOMING_QUERY_MESSAGES.ROW_DESCRIPTION: {
+          result.loadColumnDescriptions(
+            parseRowDescriptionMessage(current_message),
+          );
+          break;
+        }
         default:
-          throw new Error(`Unexpected result message: ${msg.type}`);
+          throw new Error(
+            `Unexpected prepared query message: ${current_message.type}`,
+          );
       }
+
+      current_message = await this.#readMessage();
     }
 
-    let maybe_ready_message = await this.#readMessage();
-    while (maybe_ready_message.type !== INCOMING_QUERY_MESSAGES.READY) {
-      maybe_ready_message = await this.#readMessage();
-    }
+    if (error) throw error;
 
     return result;
   }

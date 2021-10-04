@@ -146,19 +146,6 @@ testClient(
   },
 );
 
-testClient("regression test: Remove", async function (g) {
-  const client = await g();
-
-  await client.queryArray`CREATE TEMP TABLE X (Y INT)`;
-
-  await assertThrowsAsync(
-    () =>
-      client.queryArray
-        `INSERT INTO X VALUES (1); SELECT PG_TERMINATE_BACKEND(PG_BACKEND_PID())`,
-    ConnectionError,
-  );
-});
-
 testClient(
   "Prepared query handles recovery after error state",
   async function (generateClient) {
@@ -172,12 +159,15 @@ testClient(
         "TEXT",
       ), PostgresError);
 
-    const { rows: result } = await client.queryObject({
-      text: "SELECT 1",
+    const result = "handled";
+
+    const { rows } = await client.queryObject({
+      args: [result],
       fields: ["result"],
+      text: "SELECT $1",
     });
 
-    assertEquals(result[0], { result: 1 });
+    assertEquals(rows[0], { result });
   },
 );
 
