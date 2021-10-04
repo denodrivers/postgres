@@ -146,6 +146,19 @@ testClient(
   },
 );
 
+testClient("regression test: Remove", async function (g) {
+  const client = await g();
+
+  await client.queryArray`CREATE TEMP TABLE X (Y INT)`;
+
+  await assertThrowsAsync(
+    () =>
+      client.queryArray
+        `INSERT INTO X VALUES (1); SELECT PG_TERMINATE_BACKEND(PG_BACKEND_PID())`,
+    ConnectionError,
+  );
+});
+
 testClient(
   "Prepared query handles recovery after error state",
   async function (generateClient) {
