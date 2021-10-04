@@ -32,7 +32,12 @@ export interface WarningFields {
   routine?: string;
 }
 
-export class ConnectionError extends Error {}
+export class ConnectionError extends Error {
+  constructor(message?: string) {
+    super(message);
+    this.name = "PostgresError";
+  }
+}
 
 export class PostgresError extends Error {
   public fields: WarningFields;
@@ -54,6 +59,7 @@ export class TransactionError extends Error {
     super(
       `The transaction "${transaction_name}" has been aborted due to \`${cause}\`. Check the "cause" property to get more details`,
     );
+    this.name = "TransactionError";
   }
 }
 
