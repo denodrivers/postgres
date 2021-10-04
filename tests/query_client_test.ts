@@ -137,6 +137,16 @@ testClient(
 );
 
 testClient(
+  "Simple query handles empty query",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    const { rows: result } = await client.queryArray("");
+    assertEquals(result, []);
+  },
+);
+
+testClient(
   "Prepared query handles recovery after error state",
   async function (generateClient) {
     const client = await generateClient();

@@ -48,6 +48,7 @@ import * as scram from "./scram.ts";
 import { ConnectionError } from "./warning.ts";
 import {
   AUTHENTICATION_TYPE,
+  ERROR_MESSAGE,
   INCOMING_AUTHENTICATION_MESSAGES,
   INCOMING_QUERY_MESSAGES,
   INCOMING_TLS_MESSAGES,
@@ -58,11 +59,9 @@ import {
  */
 function assertBindResponse(msg: Message) {
   switch (msg.type) {
-    // bind completed
-    case "2":
+    case INCOMING_QUERY_MESSAGES.BIND_COMPLETE:
       break;
-    // error response
-    case "E":
+    case ERROR_MESSAGE:
       throw parseError(msg);
     default:
       throw new Error(`Unexpected query bind response: ${msg.type}`);
@@ -71,13 +70,13 @@ function assertBindResponse(msg: Message) {
 
 function assertSuccessfulStartup(msg: Message) {
   switch (msg.type) {
-    case "E":
+    case ERROR_MESSAGE:
       throw parseError(msg);
   }
 }
 
 function assertSuccessfulAuthentication(auth_message: Message) {
-  if (auth_message.type === "E") {
+  if (auth_message.type === ERROR_MESSAGE) {
     throw parseError(auth_message);
   }
 
@@ -98,15 +97,12 @@ function assertSuccessfulAuthentication(auth_message: Message) {
  */
 function assertParseResponse(msg: Message) {
   switch (msg.type) {
-    // parse completed
-    case "1":
+    case INCOMING_QUERY_MESSAGES.PARSE_COMPLETE:
       // TODO: add to already parsed queries if
       // query has name, so it's not parsed again
       break;
-    // error response
-    case "E":
+    case ERROR_MESSAGE:
       throw parseError(msg);
-    // Ready for query, returned in case a previous transaction was aborted
     default:
       throw new Error(`Unexpected query parse response: ${msg.type}`);
   }
@@ -378,7 +374,7 @@ export class Connection {
       while (message.type !== INCOMING_AUTHENTICATION_MESSAGES.READY) {
         switch (message.type) {
           // Connection error (wrong database or user)
-          case INCOMING_AUTHENTICATION_MESSAGES.ERROR:
+          case ERROR_MESSAGE:
             await this.#processError(message, false);
             break;
           case INCOMING_AUTHENTICATION_MESSAGES.BACKEND_KEY:
@@ -567,7 +563,7 @@ export class Connection {
         }
         break;
       }
-      case "E":
+      case ERROR_MESSAGE:
         throw parseError(maybe_sasl_continue);
       default:
         throw new Error(
@@ -595,7 +591,7 @@ export class Connection {
         }
         break;
       }
-      case INCOMING_AUTHENTICATION_MESSAGES.ERROR:
+      case ERROR_MESSAGE:
         throw parseError(maybe_sasl_final);
       default:
         throw new Error(
@@ -646,34 +642,29 @@ export class Connection {
     // https://www.postgresql.org/docs/14/protocol-flow.html#id-1.10.5.7.4
     // Query startup message, executed only once
     switch (msg.type) {
-      // no data
-      case "n":
+      case INCOMING_QUERY_MESSAGES.NO_DATA:
         break;
-      case "C": {
+      case INCOMING_QUERY_MESSAGES.COMMAND_COMPLETE: {
         const commandTag = this.#getCommandTag(msg);
         result.handleCommandComplete(commandTag);
         result.done();
         break;
       }
-      // error response
-      case "E":
+      case ERROR_MESSAGE:
         await this.#processError(msg);
         break;
-      // notice response
-      case "N":
+      case INCOMING_QUERY_MESSAGES.NOTICE:
         result.warnings.push(await this.#processNotice(msg));
         break;
-      // Parameter status message
-      case "S":
+      case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
         msg = await this.#readMessage();
         break;
-      // row description
-      case "T":
+      case INCOMING_QUERY_MESSAGES.ROW_DESCRIPTION:
         result.loadColumnDescriptions(this.#parseRowDescription(msg));
         break;
-      // Ready for query message, will be sent on startup due to a variety of reasons
-      // On this initialization fase, discard and continue
-      case "Z":
+      case INCOMING_QUERY_MESSAGES.READY:
+        break;
+      case INCOMING_QUERY_MESSAGES.EMPTY_QUERY:
         break;
       default:
         throw new Error(`Unexpected row description message: ${msg.type}`);
@@ -683,34 +674,28 @@ export class Connection {
     while (true) {
       msg = await this.#readMessage();
       switch (msg.type) {
-        // data row
-        // command complete
-        case "C": {
+        case INCOMING_QUERY_MESSAGES.COMMAND_COMPLETE: {
           const commandTag = this.#getCommandTag(msg);
           result.handleCommandComplete(commandTag);
           result.done();
           break;
         }
-        case "D": {
-          // this is actually packet read
+        case INCOMING_QUERY_MESSAGES.DATA_ROW: {
           result.insertRow(this.#parseRowData(msg));
           break;
         }
-        // error response
-        case "E":
+        case ERROR_MESSAGE:
           await this.#processError(msg);
           break;
-        // notice response
-        case "N":
+        case INCOMING_QUERY_MESSAGES.NOTICE:
           result.warnings.push(await this.#processNotice(msg));
           break;
-        case "S":
+        case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
           break;
-        case "T":
+        case INCOMING_QUERY_MESSAGES.ROW_DESCRIPTION:
           result.loadColumnDescriptions(this.#parseRowDescription(msg));
           break;
-        // ready for query
-        case "Z":
+        case INCOMING_QUERY_MESSAGES.READY:
           return result;
         default:
           throw new Error(`Unexpected result message: ${msg.type}`);
@@ -809,7 +794,7 @@ export class Connection {
     const error = parseError(msg);
     if (recoverable) {
       let maybe_ready_message = await this.#readMessage();
-      while (maybe_ready_message.type !== "Z") {
+      while (maybe_ready_message.type !== INCOMING_QUERY_MESSAGES.READY) {
         maybe_ready_message = await this.#readMessage();
       }
     }
@@ -848,7 +833,7 @@ export class Connection {
       // A ready for query message might have been sent instead of the parse response
       // in case the previous transaction had been aborted
       let maybe_parse_response = await this.#readMessage();
-      if (maybe_parse_response.type === "Z") {
+      if (maybe_parse_response.type === INCOMING_QUERY_MESSAGES.READY) {
         // Request the next message containing the actual parse response
         parse_response = await this.#readMessage();
       } else {
@@ -869,21 +854,17 @@ export class Connection {
     const row_description = await this.#readMessage();
     // Load row descriptions to process incoming results
     switch (row_description.type) {
-      // no data
-      case "n":
+      case INCOMING_QUERY_MESSAGES.NO_DATA:
         break;
-      // error
-      case "E":
+      case ERROR_MESSAGE:
         await this.#processError(row_description);
         break;
-      // notice response
-      case "N":
+      case INCOMING_QUERY_MESSAGES.NOTICE:
         result.warnings.push(await this.#processNotice(row_description));
         break;
-      case "S":
+      case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
         break;
-      // row description
-      case "T": {
+      case INCOMING_QUERY_MESSAGES.ROW_DESCRIPTION: {
         const rowDescription = this.#parseRowDescription(row_description);
         result.loadColumnDescriptions(rowDescription);
         break;
@@ -900,29 +881,24 @@ export class Connection {
     while (true) {
       msg = await this.#readMessage();
       switch (msg.type) {
-        // command complete
-        case "C": {
+        case INCOMING_QUERY_MESSAGES.COMMAND_COMPLETE: {
           const commandTag = this.#getCommandTag(msg);
           result.handleCommandComplete(commandTag);
           result.done();
           break result_handling;
         }
-        // data row
-        case "D": {
-          // this is actually packet read
+        case INCOMING_QUERY_MESSAGES.DATA_ROW: {
           const rawDataRow = this.#parseRowData(msg);
           result.insertRow(rawDataRow);
           break;
         }
-        // error response
-        case "E":
+        case ERROR_MESSAGE:
           await this.#processError(msg);
           break;
-        // notice response
-        case "N":
+        case INCOMING_QUERY_MESSAGES.NOTICE:
           result.warnings.push(await this.#processNotice(msg));
           break;
-        case "S":
+        case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
           break;
         default:
           throw new Error(`Unexpected result message: ${msg.type}`);
@@ -930,7 +906,7 @@ export class Connection {
     }
 
     let maybe_ready_message = await this.#readMessage();
-    while (maybe_ready_message.type !== "Z") {
+    while (maybe_ready_message.type !== INCOMING_QUERY_MESSAGES.READY) {
       maybe_ready_message = await this.#readMessage();
     }
 
@@ -975,7 +951,7 @@ export class Connection {
 
     for (let i = 0; i < columnCount; i++) {
       // TODO: if one of columns has 'format' == 'binary',
-      //  all of them will be in same format?
+      // all of them will be in same format?
       const column = new Column(
         msg.reader.readCString(), // name
         msg.reader.readInt32(), // tableOid
@@ -991,8 +967,8 @@ export class Connection {
     return new RowDescription(columnCount, columns);
   }
 
-  //TODO
-  //Research corner cases where #parseRowData can return null values
+  // TODO
+  // Research corner cases where parseRowData can return null values
   // deno-lint-ignore no-explicit-any
   #parseRowData(msg: Message): any[] {
     const fieldCount = msg.reader.readInt16();
