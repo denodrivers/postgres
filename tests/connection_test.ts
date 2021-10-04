@@ -6,8 +6,7 @@ import {
   getScramConfiguration,
   getTlsOnlyConfiguration,
 } from "./config.ts";
-import { Client, PostgresError } from "../mod.ts";
-import { ConnectionError } from "../connection/warning.ts";
+import { Client, ConnectionError, PostgresError } from "../mod.ts";
 
 function getRandomString() {
   return Math.random().toString(36).substring(7);

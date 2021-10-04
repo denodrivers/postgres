@@ -1,6 +1,6 @@
 import { encode, EncodedArg } from "./encode.ts";
 import { Column, decode } from "./decode.ts";
-import { WarningFields } from "../connection/warning.ts";
+import { Notice } from "../connection/message.ts";
 
 const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
 
@@ -93,7 +93,7 @@ export class QueryResult {
   public command!: CommandType;
   public rowCount?: number;
   public rowDescription?: RowDescription;
-  public warnings: WarningFields[] = [];
+  public warnings: Notice[] = [];
 
   constructor(public query: Query<ResultType>) {}
 

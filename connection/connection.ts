@@ -29,40 +29,46 @@
 import { bold, BufReader, BufWriter, yellow } from "../deps.ts";
 import { DeferredStack } from "../utils/deferred.ts";
 import { hashMd5Password, readUInt32BE } from "../utils/utils.ts";
-import { PacketWriter } from "./packet_writer.ts";
-import { Message, parseError, parseNotice } from "./warning.ts";
+import { PacketWriter } from "./packet.ts";
+import {
+  Message,
+  Notice,
+  parseBackendKeyMessage,
+  parseCommandCompleteMessage,
+  parseNoticeMessage,
+  parseRowDataMessage,
+  parseRowDescriptionMessage,
+} from "./message.ts";
 import {
   Query,
   QueryArrayResult,
   QueryObjectResult,
   QueryResult,
   ResultType,
-  RowDescription,
 } from "../query/query.ts";
-import { Column } from "../query/decode.ts";
 import {
   ClientConfiguration,
   ConnectionParamsError,
 } from "./connection_params.ts";
 import * as scram from "./scram.ts";
-import { ConnectionError } from "./warning.ts";
+import { ConnectionError, PostgresError } from "../client/error.ts";
 import {
   AUTHENTICATION_TYPE,
   ERROR_MESSAGE,
   INCOMING_AUTHENTICATION_MESSAGES,
   INCOMING_QUERY_MESSAGES,
   INCOMING_TLS_MESSAGES,
-} from "./messages.ts";
+} from "./message_code.ts";
 
 /**
- * This asserts the argument bind response is succesful
+ * This asserts the argument bind response is successful
  */
 function assertBindResponse(msg: Message) {
   switch (msg.type) {
     case INCOMING_QUERY_MESSAGES.BIND_COMPLETE:
       break;
     case ERROR_MESSAGE:
-      throw parseError(msg);
+      throw new PostgresError(parseNoticeMessage(msg));
     default:
       throw new Error(`Unexpected query bind response: ${msg.type}`);
   }
@@ -71,13 +77,13 @@ function assertBindResponse(msg: Message) {
 function assertSuccessfulStartup(msg: Message) {
   switch (msg.type) {
     case ERROR_MESSAGE:
-      throw parseError(msg);
+      throw new PostgresError(parseNoticeMessage(msg));
   }
 }
 
 function assertSuccessfulAuthentication(auth_message: Message) {
   if (auth_message.type === ERROR_MESSAGE) {
-    throw parseError(auth_message);
+    throw new PostgresError(parseNoticeMessage(auth_message));
   }
 
   if (
@@ -102,10 +108,14 @@ function assertParseResponse(msg: Message) {
       // query has name, so it's not parsed again
       break;
     case ERROR_MESSAGE:
-      throw parseError(msg);
+      throw new PostgresError(parseNoticeMessage(msg));
     default:
       throw new Error(`Unexpected query parse response: ${msg.type}`);
   }
+}
+
+function logNotice(notice: Notice) {
+  console.error(`${bold(yellow(notice.severity))}: ${notice.message}`);
 }
 
 const decoder = new TextDecoder();
@@ -377,9 +387,12 @@ export class Connection {
           case ERROR_MESSAGE:
             await this.#processError(message, false);
             break;
-          case INCOMING_AUTHENTICATION_MESSAGES.BACKEND_KEY:
-            this.#processBackendKeyData(message);
+          case INCOMING_AUTHENTICATION_MESSAGES.BACKEND_KEY: {
+            const { pid, secret_key } = parseBackendKeyMessage(message);
+            this.#pid = pid;
+            this.#secretKey = secret_key;
             break;
+          }
           case INCOMING_AUTHENTICATION_MESSAGES.PARAMETER_STATUS:
             break;
           default:
@@ -564,7 +577,7 @@ export class Connection {
         break;
       }
       case ERROR_MESSAGE:
-        throw parseError(maybe_sasl_continue);
+        throw new PostgresError(parseNoticeMessage(maybe_sasl_continue));
       default:
         throw new Error(
           `Unexpected message in SASL negotiation: ${maybe_sasl_continue.type}`,
@@ -592,7 +605,7 @@ export class Connection {
         break;
       }
       case ERROR_MESSAGE:
-        throw parseError(maybe_sasl_final);
+        throw new PostgresError(parseNoticeMessage(maybe_sasl_final));
       default:
         throw new Error(
           `Unexpected message in SASL finalization: ${maybe_sasl_continue.type}`,
@@ -605,11 +618,6 @@ export class Connection {
 
     // Return authentication result
     return this.#readMessage();
-  }
-
-  #processBackendKeyData(msg: Message) {
-    this.#pid = msg.reader.readInt32();
-    this.#secretKey = msg.reader.readInt32();
   }
 
   async #simpleQuery(
@@ -645,22 +653,24 @@ export class Connection {
       case INCOMING_QUERY_MESSAGES.NO_DATA:
         break;
       case INCOMING_QUERY_MESSAGES.COMMAND_COMPLETE: {
-        const commandTag = this.#getCommandTag(msg);
-        result.handleCommandComplete(commandTag);
+        result.handleCommandComplete(parseCommandCompleteMessage(msg));
         result.done();
         break;
       }
       case ERROR_MESSAGE:
         await this.#processError(msg);
         break;
-      case INCOMING_QUERY_MESSAGES.NOTICE:
-        result.warnings.push(await this.#processNotice(msg));
+      case INCOMING_QUERY_MESSAGES.NOTICE_WARNING: {
+        const notice = parseNoticeMessage(msg);
+        logNotice(notice);
+        result.warnings.push(notice);
         break;
+      }
       case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
         msg = await this.#readMessage();
         break;
       case INCOMING_QUERY_MESSAGES.ROW_DESCRIPTION:
-        result.loadColumnDescriptions(this.#parseRowDescription(msg));
+        result.loadColumnDescriptions(parseRowDescriptionMessage(msg));
         break;
       case INCOMING_QUERY_MESSAGES.READY:
         break;
@@ -675,25 +685,27 @@ export class Connection {
       msg = await this.#readMessage();
       switch (msg.type) {
         case INCOMING_QUERY_MESSAGES.COMMAND_COMPLETE: {
-          const commandTag = this.#getCommandTag(msg);
-          result.handleCommandComplete(commandTag);
+          result.handleCommandComplete(parseCommandCompleteMessage(msg));
           result.done();
           break;
         }
         case INCOMING_QUERY_MESSAGES.DATA_ROW: {
-          result.insertRow(this.#parseRowData(msg));
+          result.insertRow(parseRowDataMessage(msg));
           break;
         }
         case ERROR_MESSAGE:
           await this.#processError(msg);
           break;
-        case INCOMING_QUERY_MESSAGES.NOTICE:
-          result.warnings.push(await this.#processNotice(msg));
+        case INCOMING_QUERY_MESSAGES.NOTICE_WARNING: {
+          const notice = parseNoticeMessage(msg);
+          logNotice(notice);
+          result.warnings.push(notice);
           break;
+        }
         case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
           break;
         case INCOMING_QUERY_MESSAGES.ROW_DESCRIPTION:
-          result.loadColumnDescriptions(this.#parseRowDescription(msg));
+          result.loadColumnDescriptions(parseRowDescriptionMessage(msg));
           break;
         case INCOMING_QUERY_MESSAGES.READY:
           return result;
@@ -791,7 +803,7 @@ export class Connection {
     msg: Message,
     recoverable = true,
   ) {
-    const error = parseError(msg);
+    const error = new PostgresError(parseNoticeMessage(msg));
     if (recoverable) {
       let maybe_ready_message = await this.#readMessage();
       while (maybe_ready_message.type !== INCOMING_QUERY_MESSAGES.READY) {
@@ -799,12 +811,6 @@ export class Connection {
       }
     }
     throw error;
-  }
-
-  #processNotice(msg: Message) {
-    const warning = parseNotice(msg);
-    console.error(`${bold(yellow(warning.severity))}: ${warning.message}`);
-    return warning;
   }
 
   // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
@@ -859,14 +865,18 @@ export class Connection {
       case ERROR_MESSAGE:
         await this.#processError(row_description);
         break;
-      case INCOMING_QUERY_MESSAGES.NOTICE:
-        result.warnings.push(await this.#processNotice(row_description));
+      case INCOMING_QUERY_MESSAGES.NOTICE_WARNING: {
+        const notice = parseNoticeMessage(row_description);
+        logNotice(notice);
+        result.warnings.push(notice);
         break;
+      }
       case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
         break;
       case INCOMING_QUERY_MESSAGES.ROW_DESCRIPTION: {
-        const rowDescription = this.#parseRowDescription(row_description);
-        result.loadColumnDescriptions(rowDescription);
+        result.loadColumnDescriptions(
+          parseRowDescriptionMessage(row_description),
+        );
         break;
       }
       default:
@@ -882,22 +892,24 @@ export class Connection {
       msg = await this.#readMessage();
       switch (msg.type) {
         case INCOMING_QUERY_MESSAGES.COMMAND_COMPLETE: {
-          const commandTag = this.#getCommandTag(msg);
-          result.handleCommandComplete(commandTag);
+          result.handleCommandComplete(parseCommandCompleteMessage(msg));
           result.done();
           break result_handling;
         }
         case INCOMING_QUERY_MESSAGES.DATA_ROW: {
-          const rawDataRow = this.#parseRowData(msg);
+          const rawDataRow = parseRowDataMessage(msg);
           result.insertRow(rawDataRow);
           break;
         }
         case ERROR_MESSAGE:
           await this.#processError(msg);
           break;
-        case INCOMING_QUERY_MESSAGES.NOTICE:
-          result.warnings.push(await this.#processNotice(msg));
+        case INCOMING_QUERY_MESSAGES.NOTICE_WARNING: {
+          const notice = parseNoticeMessage(msg);
+          logNotice(notice);
+          result.warnings.push(notice);
           break;
+        }
         case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
           break;
         default:
@@ -943,54 +955,6 @@ export class Connection {
     } finally {
       this.#queryLock.push(undefined);
     }
-  }
-
-  #parseRowDescription(msg: Message): RowDescription {
-    const columnCount = msg.reader.readInt16();
-    const columns = [];
-
-    for (let i = 0; i < columnCount; i++) {
-      // TODO: if one of columns has 'format' == 'binary',
-      // all of them will be in same format?
-      const column = new Column(
-        msg.reader.readCString(), // name
-        msg.reader.readInt32(), // tableOid
-        msg.reader.readInt16(), // index
-        msg.reader.readInt32(), // dataTypeOid
-        msg.reader.readInt16(), // column
-        msg.reader.readInt32(), // typeModifier
-        msg.reader.readInt16(), // format
-      );
-      columns.push(column);
-    }
-
-    return new RowDescription(columnCount, columns);
-  }
-
-  // TODO
-  // Research corner cases where parseRowData can return null values
-  // deno-lint-ignore no-explicit-any
-  #parseRowData(msg: Message): any[] {
-    const fieldCount = msg.reader.readInt16();
-    const row = [];
-
-    for (let i = 0; i < fieldCount; i++) {
-      const colLength = msg.reader.readInt32();
-
-      if (colLength == -1) {
-        row.push(null);
-        continue;
-      }
-
-      // reading raw bytes here, they will be properly parsed later
-      row.push(msg.reader.readBytes(colLength));
-    }
-
-    return row;
-  }
-
-  #getCommandTag(msg: Message) {
-    return msg.reader.readString(msg.byteCount);
   }
 
   async end(): Promise<void> {

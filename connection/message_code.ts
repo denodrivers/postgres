@@ -38,7 +38,7 @@ export const INCOMING_QUERY_MESSAGES = {
   DATA_ROW: "D",
   EMPTY_QUERY: "I",
   NO_DATA: "n",
-  NOTICE: "N",
+  NOTICE_WARNING: "N",
   PARAMETER_STATUS: "S",
   READY: "Z",
   ROW_DESCRIPTION: "T",

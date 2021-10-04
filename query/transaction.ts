@@ -11,7 +11,7 @@ import {
   templateStringToQuery,
 } from "./query.ts";
 import { isTemplateString } from "../utils/utils.ts";
-import { PostgresError, TransactionError } from "../connection/warning.ts";
+import { PostgresError, TransactionError } from "../client/error.ts";
 
 export class Savepoint {
   /**
