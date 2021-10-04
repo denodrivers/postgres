@@ -15,6 +15,9 @@ import {
   Timestamp,
 } from "../query/types.ts";
 
+// TODO
+// Find out how to test char types
+
 /**
  * This will generate a random number with a precision of 2
  */

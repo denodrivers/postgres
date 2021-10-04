@@ -1,8 +1,6 @@
 export const Oid = {
   bool: 16,
   bytea: 17,
-  // TODO
-  // Find out how to test char types
   char: 18,
   name: 19,
   int8: 20,
@@ -51,8 +49,6 @@ export const Oid = {
   inet: 869,
   bool_array: 1000,
   byte_array: 1001,
-  // TODO
-  // Find out how to test char types
   char_array: 1002,
   name_array: 1003,
   int2_array: 1005,

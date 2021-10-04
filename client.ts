@@ -46,8 +46,6 @@ export abstract class QueryClient {
     this.#connection = connection;
   }
 
-  // TODO
-  // Add comment about reconnection attempts
   get connected() {
     return this.#connection.connected;
   }
@@ -367,8 +365,6 @@ export abstract class QueryClient {
   }
 }
 
-// TODO
-// Check for client connection and re-connection
 /**
  * Clients allow you to communicate with your PostgreSQL database and execute SQL
  * statements asynchronously

@@ -100,6 +100,7 @@ export class Connection {
   #conn!: Deno.Conn;
   connected = false;
   #connection_params: ClientConfiguration;
+  #message_header = new Uint8Array(5);
   #onDisconnection: () => Promise<void>;
   #packetWriter = new PacketWriter();
   #pid?: number;
@@ -109,7 +110,6 @@ export class Connection {
   );
   // TODO
   // Find out what the secret key is for
-  // Clean on startup
   #secretKey?: number;
   #tls?: boolean;
 
@@ -130,16 +130,18 @@ export class Connection {
     this.#onDisconnection = disconnection_callback;
   }
 
-  /** Read single message sent by backend */
+  /**
+   * Read single message sent by backend
+   */
   async #readMessage(): Promise<Message> {
-    // TODO: reuse buffer instead of allocating new ones each for each read
-    const header = new Uint8Array(5);
-    await this.#bufReader.readFull(header);
-    const msgType = decoder.decode(header.slice(0, 1));
+    // Clear buffer before message reading
+    this.#message_header.fill(0);
+    await this.#bufReader.readFull(this.#message_header);
+    const type = decoder.decode(this.#message_header.slice(0, 1));
     // TODO
     // Investigate if the ascii terminator is the best way to check for a broken
     // session
-    if (msgType === "\x00") {
+    if (type === "\x00") {
       // This error means that the database terminated the session without notifying
       // the library
       // TODO
@@ -148,11 +150,11 @@ export class Connection {
       // be handled in another place
       throw new ConnectionError("The session was terminated by the database");
     }
-    const msgLength = readUInt32BE(header, 1) - 4;
-    const msgBody = new Uint8Array(msgLength);
-    await this.#bufReader.readFull(msgBody);
+    const length = readUInt32BE(this.#message_header, 1) - 4;
+    const body = new Uint8Array(length);
+    await this.#bufReader.readFull(body);
 
-    return new Message(msgType, msgLength, msgBody);
+    return new Message(type, length, body);
   }
 
   async #serverAcceptsTLS(): Promise<boolean> {
@@ -625,7 +627,6 @@ export class Connection {
           result.handleCommandComplete(
             parseCommandCompleteMessage(current_message),
           );
-          result.done();
           break;
         }
         case INCOMING_QUERY_MESSAGES.DATA_ROW: {
@@ -762,8 +763,6 @@ export class Connection {
     throw error;
   }
 
-  // TODO: I believe error handling here is not correct, shouldn't 'sync' message be
-  //  sent after error response is received in prepared statements?
   /**
    * https://www.postgresql.org/docs/14/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
    */
@@ -805,7 +804,6 @@ export class Connection {
           result.handleCommandComplete(
             parseCommandCompleteMessage(current_message),
           );
-          result.done();
           break;
         }
         case INCOMING_QUERY_MESSAGES.DATA_ROW: {
