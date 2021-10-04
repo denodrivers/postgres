@@ -6,13 +6,6 @@ function assert(cond: unknown): asserts cond {
   }
 }
 
-/** Error thrown on SCRAM authentication failure. */
-export class AuthError extends Error {
-  constructor(public reason: Reason, message?: string) {
-    super(message ?? reason);
-  }
-}
-
 /** Reason of authentication failure. */
 export enum Reason {
   BadMessage = "server sent an ill-formed message",
@@ -89,23 +82,23 @@ export class Client {
 
       const nonce = attrs.r;
       if (!attrs.r || !attrs.r.startsWith(this.#clientNonce)) {
-        throw new AuthError(Reason.BadServerNonce);
+        throw new Error(Reason.BadServerNonce);
       }
       this.#serverNonce = nonce;
 
       let salt: Uint8Array | undefined;
       if (!attrs.s) {
-        throw new AuthError(Reason.BadSalt);
+        throw new Error(Reason.BadSalt);
       }
       try {
         salt = base64.decode(attrs.s);
       } catch {
-        throw new AuthError(Reason.BadSalt);
+        throw new Error(Reason.BadSalt);
       }
 
       const iterCount = parseInt(attrs.i) | 0;
       if (iterCount <= 0) {
-        throw new AuthError(Reason.BadIterationCount);
+        throw new Error(Reason.BadIterationCount);
       }
 
       this.#keys = await deriveKeys(this.#password, salt, iterCount);
@@ -155,14 +148,14 @@ export class Client {
       const attrs = parseAttributes(response);
 
       if (attrs.e) {
-        throw new AuthError(Reason.Rejected, attrs.e);
+        throw new Error(attrs.e ?? Reason.Rejected);
       }
 
       const verifier = base64.encode(
         await computeSignature(this.#authMessage, this.#keys.server),
       );
       if (attrs.v !== verifier) {
-        throw new AuthError(Reason.BadVerifier);
+        throw new Error(Reason.BadVerifier);
       }
 
       this.#state = State.ServerResponse;
@@ -185,7 +178,7 @@ function parseAttributes(str: string): Record<string, string> {
   for (const entry of str.split(",")) {
     const pos = entry.indexOf("=");
     if (pos < 1) {
-      throw new AuthError(Reason.BadMessage);
+      throw new Error(Reason.BadMessage);
     }
 
     const key = entry.substr(0, pos);

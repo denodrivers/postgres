@@ -1,4 +1,5 @@
 import { parseDsn } from "../utils/utils.ts";
+import { ConnectionParamsError } from "../client/error.ts";
 
 /**
  * The connection string must match the following URI structure
@@ -26,13 +27,6 @@ function getPgEnv(): ClientOptions {
     password: Deno.env.get("PGPASSWORD"),
     applicationName: Deno.env.get("PGAPPNAME"),
   };
-}
-
-export class ConnectionParamsError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ConnectionParamsError";
-  }
 }
 
 export interface ConnectionOptions {

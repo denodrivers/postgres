@@ -3,7 +3,14 @@ import type { Notice } from "../connection/message.ts";
 export class ConnectionError extends Error {
   constructor(message?: string) {
     super(message);
-    this.name = "PostgresError";
+    this.name = "ConnectionError";
+  }
+}
+
+export class ConnectionParamsError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConnectionParamsError";
   }
 }
 

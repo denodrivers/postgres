@@ -28,7 +28,7 @@
 
 import { bold, BufReader, BufWriter, yellow } from "../deps.ts";
 import { DeferredStack } from "../utils/deferred.ts";
-import { hashMd5Password, readUInt32BE } from "../utils/utils.ts";
+import { readUInt32BE } from "../utils/utils.ts";
 import { PacketWriter } from "./packet.ts";
 import {
   Message,
@@ -46,12 +46,13 @@ import {
   QueryResult,
   ResultType,
 } from "../query/query.ts";
-import {
-  ClientConfiguration,
-  ConnectionParamsError,
-} from "./connection_params.ts";
+import { ClientConfiguration } from "./connection_params.ts";
 import * as scram from "./scram.ts";
-import { ConnectionError, PostgresError } from "../client/error.ts";
+import {
+  ConnectionError,
+  ConnectionParamsError,
+  PostgresError,
+} from "../client/error.ts";
 import {
   AUTHENTICATION_TYPE,
   ERROR_MESSAGE,
@@ -59,6 +60,7 @@ import {
   INCOMING_QUERY_MESSAGES,
   INCOMING_TLS_MESSAGES,
 } from "./message_code.ts";
+import { hashMd5Password } from "./auth.ts";
 
 function assertSuccessfulStartup(msg: Message) {
   switch (msg.type) {
@@ -134,7 +136,7 @@ export class Connection {
    * Read single message sent by backend
    */
   async #readMessage(): Promise<Message> {
-    // Clear buffer before message reading
+    // Clear buffer before reading the message type
     this.#message_header.fill(0);
     await this.#bufReader.readFull(this.#message_header);
     const type = decoder.decode(this.#message_header.slice(0, 1));
