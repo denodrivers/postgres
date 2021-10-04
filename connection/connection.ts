@@ -40,15 +40,18 @@ import {
   RowDescription,
 } from "../query/query.ts";
 import { Column } from "../query/decode.ts";
-import type { ClientConfiguration } from "./connection_params.ts";
+import {
+  ClientConfiguration,
+  ConnectionParamsError,
+} from "./connection_params.ts";
 import * as scram from "./scram.ts";
 import { ConnectionError } from "./warning.ts";
-
-enum TransactionStatus {
-  Idle = "I",
-  IdleInTransaction = "T",
-  InFailedTransaction = "E",
-}
+import {
+  AUTHENTICATION_TYPE,
+  INCOMING_AUTHENTICATION_MESSAGES,
+  INCOMING_QUERY_MESSAGES,
+  INCOMING_TLS_MESSAGES,
+} from "./messages.ts";
 
 /**
  * This asserts the argument bind response is succesful
@@ -76,7 +79,11 @@ function assertSuccessfulStartup(msg: Message) {
 function assertSuccessfulAuthentication(auth_message: Message) {
   if (auth_message.type === "E") {
     throw parseError(auth_message);
-  } else if (auth_message.type !== "R") {
+  }
+
+  if (
+    auth_message.type !== INCOMING_AUTHENTICATION_MESSAGES.AUTHENTICATION
+  ) {
     throw new Error(`Unexpected auth response: ${auth_message.type}.`);
   }
 
@@ -131,10 +138,6 @@ export class Connection {
   // Clean on startup
   #secretKey?: number;
   #tls?: boolean;
-  // TODO
-  // Find out what the transaction status is used for
-  // Clean on startup
-  #transactionStatus?: TransactionStatus;
 
   get pid() {
     return this.#pid;
@@ -193,9 +196,9 @@ export class Connection {
     await this.#conn.read(response);
 
     switch (String.fromCharCode(response[0])) {
-      case "S":
+      case INCOMING_TLS_MESSAGES.ACCEPTS_TLS:
         return true;
-      case "N":
+      case INCOMING_TLS_MESSAGES.NO_ACCEPTS_TLS:
         return false;
       default:
         throw new Error(
@@ -270,7 +273,6 @@ export class Connection {
     );
     this.#secretKey = undefined;
     this.#tls = undefined;
-    this.#transactionStatus = undefined;
   }
 
   #closeConnection() {
@@ -371,31 +373,24 @@ export class Connection {
       await this.#authenticate(startup_response);
 
       // Handle connection status
-      // (connected but not ready)
-      let msg;
-      connection_status:
-      while (true) {
-        msg = await this.#readMessage();
-        switch (msg.type) {
+      // Process connection initialization messages until connection returns ready
+      let message = await this.#readMessage();
+      while (message.type !== INCOMING_AUTHENTICATION_MESSAGES.READY) {
+        switch (message.type) {
           // Connection error (wrong database or user)
-          case "E":
-            await this.#processError(msg, false);
+          case INCOMING_AUTHENTICATION_MESSAGES.ERROR:
+            await this.#processError(message, false);
             break;
-          // backend key data
-          case "K":
-            this.#processBackendKeyData(msg);
+          case INCOMING_AUTHENTICATION_MESSAGES.BACKEND_KEY:
+            this.#processBackendKeyData(message);
             break;
-          // parameter status
-          case "S":
+          case INCOMING_AUTHENTICATION_MESSAGES.PARAMETER_STATUS:
             break;
-          // ready for query
-          case "Z": {
-            this.#processReadyForQuery(msg);
-            break connection_status;
-          }
           default:
-            throw new Error(`Unknown response for startup: ${msg.type}`);
+            throw new Error(`Unknown response for startup: ${message.type}`);
         }
+
+        message = await this.#readMessage();
       }
 
       this.connected = true;
@@ -457,47 +452,50 @@ export class Connection {
     }
   }
 
-  // TODO
-  // Why is this handling the startup message response?
   /**
-   * Will attempt to #authenticate with the database using the provided
+   * Will attempt to authenticate with the database using the provided
    * password credentials
    */
-  async #authenticate(msg: Message) {
-    const code = msg.reader.readInt32();
-    switch (code) {
-      // pass
-      case 0:
+  async #authenticate(authentication_request: Message) {
+    const authentication_type = authentication_request.reader.readInt32();
+
+    let authentication_result: Message;
+    switch (authentication_type) {
+      case AUTHENTICATION_TYPE.NO_AUTHENTICATION:
+        authentication_result = authentication_request;
         break;
-      // cleartext password
-      case 3:
-        await assertSuccessfulAuthentication(
-          await this.#authenticateWithClearPassword(),
-        );
+      case AUTHENTICATION_TYPE.CLEAR_TEXT:
+        authentication_result = await this.#authenticateWithClearPassword();
         break;
-      // md5 password
-      case 5: {
-        const salt = msg.reader.readBytes(4);
-        await assertSuccessfulAuthentication(
-          await this.#authenticateWithMd5(salt),
-        );
+      case AUTHENTICATION_TYPE.MD5: {
+        const salt = authentication_request.reader.readBytes(4);
+        authentication_result = await this.#authenticateWithMd5(salt);
         break;
       }
-      case 7: {
+      case AUTHENTICATION_TYPE.SCM:
         throw new Error(
-          "Database server expected gss authentication, which is not supported at the moment",
+          "Database server expected SCM authentication, which is not supported at the moment",
         );
-      }
-      // scram-sha-256 password
-      case 10: {
-        await assertSuccessfulAuthentication(
-          await this.#authenticateWithScramSha256(),
+      case AUTHENTICATION_TYPE.GSS_STARTUP:
+        throw new Error(
+          "Database server expected GSS authentication, which is not supported at the moment",
         );
+      case AUTHENTICATION_TYPE.GSS_CONTINUE:
+        throw new Error(
+          "Database server expected GSS authentication, which is not supported at the moment",
+        );
+      case AUTHENTICATION_TYPE.SSPI:
+        throw new Error(
+          "Database server expected SSPI authentication, which is not supported at the moment",
+        );
+      case AUTHENTICATION_TYPE.SASL_STARTUP:
+        authentication_result = await this.#authenticateWithSasl();
         break;
-      }
       default:
-        throw new Error(`Unknown auth message code ${code}`);
+        throw new Error(`Unknown auth message code ${authentication_type}`);
     }
+
+    await assertSuccessfulAuthentication(authentication_result);
   }
 
   async #authenticateWithClearPassword(): Promise<Message> {
@@ -515,7 +513,9 @@ export class Connection {
     this.#packetWriter.clear();
 
     if (!this.#connection_params.password) {
-      throw new Error("Auth Error: attempting MD5 auth with password unset");
+      throw new ConnectionParamsError(
+        "Attempting MD5 authentication with unset password",
+      );
     }
 
     const password = hashMd5Password(
@@ -531,10 +531,13 @@ export class Connection {
     return this.#readMessage();
   }
 
-  async #authenticateWithScramSha256(): Promise<Message> {
+  /**
+   * https://www.postgresql.org/docs/14/sasl-authentication.html
+   */
+  async #authenticateWithSasl(): Promise<Message> {
     if (!this.#connection_params.password) {
-      throw new Error(
-        "Auth Error: attempting SCRAM-SHA-256 auth with password unset",
+      throw new ConnectionParamsError(
+        "Attempting SASL auth with unset password",
       );
     }
 
@@ -553,51 +556,58 @@ export class Connection {
     this.#bufWriter.write(this.#packetWriter.flush(0x70));
     this.#bufWriter.flush();
 
-    // AuthenticationSASLContinue
-    const saslContinue = await this.#readMessage();
-    switch (saslContinue.type) {
-      case "R": {
-        if (saslContinue.reader.readInt32() != 11) {
-          throw new Error("AuthenticationSASLContinue is expected");
+    const maybe_sasl_continue = await this.#readMessage();
+    switch (maybe_sasl_continue.type) {
+      case INCOMING_AUTHENTICATION_MESSAGES.AUTHENTICATION: {
+        const authentication_type = maybe_sasl_continue.reader.readInt32();
+        if (authentication_type !== AUTHENTICATION_TYPE.SASL_CONTINUE) {
+          throw new Error(
+            `Unexpected authentication type in SASL negotiation: ${authentication_type}`,
+          );
         }
         break;
       }
-      case "E": {
-        throw parseError(saslContinue);
-      }
-      default: {
-        throw new Error("unexpected message");
-      }
+      case "E":
+        throw parseError(maybe_sasl_continue);
+      default:
+        throw new Error(
+          `Unexpected message in SASL negotiation: ${maybe_sasl_continue.type}`,
+        );
     }
-    const serverFirstMessage = utf8.decode(saslContinue.reader.readAllBytes());
-    await client.receiveChallenge(serverFirstMessage);
+    const sasl_continue = utf8.decode(
+      maybe_sasl_continue.reader.readAllBytes(),
+    );
+    await client.receiveChallenge(sasl_continue);
 
     this.#packetWriter.clear();
-    // SASLResponse
     this.#packetWriter.addString(await client.composeResponse());
     this.#bufWriter.write(this.#packetWriter.flush(0x70));
     this.#bufWriter.flush();
 
-    // AuthenticationSASLFinal
-    const saslFinal = await this.#readMessage();
-    switch (saslFinal.type) {
-      case "R": {
-        if (saslFinal.reader.readInt32() !== 12) {
-          throw new Error("AuthenticationSASLFinal is expected");
+    const maybe_sasl_final = await this.#readMessage();
+    switch (maybe_sasl_final.type) {
+      case INCOMING_AUTHENTICATION_MESSAGES.AUTHENTICATION: {
+        const authentication_type = maybe_sasl_final.reader.readInt32();
+        if (authentication_type !== AUTHENTICATION_TYPE.SASL_FINAL) {
+          throw new Error(
+            `Unexpected authentication type in SASL finalization: ${authentication_type}`,
+          );
         }
         break;
       }
-      case "E": {
-        throw parseError(saslFinal);
-      }
-      default: {
-        throw new Error("unexpected message");
-      }
+      case INCOMING_AUTHENTICATION_MESSAGES.ERROR:
+        throw parseError(maybe_sasl_final);
+      default:
+        throw new Error(
+          `Unexpected message in SASL finalization: ${maybe_sasl_continue.type}`,
+        );
     }
-    const serverFinalMessage = utf8.decode(saslFinal.reader.readAllBytes());
-    await client.receiveResponse(serverFinalMessage);
+    const sasl_final = utf8.decode(
+      maybe_sasl_final.reader.readAllBytes(),
+    );
+    await client.receiveResponse(sasl_final);
 
-    // AuthenticationOK
+    // Return authentication result
     return this.#readMessage();
   }
 
@@ -606,18 +616,11 @@ export class Connection {
     this.#secretKey = msg.reader.readInt32();
   }
 
-  #processReadyForQuery(msg: Message) {
-    const txStatus = msg.reader.readByte();
-    this.#transactionStatus = String.fromCharCode(
-      txStatus,
-    ) as TransactionStatus;
-  }
-
   async #simpleQuery(
-    _query: Query<ResultType.ARRAY>,
+    query: Query<ResultType.ARRAY>,
   ): Promise<QueryArrayResult>;
   async #simpleQuery(
-    _query: Query<ResultType.OBJECT>,
+    query: Query<ResultType.OBJECT>,
   ): Promise<QueryObjectResult>;
   async #simpleQuery(
     query: Query<ResultType>,
@@ -708,7 +711,6 @@ export class Connection {
           break;
         // ready for query
         case "Z":
-          this.#processReadyForQuery(msg);
           return result;
         default:
           throw new Error(`Unexpected result message: ${msg.type}`);
@@ -810,7 +812,6 @@ export class Connection {
       while (maybe_ready_message.type !== "Z") {
         maybe_ready_message = await this.#readMessage();
       }
-      await this.#processReadyForQuery(maybe_ready_message);
     }
     throw error;
   }
@@ -932,7 +933,6 @@ export class Connection {
     while (maybe_ready_message.type !== "Z") {
       maybe_ready_message = await this.#readMessage();
     }
-    await this.#processReadyForQuery(maybe_ready_message);
 
     return result;
   }
