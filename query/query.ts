@@ -168,18 +168,9 @@ export class QueryObjectResult<
   public rows: T[] = [];
 
   insertRow(row_data: Uint8Array[]) {
-    // TODO
-    // Investigate multiple query status report
-    // INSERT INTO X VALUES (1); SELECT PG_TERMINATE_BACKEND(PID) triggers an error here
-    // if (this._done) {
-    //   throw new Error(
-    //     "Tried to add a new row to the result after the result is done reading",
-    //   );
-    // }
-
     if (!this.rowDescription) {
       throw new Error(
-        "The row descriptions required to parse the result data weren't initialized",
+        "The row description required to parse the result data wasn't initialized",
       );
     }
 
