@@ -1,6 +1,6 @@
 import { encode, EncodedArg } from "./encode.ts";
 import { Column, decode } from "./decode.ts";
-import { WarningFields } from "../connection/warning.ts";
+import { Notice } from "../connection/message.ts";
 
 const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
 
@@ -68,7 +68,7 @@ export interface QueryObjectConfig extends QueryConfig {
 // Limit the type of parameters that can be passed
 // to a query
 /**
- * https://www.postgresql.org/docs/current/sql-prepare.html
+ * https://www.postgresql.org/docs/14/sql-prepare.html
  *
  * This arguments will be appended to the prepared statement passed
  * as query
@@ -87,13 +87,10 @@ export interface QueryObjectConfig extends QueryConfig {
 export type QueryArguments = any[];
 
 export class QueryResult {
-  // TODO
-  // This should be private for real
-  public _done = false;
   public command!: CommandType;
   public rowCount?: number;
   public rowDescription?: RowDescription;
-  public warnings: WarningFields[] = [];
+  public warnings: Notice[] = [];
 
   constructor(public query: Query<ResultType>) {}
 
@@ -122,10 +119,6 @@ export class QueryResult {
   insertRow(_row: Uint8Array[]): void {
     throw new Error("No implementation for insertRow is defined");
   }
-
-  done() {
-    this._done = true;
-  }
 }
 
 export class QueryArrayResult<T extends Array<unknown> = Array<unknown>>
@@ -133,15 +126,6 @@ export class QueryArrayResult<T extends Array<unknown> = Array<unknown>>
   public rows: T[] = [];
 
   insertRow(row_data: Uint8Array[]) {
-    // TODO
-    // Investigate multiple query status report
-    // INSERT INTO X VALUES (1); SELECT PG_TERMINATE_BACKEND(PID) triggers an error here
-    // if (this._done) {
-    //   throw new Error(
-    //     "Tried to add a new row to the result after the result is done reading",
-    //   );
-    // }
-
     if (!this.rowDescription) {
       throw new Error(
         "The row descriptions required to parse the result data weren't initialized",
@@ -168,18 +152,9 @@ export class QueryObjectResult<
   public rows: T[] = [];
 
   insertRow(row_data: Uint8Array[]) {
-    // TODO
-    // Investigate multiple query status report
-    // INSERT INTO X VALUES (1); SELECT PG_TERMINATE_BACKEND(PID) triggers an error here
-    // if (this._done) {
-    //   throw new Error(
-    //     "Tried to add a new row to the result after the result is done reading",
-    //   );
-    // }
-
     if (!this.rowDescription) {
       throw new Error(
-        "The row descriptions required to parse the result data weren't initialized",
+        "The row description required to parse the result data wasn't initialized",
       );
     }
 

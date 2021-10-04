@@ -1,8 +1,6 @@
 import { assertEquals, assertThrows } from "./test_deps.ts";
-import {
-  ConnectionParamsError,
-  createParams,
-} from "../connection/connection_params.ts";
+import { createParams } from "../connection/connection_params.ts";
+import { ConnectionParamsError } from "../client/error.ts";
 import { has_env_access } from "./constants.ts";
 
 /**

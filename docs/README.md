@@ -217,7 +217,7 @@ for Deno to be run with `--allow-env` permissions
 
 The env variables that the client will recognize are taken from `libpq` to keep
 consistency with other PostgreSQL clients out there (see
-https://www.postgresql.org/docs/current/libpq-envars.html)
+https://www.postgresql.org/docs/14/libpq-envars.html)
 
 ```ts
 // PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env --unstable database.js

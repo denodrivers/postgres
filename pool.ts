@@ -97,8 +97,6 @@ export class Pool {
     this.#size = size;
 
     // This must ALWAYS be called the last
-    // TODO
-    // Refactor into its own initialization function
     this.#ready = this.#initialize();
   }
 

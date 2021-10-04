@@ -1,5 +1,9 @@
 export { Client } from "./client.ts";
-export { ConnectionError, PostgresError } from "./connection/warning.ts";
+export {
+  ConnectionError,
+  PostgresError,
+  TransactionError,
+} from "./client/error.ts";
 export { Pool } from "./pool.ts";
 
 // TODO
