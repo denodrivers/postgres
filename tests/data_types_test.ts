@@ -1,5 +1,4 @@
 import { assertEquals, base64, formatDate, parseDate } from "./test_deps.ts";
-import { Client } from "../mod.ts";
 import { getMainConfiguration } from "./config.ts";
 import { generateSimpleClientTest } from "./helpers.ts";
 import {
