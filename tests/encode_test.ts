@@ -1,4 +1,3 @@
-const { test } = Deno;
 import { assertEquals } from "./test_deps.ts";
 import { encode } from "../query/encode.ts";
 
@@ -16,7 +15,7 @@ function overrideTimezoneOffset(offset: number) {
   };
 }
 
-test("encodeDatetime", function () {
+Deno.test("encodeDatetime", function () {
   // GMT
   overrideTimezoneOffset(0);
 
@@ -36,33 +35,33 @@ test("encodeDatetime", function () {
   resetTimezoneOffset();
 });
 
-test("encodeUndefined", function () {
+Deno.test("encodeUndefined", function () {
   assertEquals(encode(undefined), null);
 });
 
-test("encodeNull", function () {
+Deno.test("encodeNull", function () {
   assertEquals(encode(null), null);
 });
 
-test("encodeBoolean", function () {
+Deno.test("encodeBoolean", function () {
   assertEquals(encode(true), "true");
   assertEquals(encode(false), "false");
 });
 
-test("encodeNumber", function () {
+Deno.test("encodeNumber", function () {
   assertEquals(encode(1), "1");
   assertEquals(encode(1.2345), "1.2345");
 });
 
-test("encodeString", function () {
+Deno.test("encodeString", function () {
   assertEquals(encode("deno-postgres"), "deno-postgres");
 });
 
-test("encodeObject", function () {
+Deno.test("encodeObject", function () {
   assertEquals(encode({ x: 1 }), '{"x":1}');
 });
 
-test("encodeUint8Array", function () {
+Deno.test("encodeUint8Array", function () {
   const buf1 = new Uint8Array([1, 2, 3]);
   const buf2 = new Uint8Array([2, 10, 500]);
   const buf3 = new Uint8Array([11]);
@@ -72,20 +71,20 @@ test("encodeUint8Array", function () {
   assertEquals("\\x0b", encode(buf3));
 });
 
-test("encodeArray", function () {
+Deno.test("encodeArray", function () {
   const array = [null, "postgres", 1, ["foo", "bar"]];
   const encodedArray = encode(array);
 
   assertEquals(encodedArray, '{NULL,"postgres","1",{"foo","bar"}}');
 });
 
-test("encodeObjectArray", function () {
+Deno.test("encodeObjectArray", function () {
   const array = [{ x: 1 }, { y: 2 }];
   const encodedArray = encode(array);
   assertEquals(encodedArray, '{"{\\"x\\":1}","{\\"y\\":2}"}');
 });
 
-test("encodeDateArray", function () {
+Deno.test("encodeDateArray", function () {
   overrideTimezoneOffset(0);
 
   const array = [new Date(2019, 1, 10, 20, 30, 40, 5)];

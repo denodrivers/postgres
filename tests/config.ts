@@ -33,7 +33,7 @@ const config_file: {
   await Deno.readTextFile(new URL("./config.json", import.meta.url)),
 );
 
-const config = Deno.env.get("DEVELOPMENT") === "true"
+const config = Deno.env.get("DENO_POSTGRES_DEVELOPMENT") === "true"
   ? config_file.local
   : config_file.ci;
 
