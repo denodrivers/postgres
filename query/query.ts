@@ -62,6 +62,7 @@ export interface QueryObjectConfig extends QueryConfig {
    * A field can not start with a number, just like JavaScript variables
    */
   fields?: string[];
+  camelcase?: boolean; // if true the output field names will be converted from snake_case to camelCase, omited, defaults to "false"
 }
 
 // TODO
@@ -151,6 +152,21 @@ export class QueryObjectResult<
 > extends QueryResult {
   public rows: T[] = [];
 
+  private _snakeToCamelCase = (input: string) =>
+    input
+      .split("_")
+      .reduce(
+        (res, word, i) =>
+          i === 0
+            ? word.toLowerCase()
+            : `${res}${word.charAt(0).toUpperCase()}${
+              word
+                .substr(1)
+                .toLowerCase()
+            }`,
+        "",
+      );
+
   insertRow(row_data: Uint8Array[]) {
     if (!this.rowDescription) {
       throw new Error(
@@ -175,7 +191,12 @@ export class QueryObjectResult<
 
         // Find the field name provided by the user
         // default to database provided name
-        const name = this.query.fields?.[index] ?? column.name;
+        let name;
+        if (this.query.snakeToCamel) {
+          name = this._snakeToCamelCase(
+            this.query.fields?.[index] ?? column.name,
+          ); // convert snake_case to camelCase
+        } else name = this.query.fields?.[index] ?? column.name;
 
         if (raw_value === null) {
           row[name] = null;
@@ -197,7 +218,7 @@ export class Query<T extends ResultType> {
   public fields?: string[];
   public result_type: ResultType;
   public text: string;
-
+  public snakeToCamel?: boolean;
   constructor(config: QueryObjectConfig, result_type: T);
   constructor(text: string, result_type: T, ...args: unknown[]);
   constructor(
@@ -213,6 +234,7 @@ export class Query<T extends ResultType> {
     } else {
       const {
         fields,
+        camelcase,
         ...query_config
       } = config_or_text;
 
@@ -235,6 +257,9 @@ export class Query<T extends ResultType> {
         }
 
         this.fields = clean_fields;
+        this.snakeToCamel = false; // if fields are defined, omit conversion
+      } else if (camelcase) { // omit conversion if fields are defined
+        this.snakeToCamel = camelcase;
       }
 
       config = query_config;
