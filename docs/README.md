@@ -60,7 +60,7 @@ config = {
 
 // Alternatively you can use a connection string
 config =
-  "postgres://user:password@localhost:5432/test?application_name=my_custom_app&sslmode=required";
+  "postgres://user:password@localhost:5432/test?application_name=my_custom_app&sslmode=require";
 
 const client = new Client(config);
 await client.connect();
