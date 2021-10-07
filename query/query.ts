@@ -152,7 +152,7 @@ export class QueryObjectResult<
 > extends QueryResult {
   public rows: T[] = [];
 
-  private _snakeToCamelCase = (input: string) =>
+  #snakeToCamelCase = (input: string) =>
     input
       .split("_")
       .reduce(
@@ -193,7 +193,7 @@ export class QueryObjectResult<
         // default to database provided name
         let name;
         if (this.query.snakeToCamel) {
-          name = this._snakeToCamelCase(
+          name = this.#snakeToCamelCase(
             this.query.fields?.[index] ?? column.name,
           ); // convert snake_case to camelCase
         } else name = this.query.fields?.[index] ?? column.name;
