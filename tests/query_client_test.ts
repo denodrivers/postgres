@@ -520,6 +520,71 @@ testClient(
   },
 );
 
+testClient(
+  "Camelcase false, field names are snake_case",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    await client.queryArray
+      `CREATE TEMP TABLE CAMEL_TEST (POS_X INTEGER, POS_Y INTEGER, PREFIX_NAME_SUFFIX INTEGER)`;
+    await client.queryArray
+      `INSERT INTO CAMEL_TEST (POS_X, POS_Y, PREFIX_NAME_SUFFIX) VALUES (100, 200, 300)`;
+
+    const result_without = await client.queryObject({
+      text: `SELECT * FROM CAMEL_TEST`,
+      camelcase: false,
+    });
+
+    assertEquals(result_without.rows[0], {
+      pos_x: 100,
+      pos_y: 200,
+      prefix_name_suffix: 300,
+    });
+  },
+);
+
+testClient(
+  "Camelcase true, field names are camelCase",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    await client.queryArray
+      `CREATE TEMP TABLE CAMEL_TEST (POS_X INTEGER, POS_Y INTEGER, PREFIX_NAME_SUFFIX INTEGER)`;
+    await client.queryArray
+      `INSERT INTO CAMEL_TEST (POS_X, POS_Y, PREFIX_NAME_SUFFIX) VALUES (100, 200, 300)`;
+
+    const result_without = await client.queryObject({
+      text: `SELECT * FROM CAMEL_TEST`,
+      camelcase: true,
+    });
+
+    assertEquals(result_without.rows[0], {
+      posX: 100,
+      posY: 200,
+      prefixNameSuffix: 300,
+    });
+  },
+);
+
+testClient(
+  "Camelcase does nothing to auto generated fields",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    const result_false = await client.queryObject({
+      text: "SELECT 1, 2, 3, 'DATA'",
+      camelcase: false,
+    });
+
+    const result_true = await client.queryObject({
+      text: "SELECT 1, 2, 3, 'DATA'",
+      camelcase: true,
+    });
+
+    assertEquals(result_false.rowDescription, result_true.rowDescription);
+  },
+);
+
 // Regression test
 testClient(
   "Object query doesn't throw provided fields only have one letter",
