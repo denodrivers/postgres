@@ -1,4 +1,4 @@
-import { assertEquals, base64, formatDate, parseDate } from "./test_deps.ts";
+import { assertEquals, base64, date } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
 import { generateSimpleClientTest } from "./helpers.ts";
 import {
@@ -923,7 +923,7 @@ Deno.test(
 Deno.test(
   "date",
   testClient(async (client) => {
-    await client.queryArray`SET SESSION TIMEZONE TO '${timezone}'`;
+    await client.queryArray(`SET SESSION TIMEZONE TO '${timezone}'`);
     const date_text = "2020-01-01";
 
     const result = await client.queryArray<[Timestamp, Timestamp]>(
@@ -932,7 +932,7 @@ Deno.test(
     );
 
     assertEquals(result.rows[0], [
-      parseDate(date_text, "yyyy-MM-dd"),
+      date.parse(date_text, "yyyy-MM-dd"),
       Infinity,
     ]);
   }),
@@ -941,8 +941,8 @@ Deno.test(
 Deno.test(
   "date array",
   testClient(async (client) => {
-    await client.queryArray`SET SESSION TIMEZONE TO '${timezone}'`;
-    const dates = ["2020-01-01", formatDate(new Date(), "yyyy-MM-dd")];
+    await client.queryArray(`SET SESSION TIMEZONE TO '${timezone}'`);
+    const dates = ["2020-01-01", date.format(new Date(), "yyyy-MM-dd")];
 
     const result = await client.queryArray<[Timestamp, Timestamp]>(
       "SELECT ARRAY[$1::DATE, $2]",
@@ -951,7 +951,7 @@ Deno.test(
 
     assertEquals(
       result.rows[0][0],
-      dates.map((date) => parseDate(date, "yyyy-MM-dd")),
+      dates.map((d) => date.parse(d, "yyyy-MM-dd")),
     );
   }),
 );

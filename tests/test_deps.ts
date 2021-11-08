@@ -7,8 +7,4 @@ export {
   assertThrows,
   assertThrowsAsync,
 } from "https://deno.land/std@0.113.0/testing/asserts.ts";
-export {
-  format as formatDate,
-  parse as parseDate,
-} from "https://deno.land/std@0.113.0/datetime/mod.ts";
 export { fromFileUrl } from "https://deno.land/std@0.113.0/path/mod.ts";
