@@ -47,19 +47,26 @@ export interface TLSOptions {
   /**
    * If TLS support is enabled or not. If the server requires TLS,
    * the connection will fail.
+   *
+   * Default: `true`
    */
   enabled: boolean;
   /**
    * This will force the connection to run over TLS
    * If the server doesn't support TLS, the connection will fail
    *
-   * default: `false`
+   * Default: `false`
    */
   enforce: boolean;
   /**
-   * A custom CA file to use for the TLS connection to the server.
+   * A list of root certificates that will be used in addition to the default
+   * root certificates to verify the server's certificate.
+   *
+   * Must be in PEM format.
+   *
+   * Default: `[]`
    */
-  caFile?: string;
+  caCertificates: string[];
 }
 
 export interface ClientOptions {
@@ -135,7 +142,7 @@ function parseOptionsFromDsn(connString: string): ClientOptions {
     );
   }
 
-  let tls: TLSOptions = { enabled: true, enforce: false };
+  let tls: TLSOptions = { enabled: true, enforce: false, caCertificates: [] };
   if (dsn.params.sslmode) {
     const sslmode = dsn.params.sslmode;
     delete dsn.params.sslmode;
@@ -147,11 +154,11 @@ function parseOptionsFromDsn(connString: string): ClientOptions {
     }
 
     if (sslmode === "require") {
-      tls = { enabled: true, enforce: true };
+      tls = { enabled: true, enforce: true, caCertificates: [] };
     }
 
     if (sslmode === "disable") {
-      tls = { enabled: false, enforce: false };
+      tls = { enabled: false, enforce: false, caCertificates: [] };
     }
   }
 
@@ -172,6 +179,7 @@ const DEFAULT_OPTIONS: Omit<ClientConfiguration, "database" | "user"> = {
   tls: {
     enabled: true,
     enforce: false,
+    caCertificates: [],
   },
 };
 
@@ -233,7 +241,7 @@ export function createParams(
     tls: {
       enabled: tls_enabled,
       enforce: tls_enforced,
-      caFile: params?.tls?.caFile,
+      caCertificates: params?.tls?.caCertificates ?? [],
     },
     user: params.user ?? pgEnv.user,
   };

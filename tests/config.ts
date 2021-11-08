@@ -38,7 +38,11 @@ const config = Deno.env.get("DENO_POSTGRES_DEVELOPMENT") === "true"
   : config_file.ci;
 
 const enabled_tls = {
-  caFile: fromFileUrl(new URL("../docker/certs/ca.crt", import.meta.url)),
+  caCertificates: [
+    Deno.readTextFileSync(
+      new URL("../docker/certs/ca.crt", import.meta.url),
+    ),
+  ],
   enabled: true,
   enforce: true,
 };
