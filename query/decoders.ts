@@ -1,3 +1,4 @@
+import { date } from "../deps.ts";
 import { parseArray } from "./array_parser.ts";
 import {
   Box,
@@ -16,7 +17,6 @@ import {
 // Copyright (c) Ben Drucker <bvdrucker@gmail.com> (bendrucker.me). MIT License.
 const BACKSLASH_BYTE_VALUE = 92;
 const BC_RE = /BC$/;
-const DATE_RE = /^(\d{1,})-(\d{2})-(\d{2})$/;
 const DATETIME_RE =
   /^(\d{1,})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})(\.\d{1,})?/;
 const HEX = 16;
@@ -127,23 +127,7 @@ export function decodeDate(dateStr: string): Date | number {
     return Number(-Infinity);
   }
 
-  const matches = DATE_RE.exec(dateStr);
-
-  if (!matches) {
-    throw new Error(`"${dateStr}" could not be parsed to date`);
-  }
-
-  const year = parseInt(matches[1], 10);
-  // remember JS dates are 0-based
-  const month = parseInt(matches[2], 10) - 1;
-  const day = parseInt(matches[3], 10);
-  const date = new Date(year, month, day);
-  // use `setUTCFullYear` because if date is from first
-  // century `Date`'s compatibility for millenium bug
-  // would set it as 19XX
-  date.setUTCFullYear(year);
-
-  return date;
+  return date.parse(dateStr, "yyyy-MM-dd");
 }
 
 export function decodeDateArray(value: string) {
