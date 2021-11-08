@@ -199,10 +199,10 @@ There is a miriad of factors you have to take into account when using a
 certificate to encrypt your connection that, if not taken care of, can render
 your certificate invalid.
 
-When using a self signed certificate, make sure to specify the path to the CA
-certificate in the `tls.caFile` option when creating the Postgres `Client`, or
-using the `--cert` option when starting Deno. The latter approach only works for
-Deno 1.12.2 or later.
+When using a self signed certificate, make sure to specify the PEM encoded CA
+certificate in the `tls.caCertificates` option when creating the Postgres
+`Client` (Deno 1.15.0 later), or using the `--cert` option when starting Deno
+(Deno 1.12.2 or later).
 
 TLS can be disabled from your server by editing your `postgresql.conf` file and
 setting the `ssl` option to `off`, or in the driver side by using the "disabled"
