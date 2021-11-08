@@ -128,7 +128,7 @@ export const Oid = {
   _pg_auth_members: 2843,
   _txid_snapshot_0: 2949,
   uuid: 2950,
-  uuid_varchar: 2951,
+  uuid_array: 2951,
   _txid_snapshot_1: 2970,
   _fdw_handler: 3115,
   _pg_lsn_0: 3220,
