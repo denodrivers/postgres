@@ -3,7 +3,7 @@
 ![Build Status](https://img.shields.io/github/workflow/status/denodrivers/postgres/ci?label=Build&logo=github&style=flat-square)
 [![Discord server](https://img.shields.io/discord/768918486575480863?color=blue&label=Ask%20for%20help%20here&logo=discord&style=flat-square)](https://discord.gg/HEdTCvZUSf)
 [![Manual](https://img.shields.io/github/v/release/denodrivers/postgres?color=orange&label=Manual&logo=deno&style=flat-square)](https://deno-postgres.com)
-[![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://doc.deno.land/https/deno.land/x/postgres@v0.13.0/mod.ts)
+[![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://doc.deno.land/https/deno.land/x/postgres@v0.14.0/mod.ts)
 [![License](https://img.shields.io/github/license/denodrivers/postgres?color=yellowgreen&label=License&style=flat-square)](LICENSE)
 
 A lightweight PostgreSQL driver for Deno focused on user experience
@@ -58,8 +58,10 @@ For more examples visit the documentation available at
 
 Sadly, establishing a TLS connection in the way Postgres requires it isn't
 possible without the `Deno.startTls` API, which is currently marked as unstable.
-This is a situation that will be solved once this API is stabilized, however I
-don't have an estimated time of when that might happen.
+
+At least that was the situation before Deno 1.16, which stabilized the required
+API making it possible to use the library without requiring `--unstable`. Users
+are urged to upgrade to Deno 1.16 or above to enjoy this feature
 
 ## Documentation
 
@@ -148,18 +150,21 @@ a local testing environment, as shown in the following steps:
 
 ## Deno compatibility
 
-Due to a not intended breaking change in Deno 1.9.0, two versions of
-`deno-postgres` require a specific version of Deno in order to work correctly,
-the following is a compatibility table that ranges from Deno 1.8 to Deno 1.9 and
-above indicating possible compatibility problems
+Due to breaking changes introduced in the unstable APIs `deno-postgres` uses,
+there has been some fragmentation regarding what versions of Deno can be used
+alongside the library
+
+This situation will become more stable as `std` and `deno-postgres` approach 1.0
 
 | Deno version  | Min driver version | Max driver version |
 | ------------- | ------------------ | ------------------ |
 | 1.8.x         | 0.5.0              | 0.10.0             |
 | 1.9.0         | 0.11.0             | 0.11.1             |
 | 1.9.1 and up  | 0.11.2             | 0.11.3             |
-| 1.11.0 and up | 0.12.0             | 0.13.0             |
-| 1.14.x        | 0.13.0             |                    |
+| 1.11.0 and up | 0.12.0             | 0.12.0             |
+| 1.14.0 and up | 0.13.0             | 0.13.0             |
+| 1.15.0        | 0.13.0             |                    |
+| 1.16.0        | 0.14.0             |                    |
 
 ## Contributing guidelines
 
