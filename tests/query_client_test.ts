@@ -578,7 +578,7 @@ testClient(
 );
 
 testClient(
-  "Object query throws if implicit fields aren't unique",
+  "Object query throws if implicit fields aren't unique 1",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -587,6 +587,13 @@ testClient(
       Error,
       `Field names "a" are duplicated in the result of the query`,
     );
+  },
+);
+
+testClient(
+  "Object query throws if implicit fields aren't unique 2",
+  async function (generateClient) {
+    const client = await generateClient();
 
     await assertThrowsAsync(
       () =>
