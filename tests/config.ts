@@ -1,5 +1,4 @@
 import { ClientOptions } from "../connection/connection_params.ts";
-import { fromFileUrl } from "./test_deps.ts";
 
 type ConfigFileConnection = Pick<
   ClientOptions,
