@@ -66,7 +66,7 @@ export interface QueryObjectConfig extends QueryConfig {
    * Fields must be unique and be in the range of (a-zA-Z0-9_), otherwise the query will throw before execution.
    * A field can not start with a number, just like JavaScript variables
    *
-   * This setting overrides the camelcase option, manually set field names take precedence above everything else
+   * This setting overrides the camelcase option
    *
    * Ex: `SELECT 'A', 'B' AS my_field` with fields `["field_1", "field_2"]` will return `{ field_1: "A", field_2: "B" }`
    */
