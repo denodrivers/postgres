@@ -188,11 +188,6 @@ connection string. Although discouraged, this option is pretty useful when
 dealing with development databases or versions of Postgres that didn't support
 TLS encrypted connections.
 
-Sadly, stablishing a TLS connection in the way Postgres requires it isn't
-possible without the `Deno.startTls` API, which is currently marked as unstable.
-This is a situation that will be solved once this API is stabilized, however I
-don't have an estimated time of when that might happen.
-
 ##### About invalid TLS certificates
 
 There is a miriad of factors you have to take into account when using a
@@ -220,7 +215,7 @@ consistency with other PostgreSQL clients out there (see
 https://www.postgresql.org/docs/14/libpq-envars.html)
 
 ```ts
-// PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env --unstable database.js
+// PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env database.js
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 
 const client = new Client();

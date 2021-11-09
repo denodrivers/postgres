@@ -15,7 +15,7 @@ A lightweight PostgreSQL driver for Deno focused on user experience
 ## Example
 
 ```ts
-// deno run --allow-net --allow-read --unstable mod.ts
+// deno run --allow-net --allow-read mod.ts
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 
 const client = new Client({
@@ -53,13 +53,6 @@ await client.end();
 
 For more examples visit the documentation available at
 [https://deno-postgres.com/](https://deno-postgres.com/)
-
-## Why do I need unstable to connect using TLS?
-
-Sadly, establishing a TLS connection in the way Postgres requires it isn't
-possible without the `Deno.startTls` API, which is currently marked as unstable.
-This is a situation that will be solved once this API is stabilized, however I
-don't have an estimated time of when that might happen.
 
 ## Documentation
 
@@ -160,6 +153,7 @@ above indicating possible compatibility problems
 | 1.9.1 and up  | 0.11.2             | 0.11.3             |
 | 1.11.0 and up | 0.12.0             | 0.13.0             |
 | 1.14.x        | 0.13.0             |                    |
+| 1.15.0 and up | 0.14.0             |                    |
 
 ## Contributing guidelines
 
