@@ -50,19 +50,27 @@ export interface QueryConfig {
   text: string;
 }
 
+// TODO
+// Support multiple case options
 export interface QueryObjectConfig extends QueryConfig {
   /**
-   * This parameter superseeds query column names
+   * Enabling camelcase will transform any snake case field names coming from the database into camel case ones
    *
-   * When specified, this names will be asigned to the results
-   * of the query in the order they were provided
+   * Ex: `SELECT 1 AS my_field` will return `{ myField: 1 }`
    *
-   * Fields must be unique and be in the range of (a-zA-Z0-9_), otherwise the query will throw before execution
-   *
+   * This won't have any effect if you explicitly set the field names with the `fields` parameter
+   */
+  camelcase?: boolean;
+  /**
+   * This parameter supersedes query column names coming from the databases in the order they were provided.
+   * Fields must be unique and be in the range of (a-zA-Z0-9_), otherwise the query will throw before execution.
    * A field can not start with a number, just like JavaScript variables
+   *
+   * This setting overrides the camelcase option
+   *
+   * Ex: `SELECT 'A', 'B' AS my_field` with fields `["field_1", "field_2"]` will return `{ field_1: "A", field_2: "B" }`
    */
   fields?: string[];
-  camelcase?: boolean; // if true the output field names will be converted from snake_case to camelCase, omited, defaults to "false"
 }
 
 // TODO
@@ -147,25 +155,26 @@ export class QueryArrayResult<T extends Array<unknown> = Array<unknown>>
   }
 }
 
+function snakecaseToCamelcase(input: string) {
+  return input
+    .split("_")
+    .reduce(
+      (res, word, i) =>
+        i === 0
+          ? word.toLowerCase()
+          : `${res}${word.charAt(0).toUpperCase()}${
+            word
+              .substr(1)
+              .toLowerCase()
+          }`,
+      "",
+    );
+}
+
 export class QueryObjectResult<
   T = Record<string, unknown>,
 > extends QueryResult {
   public rows: T[] = [];
-
-  #snakeToCamelCase = (input: string) =>
-    input
-      .split("_")
-      .reduce(
-        (res, word, i) =>
-          i === 0
-            ? word.toLowerCase()
-            : `${res}${word.charAt(0).toUpperCase()}${
-              word
-                .substr(1)
-                .toLowerCase()
-            }`,
-        "",
-      );
 
   insertRow(row_data: Uint8Array[]) {
     if (!this.rowDescription) {
@@ -191,12 +200,12 @@ export class QueryObjectResult<
 
         // Find the field name provided by the user
         // default to database provided name
-        let name;
-        if (this.query.snakeToCamel) {
-          name = this.#snakeToCamelCase(
-            this.query.fields?.[index] ?? column.name,
-          ); // convert snake_case to camelCase
-        } else name = this.query.fields?.[index] ?? column.name;
+        let name = this.query.fields?.[index];
+        if (name === undefined) {
+          name = this.query.camelcase
+            ? snakecaseToCamelcase(column.name)
+            : column.name;
+        }
 
         if (raw_value === null) {
           row[name] = null;
@@ -215,10 +224,10 @@ export class QueryObjectResult<
 
 export class Query<T extends ResultType> {
   public args: EncodedArg[];
+  public camelcase?: boolean;
   public fields?: string[];
   public result_type: ResultType;
   public text: string;
-  public snakeToCamel?: boolean;
   constructor(config: QueryObjectConfig, result_type: T);
   constructor(text: string, result_type: T, ...args: unknown[]);
   constructor(
@@ -241,27 +250,25 @@ export class Query<T extends ResultType> {
       // Check that the fields passed are valid and can be used to map
       // the result of the query
       if (fields) {
-        const clean_fields = fields.filter((field) =>
+        const fields_are_clean = fields.every((field) =>
           /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field)
         );
-        if (fields.length !== clean_fields.length) {
+        if (!fields_are_clean) {
           throw new TypeError(
             "The fields provided for the query must contain only letters and underscores",
           );
         }
 
-        if ((new Set(clean_fields)).size !== clean_fields.length) {
+        if (new Set(fields).size !== fields.length) {
           throw new TypeError(
             "The fields provided for the query must be unique",
           );
         }
 
-        this.fields = clean_fields;
-        this.snakeToCamel = false; // if fields are defined, omit conversion
-      } else if (camelcase) { // omit conversion if fields are defined
-        this.snakeToCamel = camelcase;
+        this.fields = fields;
       }
 
+      this.camelcase = camelcase;
       config = query_config;
     }
     this.text = config.text;
