@@ -566,14 +566,36 @@ testClient(
     const client = await generateClient();
 
     await assertThrowsAsync(
-      async () => {
-        await client.queryObject({
+      () =>
+        client.queryObject({
           text: "SELECT 1",
           fields: ["FIELD_1", "FIELD_1"],
-        });
-      },
+        }),
       TypeError,
       "The fields provided for the query must be unique",
+    );
+  },
+);
+
+testClient(
+  "Object query throws if implicit fields aren't unique",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    await assertThrowsAsync(
+      () => client.queryObject`SELECT 1 AS "a", 2 AS A`,
+      Error,
+      `Field names "a" are duplicated in the result of the query`,
+    );
+
+    await assertThrowsAsync(
+      () =>
+        client.queryObject({
+          camelcase: true,
+          text: `SELECT 1 AS "fieldX", 2 AS field_x`,
+        }),
+      Error,
+      `Field names "fieldX" are duplicated in the result of the query`,
     );
   },
 );
@@ -676,7 +698,7 @@ testClient(
           fields: ["result"],
         }),
       RangeError,
-      "The fields provided for the query don't match the ones returned as a result",
+      "The result fields returned by the database don't match the defined structure of the result",
     );
   },
 );

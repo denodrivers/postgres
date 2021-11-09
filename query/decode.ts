@@ -52,6 +52,8 @@ enum Format {
 
 const decoder = new TextDecoder();
 
+// TODO
+// Decode binary fields
 function decodeBinary() {
   throw new Error("Not implemented!");
 }

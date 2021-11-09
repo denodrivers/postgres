@@ -47,6 +47,8 @@ export interface QueryConfig {
   args?: Array<unknown>;
   encoder?: (arg: unknown) => EncodedArg;
   name?: string;
+  // TODO
+  // Rename to query
   text: string;
 }
 
@@ -98,8 +100,23 @@ export type QueryArguments = any[];
 export class QueryResult {
   public command!: CommandType;
   public rowCount?: number;
-  public rowDescription?: RowDescription;
+  /**
+   * This variable will be set after the class initialization, however it's required to be set
+   * in order to handle result rows coming in
+   */
+  #row_description?: RowDescription;
   public warnings: Notice[] = [];
+
+  get rowDescription() {
+    return this.#row_description;
+  }
+
+  set rowDescription(row_description: RowDescription | undefined) {
+    // Prevent #row_description from being changed once set
+    if (row_description && !this.#row_description) {
+      this.#row_description = row_description;
+    }
+  }
 
   constructor(public query: Query<ResultType>) {}
 
@@ -125,6 +142,10 @@ export class QueryResult {
     }
   }
 
+  /**
+   * Add a row to the result based on metadata provided by `rowDescription`
+   * This implementation depends on row description not being modified after initialization
+   */
   insertRow(_row: Uint8Array[]): void {
     throw new Error("No implementation for insertRow is defined");
   }
@@ -155,18 +176,29 @@ export class QueryArrayResult<T extends Array<unknown> = Array<unknown>>
   }
 }
 
+function findDuplicatesInArray(array: string[]): string[] {
+  return array.reduce((duplicates, item, index) => {
+    const is_duplicate = array.indexOf(item) !== index;
+    if (is_duplicate && !duplicates.includes(item)) {
+      duplicates.push(item);
+    }
+
+    return duplicates;
+  }, [] as string[]);
+}
+
 function snakecaseToCamelcase(input: string) {
   return input
     .split("_")
     .reduce(
-      (res, word, i) =>
-        i === 0
-          ? word.toLowerCase()
-          : `${res}${word.charAt(0).toUpperCase()}${
-            word
-              .substr(1)
-              .toLowerCase()
-          }`,
+      (res, word, i) => {
+        if (i !== 0) {
+          word = word[0].toUpperCase() + word.slice(1);
+        }
+
+        res += word;
+        return res;
+      },
       "",
     );
 }
@@ -174,6 +206,10 @@ function snakecaseToCamelcase(input: string) {
 export class QueryObjectResult<
   T = Record<string, unknown>,
 > extends QueryResult {
+  /**
+   * The column names will be undefined on the first run of insertRow, since
+   */
+  public columns?: string[];
   public rows: T[] = [];
 
   insertRow(row_data: Uint8Array[]) {
@@ -183,39 +219,65 @@ export class QueryObjectResult<
       );
     }
 
-    if (
-      this.query.fields &&
-      this.rowDescription.columns.length !== this.query.fields.length
-    ) {
+    // This will only run on the first iteration after row descriptions have been set
+    if (!this.columns) {
+      if (this.query.fields) {
+        if (this.rowDescription.columns.length !== this.query.fields.length) {
+          throw new RangeError(
+            "The fields provided for the query don't match the ones returned as a result " +
+              `(${this.rowDescription.columns.length} expected, ${this.query.fields.length} received)`,
+          );
+        }
+
+        this.columns = this.query.fields;
+      } else {
+        let column_names: string[];
+        if (this.query.camelcase) {
+          column_names = this.rowDescription.columns.map((column) =>
+            snakecaseToCamelcase(column.name)
+          );
+        } else {
+          column_names = this.rowDescription.columns.map((column) =>
+            column.name
+          );
+        }
+
+        // Check field names returned by the database are not duplicated
+        const duplicates = findDuplicatesInArray(column_names);
+        if (duplicates.length) {
+          throw new Error(
+            `Field names ${
+              duplicates.map((str) => `"${str}"`).join(", ")
+            } are duplicated in the result of the query`,
+          );
+        }
+
+        this.columns = column_names;
+      }
+    }
+
+    // It's safe to assert columns as defined from now on
+    const columns = this.columns!;
+
+    if (columns.length !== row_data.length) {
       throw new RangeError(
-        "The fields provided for the query don't match the ones returned as a result " +
-          `(${this.rowDescription.columns.length} expected, ${this.query.fields.length} received)`,
+        "The result fields returned by the database don't match the defined structure of the result",
       );
     }
 
-    // Row description won't be modified after initialization
     const row = row_data.reduce(
-      (row: Record<string, unknown>, raw_value, index) => {
-        const column = this.rowDescription!.columns[index];
-
-        // Find the field name provided by the user
-        // default to database provided name
-        let name = this.query.fields?.[index];
-        if (name === undefined) {
-          name = this.query.camelcase
-            ? snakecaseToCamelcase(column.name)
-            : column.name;
-        }
+      (row, raw_value, index) => {
+        const current_column = this.rowDescription!.columns[index];
 
         if (raw_value === null) {
-          row[name] = null;
+          row[columns[index]] = null;
         } else {
-          row[name] = decode(raw_value, column);
+          row[columns[index]] = decode(raw_value, current_column);
         }
 
         return row;
       },
-      {},
+      {} as Record<string, unknown>,
     );
 
     this.rows.push(row as T);
@@ -225,6 +287,10 @@ export class QueryObjectResult<
 export class Query<T extends ResultType> {
   public args: EncodedArg[];
   public camelcase?: boolean;
+  /**
+   * The explicitly set fields for the query result, they have been validated beforehand
+   * for duplicates and invalid names
+   */
   public fields?: string[];
   public result_type: ResultType;
   public text: string;
