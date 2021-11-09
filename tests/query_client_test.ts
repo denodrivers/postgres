@@ -489,7 +489,47 @@ testClient("Query array with template string", async function (generateClient) {
 });
 
 testClient(
-  "Object query are mapped to user provided fields",
+  "Object query field names aren't transformed when camelcase is disabled",
+  async function (generateClient) {
+    const client = await generateClient();
+    const record = {
+      pos_x: "100",
+      pos_y: "200",
+      prefix_name_suffix: "square",
+    };
+
+    const { rows: result } = await client.queryObject({
+      args: [record.pos_x, record.pos_y, record.prefix_name_suffix],
+      camelcase: false,
+      text: "SELECT $1 AS POS_X, $2 AS POS_Y, $3 AS PREFIX_NAME_SUFFIX",
+    });
+
+    assertEquals(result[0], record);
+  },
+);
+
+testClient(
+  "Object query field names are transformed when camelcase is enabled",
+  async function (generateClient) {
+    const client = await generateClient();
+    const record = {
+      posX: "100",
+      posY: "200",
+      prefixNameSuffix: "point",
+    };
+
+    const { rows: result } = await client.queryObject({
+      args: [record.posX, record.posY, record.prefixNameSuffix],
+      camelcase: true,
+      text: "SELECT $1 AS POS_X, $2 AS POS_Y, $3 AS PREFIX_NAME_SUFFIX",
+    });
+
+    assertEquals(result[0], record);
+  },
+);
+
+testClient(
+  "Object query result is mapped to explicit fields",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -503,7 +543,25 @@ testClient(
 );
 
 testClient(
-  "Object query throws if user provided fields aren't unique",
+  "Object query explicit fields override camelcase",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    const record = { field_1: "A", field_2: "B", field_3: "C" };
+
+    const { rows: result } = await client.queryObject({
+      args: [record.field_1, record.field_2, record.field_3],
+      camelcase: true,
+      fields: ["field_1", "field_2", "field_3"],
+      text: "SELECT $1 AS POS_X, $2 AS POS_Y, $3 AS PREFIX_NAME_SUFFIX",
+    });
+
+    assertEquals(result[0], record);
+  },
+);
+
+testClient(
+  "Object query throws if explicit fields aren't unique",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -521,73 +579,7 @@ testClient(
 );
 
 testClient(
-  "Camelcase false, field names are snake_case",
-  async function (generateClient) {
-    const client = await generateClient();
-
-    await client.queryArray
-      `CREATE TEMP TABLE CAMEL_TEST (POS_X INTEGER, POS_Y INTEGER, PREFIX_NAME_SUFFIX INTEGER)`;
-    await client.queryArray
-      `INSERT INTO CAMEL_TEST (POS_X, POS_Y, PREFIX_NAME_SUFFIX) VALUES (100, 200, 300)`;
-
-    const result_without = await client.queryObject({
-      text: `SELECT * FROM CAMEL_TEST`,
-      camelcase: false,
-    });
-
-    assertEquals(result_without.rows[0], {
-      pos_x: 100,
-      pos_y: 200,
-      prefix_name_suffix: 300,
-    });
-  },
-);
-
-testClient(
-  "Camelcase true, field names are camelCase",
-  async function (generateClient) {
-    const client = await generateClient();
-
-    await client.queryArray
-      `CREATE TEMP TABLE CAMEL_TEST (POS_X INTEGER, POS_Y INTEGER, PREFIX_NAME_SUFFIX INTEGER)`;
-    await client.queryArray
-      `INSERT INTO CAMEL_TEST (POS_X, POS_Y, PREFIX_NAME_SUFFIX) VALUES (100, 200, 300)`;
-
-    const result_without = await client.queryObject({
-      text: `SELECT * FROM CAMEL_TEST`,
-      camelcase: true,
-    });
-
-    assertEquals(result_without.rows[0], {
-      posX: 100,
-      posY: 200,
-      prefixNameSuffix: 300,
-    });
-  },
-);
-
-testClient(
-  "Camelcase does nothing to auto generated fields",
-  async function (generateClient) {
-    const client = await generateClient();
-
-    const result_false = await client.queryObject({
-      text: "SELECT 1, 2, 3, 'DATA'",
-      camelcase: false,
-    });
-
-    const result_true = await client.queryObject({
-      text: "SELECT 1, 2, 3, 'DATA'",
-      camelcase: true,
-    });
-
-    assertEquals(result_false.rowDescription, result_true.rowDescription);
-  },
-);
-
-// Regression test
-testClient(
-  "Object query doesn't throw provided fields only have one letter",
+  "Object query doesn't throw when explicit fields only have one letter",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -615,7 +607,7 @@ testClient(
 );
 
 testClient(
-  "Object query throws if user provided fields aren't valid",
+  "Object query throws if explicit fields aren't valid",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -655,7 +647,7 @@ testClient(
 );
 
 testClient(
-  "Object query throws if result columns don't match the user provided fields",
+  "Object query throws if result columns don't match explicit fields",
   async function (generateClient) {
     const client = await generateClient();
 
