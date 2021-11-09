@@ -123,6 +123,21 @@ testClient(
 );
 
 testClient(
+  "Simple query handles error during data processing",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    await assertThrowsAsync(
+      () => client.queryObject`SELECT 'A' AS X, 'B' AS X`,
+    );
+
+    const value = "193";
+    const { rows: result_2 } = await client.queryObject`SELECT ${value} AS B`;
+    assertEquals(result_2[0], { b: value });
+  },
+);
+
+testClient(
   "Simple query can return multiple queries",
   async function (generateClient) {
     const client = await generateClient();
@@ -168,6 +183,21 @@ testClient(
     });
 
     assertEquals(rows[0], { result });
+  },
+);
+
+testClient(
+  "Prepared query handles error during data processing",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    await assertThrowsAsync(
+      () => client.queryObject`SELECT ${1} AS A, ${2} AS A`,
+    );
+
+    const value = "z";
+    const { rows: result_2 } = await client.queryObject`SELECT ${value} AS B`;
+    assertEquals(result_2[0], { b: value });
   },
 );
 
@@ -587,13 +617,6 @@ testClient(
       Error,
       `Field names "a" are duplicated in the result of the query`,
     );
-  },
-);
-
-testClient(
-  "Object query throws if implicit fields aren't unique 2",
-  async function (generateClient) {
-    const client = await generateClient();
 
     await assertThrowsAsync(
       () =>

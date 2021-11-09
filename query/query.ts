@@ -145,6 +145,8 @@ export class QueryResult {
   /**
    * Add a row to the result based on metadata provided by `rowDescription`
    * This implementation depends on row description not being modified after initialization
+   *
+   * This function can throw on validation, so any errors must be handled in the message loop accordingly
    */
   insertRow(_row: Uint8Array[]): void {
     throw new Error("No implementation for insertRow is defined");
