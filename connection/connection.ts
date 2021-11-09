@@ -632,7 +632,12 @@ export class Connection {
           break;
         }
         case INCOMING_QUERY_MESSAGES.DATA_ROW: {
-          result.insertRow(parseRowDataMessage(current_message));
+          const row_data = parseRowDataMessage(current_message);
+          try {
+            result.insertRow(row_data);
+          } catch (e) {
+            error = e;
+          }
           break;
         }
         case INCOMING_QUERY_MESSAGES.EMPTY_QUERY:
@@ -809,7 +814,12 @@ export class Connection {
           break;
         }
         case INCOMING_QUERY_MESSAGES.DATA_ROW: {
-          result.insertRow(parseRowDataMessage(current_message));
+          const row_data = parseRowDataMessage(current_message);
+          try {
+            result.insertRow(row_data);
+          } catch (e) {
+            error = e;
+          }
           break;
         }
         case INCOMING_QUERY_MESSAGES.NO_DATA:
