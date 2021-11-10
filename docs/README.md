@@ -497,7 +497,7 @@ await client.queryArray
   `DELETE FROM ${my_table} WHERE MY_COLUMN = ${my_other_id};`;
 ```
 
-#### Specifying result type
+### Specifying result type
 
 Both the `queryArray` and `queryObject` functions have a generic implementation
 that allows users to type the result of the executed query to obtain
