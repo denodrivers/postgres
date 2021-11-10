@@ -188,21 +188,33 @@ connection string. Although discouraged, this option is pretty useful when
 dealing with development databases or versions of Postgres that didn't support
 TLS encrypted connections.
 
-Sadly, stablishing a TLS connection in the way Postgres requires it isn't
-possible without the `Deno.startTls` API, which is currently marked as unstable.
-This is a situation that will be solved once this API is stabilized, however I
-don't have an estimated time of when that might happen.
-
-##### About invalid TLS certificates
+##### About invalid and custom TLS certificates
 
 There is a miriad of factors you have to take into account when using a
 certificate to encrypt your connection that, if not taken care of, can render
 your certificate invalid.
 
 When using a self signed certificate, make sure to specify the PEM encoded CA
-certificate in the `tls.caCertificates` option when creating the Postgres
-`Client` (Deno 1.15.0 later), or using the `--cert` option when starting Deno
-(Deno 1.12.2 or later).
+certificate using the `--cert` option when starting Deno (Deno 1.12.2 or later)
+or in the `tls.caCertificates` option when creating a client (Deno 1.15.0 later)
+
+```ts
+const client = new Client({
+  database: "test",
+  hostname: "localhost",
+  password: "password",
+  port: 5432,
+  user: "user",
+  tls: {
+    caCertificates: [
+      await Deno.readTextFile(
+        new URL("./my_ca_certificate.crt", import.meta.url),
+      ),
+    ],
+    enabled: false,
+  },
+});
+```
 
 TLS can be disabled from your server by editing your `postgresql.conf` file and
 setting the `ssl` option to `off`, or in the driver side by using the "disabled"
@@ -372,20 +384,30 @@ await runQuery("SELECT ID, NAME FROM users"); // [{id: 1, name: 'Carlos'}, {id: 
 await runQuery("SELECT ID, NAME FROM users WHERE id = '1'"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
 ```
 
-## API
+## Executing queries
 
-### Queries
+### Executing simple queries
 
-#### Simple query
+Executing a query is as simple as providing the raw SQL to your client, it will
+automatically be queued, validated and processed so you can get a human
+readable, blazing fast result
 
 ```ts
 const result = await client.queryArray("SELECT ID, NAME FROM PEOPLE");
-console.log(result.rows);
+console.log(result.rows); // [[1, "Laura"], [2, "Jason"]]
 ```
 
-#### Prepared statement
+### Executing prepared statements
+
+Prepared statements are a Postgres mechanism designed to prevent SQL injection
+and maximize query performance for multiple queries (see
+https://security.stackexchange.com/questions/15214/are-prepared-statements-100-safe-against-sql-injection).
+The idea is simple, provide a base sql statement with placeholders for any
+variables required, and then provide said variables as arguments for the query
+call
 
 ```ts
+// Example using the simplified argument interface
 {
   const result = await client.queryArray(
     "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
@@ -395,8 +417,8 @@ console.log(result.rows);
   console.log(result.rows);
 }
 
+// Example using the advanced query interface
 {
-  // equivalent using QueryConfig interface
   const result = await client.queryArray({
     text: "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
     args: [10, 20],
@@ -405,7 +427,11 @@ console.log(result.rows);
 }
 ```
 
-#### Prepared statement with template strings
+#### Template strings
+
+Even thought the previous call is already pretty simple, it can be simplified
+even further by the use of template strings, offering all the benefits of
+prepared statements with a nice and clear syntaxis for your queries
 
 ```ts
 {
@@ -423,41 +449,61 @@ console.log(result.rows);
 }
 ```
 
-##### Why use template strings?
+Obviously, you can't pass any parameters provided by the `QueryOptions`
+interface such as explicitly named fields, so this API is best used when you
+have a straight forward statement that only requires arguments to work as
+intended
 
-Template string queries get executed as prepared statements, which protects your
-SQL against injection to a certain degree (see
-https://security.stackexchange.com/questions/15214/are-prepared-statements-100-safe-against-sql-injection).
+#### Regarding non argument parameters
 
-Also, they are easier to write and read than plain SQL queries and are more
-compact than using the `QueryOptions` interface
+A common assumption many people do when working with prepared statements is that
+they work the same way string interpolation works, by replacing the placeholders
+with whatever variables have been passed down to the query. However the reality
+is a little more complicated than that where only very specific parts of a query
+can use placeholders to indicate upcoming values
 
-For example, template strings can turn the following:
+That's the reason why the following works
 
-```ts
-await client.queryObject({
-  text: "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
-  args: [10, 20],
-});
+```sql
+SELECT MY_DATA FROM MY_TABLE WHERE MY_FIELD = $1
+-- $1 = "some_id"
 ```
 
-Into a much more readable:
+But the following throws
 
-```ts
-await client.queryObject
-  `SELECT ID, NAME FROM PEOPLE WHERE AGE > ${10} AND AGE < ${20}`;
+```sql
+SELECT MY_DATA FROM $1
+-- $1 = "MY_TABLE"
 ```
 
-However, a limitation of template strings is that you can't pass any parameters
-provided by the `QueryOptions` interface, so the only options you have available
-are really `text` and `args` to execute your query
+Specifically, you can't replace any keyword or specifier in a query, only
+literal values, such as the ones you would use in an `INSERT` or `WHERE` clause
 
-#### Generic Parameters
+This is specially hard to grasp when working with template strings, since the
+assumption that is made most of the time is that all items inside a template
+string call are being interpolated with the underlying string, however as
+explained above this is not the case, so all previous warnings about prepared
+statements apply here as well
+
+```ts
+// Valid statement
+const my_id = 17;
+await client.queryArray`UPDATE TABLE X SET Y = 0 WHERE Z = ${my_id}`;
+
+// Invalid attempt to replace an specifier
+const my_table = "IMPORTANT_TABLE";
+const my_other_id = 41;
+await client.queryArray
+  `DELETE FROM ${my_table} WHERE MY_COLUMN = ${my_other_id};`;
+```
+
+### Specifying result type
 
 Both the `queryArray` and `queryObject` functions have a generic implementation
-that allow users to type the result of the query
+that allows users to type the result of the executed query to obtain
+intellisense
 
-```typescript
+```ts
 {
   const array_result = await client.queryArray<[number, string]>(
     "SELECT ID, NAME FROM PEOPLE WHERE ID = 17",
@@ -489,10 +535,10 @@ that allow users to type the result of the query
 }
 ```
 
-#### Object query
+### Obtaining results as an object
 
 The `queryObject` function allows you to return the results of the executed
-query as a set objects, allowing easy management with interface like types.
+query as a set of objects, allowing easy management with interface-like types
 
 ```ts
 interface User {
@@ -508,9 +554,35 @@ const result = await client.queryObject<User>(
 const users = result.rows;
 ```
 
-However, the actual values of the query are determined by the aliases given to
-those columns inside the query, so executing something like the following will
-result in a totally different result to the one the user might expect
+#### Case transformation
+
+When consuming a database, specially one not managed by themselves but a
+external one, many developers have to face different naming standards that may
+disrupt the consistency of their codebase. And while there are simple solutions
+for that such as aliasing every query field that is done to the database, one
+easyb built-in solution allows developers to transform the incoming query names
+into the casing of their preference without any extra steps
+
+##### Camelcase
+
+To transform a query result into camelcase, you only need to provide the
+`camelcase` option on your query call
+
+```ts
+const { rows: result } = await client.queryObject({
+  camelcase: true,
+  text: "SELECT FIELD_X, FIELD_Y FROM MY_TABLE",
+});
+
+console.log(result); // [{ fieldX: "something", fieldY: "something else" }, ...]
+```
+
+#### Explicit field naming
+
+One little caveat to executing queries directly is that the resulting fields are
+determined by the aliases given to those columns inside the query, so executing
+something like the following will result in a totally different result to the
+one the user might expect
 
 ```ts
 const result = await client.queryObject(
