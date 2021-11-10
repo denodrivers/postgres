@@ -188,21 +188,33 @@ connection string. Although discouraged, this option is pretty useful when
 dealing with development databases or versions of Postgres that didn't support
 TLS encrypted connections.
 
-Sadly, stablishing a TLS connection in the way Postgres requires it isn't
-possible without the `Deno.startTls` API, which is currently marked as unstable.
-This is a situation that will be solved once this API is stabilized, however I
-don't have an estimated time of when that might happen.
-
-##### About invalid TLS certificates
+##### About invalid and custom TLS certificates
 
 There is a miriad of factors you have to take into account when using a
 certificate to encrypt your connection that, if not taken care of, can render
 your certificate invalid.
 
 When using a self signed certificate, make sure to specify the PEM encoded CA
-certificate in the `tls.caCertificates` option when creating the Postgres
-`Client` (Deno 1.15.0 later), or using the `--cert` option when starting Deno
-(Deno 1.12.2 or later).
+certificate using the `--cert` option when starting Deno (Deno 1.12.2 or later)
+or in the `tls.caCertificates` option when creating a client (Deno 1.15.0 later)
+
+```ts
+const client = new Client({
+  database: "test",
+  hostname: "localhost",
+  password: "password",
+  port: 5432,
+  user: "user",
+  tls: {
+    caCertificates: [
+      await Deno.readTextFile(
+        new URL("./my_ca_certificate.crt", import.meta.url),
+      ),
+    ],
+    enabled: false,
+  },
+});
+```
 
 TLS can be disabled from your server by editing your `postgresql.conf` file and
 setting the `ssl` option to `off`, or in the driver side by using the "disabled"
