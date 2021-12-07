@@ -363,10 +363,8 @@ export class Query<T extends ResultType> {
         origObj = undefined;
       }
       if (origObj != undefined) {
-        console.log("#keys: " + Object.keys(origObj).length);
         for (let argPos = 1; argPos <= Object.keys(origObj).length; argPos++) {
           strPos = str.indexOf("$", strPos);
-          console.log("sp: " + strPos);
           strPos++;
           const wordLen = str.slice(strPos).search(/(?:\s+|$|:|,)/);
           const arg = str.slice(strPos, strPos + wordLen);
