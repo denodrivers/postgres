@@ -519,6 +519,68 @@ testClient("Query array with template string", async function (generateClient) {
 });
 
 testClient(
+  "Named parameters",
+  async function (generateClient) {
+    const client = await generateClient();
+    const record = {
+      pos_x: 142.34131,
+      pos_y: 200,
+      prefix_name_suffix: "square",
+      json_object: '{"A":2.6,"B":3,"C":67.9,"D":"empty","E":"full","F":"half"}',
+    };
+    const expected_result = [
+      "142.34131",
+      200,
+      "square",
+      {
+        a: 2.6,
+        b: 3,
+        c: 67.9,
+        d: "empty",
+        e: "full",
+        f: "half",
+      },
+    ];
+
+    // Named parameters, parameters in valid sequence
+    const { rows: result1 } = await client.queryArray(
+      "SELECT $first_arg::numeric AS POS_X, $second_arg::integer AS POS_Y, $third_arg::text AS PREFIX_NAME_SUFFIX, $fourth_arg::json AS JSON_OBJECT",
+      {
+        first_arg: record.pos_x,
+        second_arg: record.pos_y,
+        third_arg: record.prefix_name_suffix,
+        fourth_arg: record.json_object,
+      },
+    );
+    assertEquals(result1[0], expected_result);
+
+    // Named parameters, parameters in random sequence
+    const { rows: result2 } = await client.queryArray(
+      "SELECT $first_arg::numeric AS POS_X, $second_arg::integer AS POS_Y, $third_arg::text AS PREFIX_NAME_SUFFIX, $fourth_arg::json AS JSON_OBJECT",
+      {
+        third_arg: record.prefix_name_suffix,
+        first_arg: record.pos_x,
+        fourth_arg: record.json_object,
+        second_arg: record.pos_y,
+      },
+    );
+    assertEquals(result2[0], expected_result);
+
+    // Named parameters, parameters in random sequence and are NOT case sensitive
+    const { rows: result3 } = await client.queryArray(
+      "SELECT $fIrsT_aRg::numeric AS POS_X, $SeconD_arG::integer AS POS_Y, $ThIrd_aRg::text AS PREFIX_NAME_SUFFIX, $FouRTh_arG::json AS JSON_OBJECT",
+      {
+        fOurtH_arg: record.json_object,
+        seConD_ARG: record.pos_y,
+        thirD_arg: record.prefix_name_suffix,
+        First_Arg: record.pos_x,
+      },
+    );
+    assertEquals(result3[0], expected_result);
+  },
+);
+
+testClient(
   "Object query field names aren't transformed when camelcase is disabled",
   async function (generateClient) {
     const client = await generateClient();

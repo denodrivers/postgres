@@ -341,6 +341,54 @@ export class Query<T extends ResultType> {
     }
     this.text = config.text;
     this.args = this.#prepareArgs(config);
+
+    let str = `${this.text}`;
+    if (str.indexOf("$") != -1) {
+      let strPos = 0;
+      let namedQuery = false;
+      const regNumOnly = new RegExp("^[0-9]+$");
+      const newArgs: EncodedArg[] = [];
+      const stringArgs: string = (this.args[0]?.toString() || "");
+
+      const lowerCaseArgs = stringArgs.replace(
+        /"([^"]+)":/g,
+        function ($0, _$1) {
+          return ($0.toLowerCase());
+        },
+      );
+      let origObj;
+      try {
+        origObj = JSON.parse(lowerCaseArgs);
+      } catch (_error) {
+        origObj = undefined;
+      }
+      if (origObj != undefined) {
+        console.log("#keys: " + Object.keys(origObj).length);
+        for (let argPos = 1; argPos <= Object.keys(origObj).length; argPos++) {
+          strPos = str.indexOf("$", strPos);
+          console.log("sp: " + strPos);
+          strPos++;
+          const wordLen = str.slice(strPos).search(/(?:\s+|$|:|,)/);
+          const arg = str.slice(strPos, strPos + wordLen);
+          if ((!regNumOnly.test(arg)) && (!namedQuery)) {
+            namedQuery = true;
+          } else if ((regNumOnly.test(arg)) && (namedQuery)) {
+            throw new Error(
+              `Can not determine type of arguments near argument: ${arg}. If you are using named parameters, please avoid naming parameters as numbers.`,
+            );
+          }
+          str = `${
+            str.substring(0, strPos) + argPos.toString() +
+            str.substring(strPos + wordLen)
+          }`; // replace var occurance in text
+          newArgs.push(`${origObj[arg.toLowerCase()]}`);
+        }
+      }
+      if (namedQuery) {
+        this.args = newArgs;
+        this.text = `${str}`;
+      }
+    }
   }
 
   #prepareArgs(config: QueryConfig): EncodedArg[] {
