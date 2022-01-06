@@ -208,17 +208,34 @@ async function deriveKeys(
   salt: Uint8Array,
   iterCount: number,
 ): Promise<Keys> {
-  const ikm = bytes(normalize(password));
-  const key = await pbkdf2(
-    (msg: Uint8Array) => sign(msg, ikm),
-    salt,
-    iterCount,
-    1,
+  const pbkdf2_password = await crypto.subtle.importKey(
+    "raw",
+    bytes(normalize(password)),
+    "PBKDF2",
+    false,
+    ["deriveBits", "deriveKey"],
   );
-  const server = await sign(bytes("Server Key"), key);
-  const client = await sign(bytes("Client Key"), key);
+  const key = await crypto.subtle.deriveKey(
+    {
+      hash: "SHA-256",
+      iterations: iterCount,
+      name: "PBKDF2",
+      salt,
+    },
+    pbkdf2_password,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const client = new Uint8Array(
+    await crypto.subtle.sign("hmac", key, bytes("Client Key")),
+  );
+  const server = new Uint8Array(
+    await crypto.subtle.sign("hmac", key, bytes("Server Key")),
+  );
   const stored = new Uint8Array(await crypto.subtle.digest("SHA-256", client));
-  return { server, client, stored };
+
+  return { client, server, stored };
 }
 
 /** Computes SCRAM signature. */
@@ -271,32 +288,4 @@ async function sign(msg: Uint8Array, key: Key): Promise<Digest> {
   const hmac = new HmacSha256(key);
   hmac.update(msg);
   return new Uint8Array(hmac.arrayBuffer());
-}
-
-/**
- * Computes a PBKDF2 key block.
- * @see {@link https://tools.ietf.org/html/rfc2898}
- */
-async function pbkdf2(
-  prf: (_: Uint8Array) => Promise<Digest>,
-  salt: Uint8Array,
-  iterCount: number,
-  index: number,
-): Promise<Key> {
-  let block = new Uint8Array(salt.length + 4);
-  block.set(salt);
-  block[salt.length + 0] = (index >> 24) & 0xFF;
-  block[salt.length + 1] = (index >> 16) & 0xFF;
-  block[salt.length + 2] = (index >> 8) & 0xFF;
-  block[salt.length + 3] = index & 0xFF;
-  block = await prf(block);
-
-  const key = block;
-  for (let r = 1; r < iterCount; r++) {
-    block = await prf(block);
-    for (let i = 0; i < key.length; i++) {
-      key[i] ^= block[i];
-    }
-  }
-  return key;
 }
