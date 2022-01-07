@@ -187,5 +187,5 @@ preserved their individual licenses and copyrights.
 
 Everything is licensed under the MIT License.
 
-All additional work is copyright 2018 - 2021 — Bartłomiej Iwańczuk and Steven
+All additional work is copyright 2018 - 2022 — Bartłomiej Iwańczuk and Steven
 Guerrero — All rights reserved.
