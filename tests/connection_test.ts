@@ -1,4 +1,9 @@
-import { assertEquals, assertThrowsAsync, deferred } from "./test_deps.ts";
+import {
+  assertEquals,
+  assertThrowsAsync,
+  deferred,
+  streams,
+} from "./test_deps.ts";
 import {
   getClearConfiguration,
   getMainConfiguration,
@@ -7,6 +12,40 @@ import {
   getTlsOnlyConfiguration,
 } from "./config.ts";
 import { Client, ConnectionError, PostgresError } from "../mod.ts";
+
+function createProxy(
+  target: Deno.Listener,
+  source: { hostname: string; port: number },
+): { aborter: AbortController; proxy: Promise<void> } {
+  const aborter = new AbortController();
+
+  const proxy = (async () => {
+    for await (const conn of target) {
+      let aborted = false;
+
+      const outbound = await Deno.connect({
+        hostname: source.hostname,
+        port: source.port,
+      });
+      aborter.signal.addEventListener("abort", () => {
+        conn.close();
+        outbound.close();
+        aborted = true;
+      });
+      await Promise.all([
+        streams.copy(conn, outbound),
+        streams.copy(outbound, conn),
+      ]).catch(() => {});
+
+      if (!aborted) {
+        conn.close();
+        outbound.close();
+      }
+    }
+  })();
+
+  return { aborter, proxy };
+}
 
 function getRandomString() {
   return Math.random().toString(36).substring(7);
@@ -393,7 +432,7 @@ Deno.test("Attempts reconnection on disconnection", async function () {
           `INSERT INTO ${test_table} VALUES (${test_value}); COMMIT; SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
         ),
       ConnectionError,
-      "The session was terminated by the database",
+      "The session was terminated unexpectedly",
     );
     assertEquals(client.connected, false);
 
@@ -422,6 +461,44 @@ Deno.test("Attempts reconnection on disconnection", async function () {
   } finally {
     await client.end();
   }
+});
+
+Deno.test("Attempts reconnection when connection is lost", async function () {
+  const cfg = getMainConfiguration();
+  const listener = Deno.listen({ hostname: "127.0.0.1", port: 0 });
+
+  const { aborter, proxy } = createProxy(listener, {
+    hostname: cfg.hostname,
+    port: Number(cfg.port),
+  });
+
+  const client = new Client({
+    ...cfg,
+    hostname: "127.0.0.1",
+    port: (listener.addr as Deno.NetAddr).port,
+    tls: {
+      enabled: false,
+    },
+  });
+
+  await client.queryObject("SELECT 1");
+
+  // This closes ongoing connections. The original connection is now dead, so
+  // a new connection should be established.
+  aborter.abort();
+
+  await assertThrowsAsync(
+    () => client.queryObject("SELECT 1"),
+    ConnectionError,
+    "The session was terminated unexpectedly",
+  );
+
+  // Make sure the connection was reestablished once the server comes back online
+  await client.queryObject("SELECT 1");
+  await client.end();
+
+  listener.close();
+  await proxy;
 });
 
 Deno.test("Doesn't attempt reconnection when attempts are set to zero", async function () {
