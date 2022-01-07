@@ -1,9 +1,9 @@
-import { createHash } from "../deps.ts";
+import { Md5 } from "../deps.ts";
 
 const encoder = new TextEncoder();
 
 function md5(bytes: Uint8Array): string {
-  return createHash("md5").update(bytes).toString("hex");
+  return new Md5().update(bytes).toString("hex");
 }
 
 // AuthenticationMD5Password

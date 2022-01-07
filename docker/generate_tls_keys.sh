@@ -10,9 +10,11 @@ openssl req -new -nodes -newkey rsa:2048 -keyout ./certs/server.key -out ./certs
 openssl x509 -req -sha256 -days 36135 -in ./certs/server.csr -CA ./certs/ca.pem -CAkey ./certs/ca.key -CAcreateserial -extfile ./certs/domains.txt -out ./certs/server.crt
 
 chmod 777 certs/server.crt
-cp -f certs/server.crt postgres_classic/data/
+cp -f certs/server.crt postgres_clear/data/
+cp -f certs/server.crt postgres_md5/data/
 cp -f certs/server.crt postgres_scram/data/
 
 chmod 777 certs/server.key
-cp -f certs/server.key postgres_classic/data/
+cp -f certs/server.key postgres_clear/data/
+cp -f certs/server.key postgres_md5/data/
 cp -f certs/server.key postgres_scram/data/

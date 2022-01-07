@@ -5,9 +5,14 @@ type ConfigFileConnection = Pick<
   "applicationName" | "database" | "hostname" | "password" | "port"
 >;
 
-type Classic = ConfigFileConnection & {
+type Clear = ConfigFileConnection & {
   users: {
     clear: string;
+  };
+};
+
+type Classic = ConfigFileConnection & {
+  users: {
     main: string;
     md5: string;
     tls_only: string;
@@ -21,7 +26,8 @@ type Scram = ConfigFileConnection & {
 };
 
 interface EnvironmentConfig {
-  postgres_classic: Classic;
+  postgres_clear: Clear;
+  postgres_md5: Classic;
   postgres_scram: Scram;
 }
 
@@ -54,38 +60,38 @@ export const getClearConfiguration = (
   tls: boolean,
 ): ClientOptions => {
   return {
-    applicationName: config.postgres_classic.applicationName,
-    database: config.postgres_classic.database,
-    hostname: config.postgres_classic.hostname,
-    password: config.postgres_classic.password,
-    port: config.postgres_classic.port,
+    applicationName: config.postgres_clear.applicationName,
+    database: config.postgres_clear.database,
+    hostname: config.postgres_clear.hostname,
+    password: config.postgres_clear.password,
+    port: config.postgres_clear.port,
     tls: tls ? enabled_tls : disabled_tls,
-    user: config.postgres_classic.users.clear,
+    user: config.postgres_clear.users.clear,
   };
 };
 
 /** MD5 authenticated user with privileged access to the database */
 export const getMainConfiguration = (): ClientOptions => {
   return {
-    applicationName: config.postgres_classic.applicationName,
-    database: config.postgres_classic.database,
-    hostname: config.postgres_classic.hostname,
-    password: config.postgres_classic.password,
-    port: config.postgres_classic.port,
+    applicationName: config.postgres_md5.applicationName,
+    database: config.postgres_md5.database,
+    hostname: config.postgres_md5.hostname,
+    password: config.postgres_md5.password,
+    port: config.postgres_md5.port,
     tls: enabled_tls,
-    user: config.postgres_classic.users.main,
+    user: config.postgres_md5.users.main,
   };
 };
 
 export const getMd5Configuration = (tls: boolean): ClientOptions => {
   return {
-    applicationName: config.postgres_classic.applicationName,
-    database: config.postgres_classic.database,
-    hostname: config.postgres_classic.hostname,
-    password: config.postgres_classic.password,
-    port: config.postgres_classic.port,
+    applicationName: config.postgres_md5.applicationName,
+    database: config.postgres_md5.database,
+    hostname: config.postgres_md5.hostname,
+    password: config.postgres_md5.password,
+    port: config.postgres_md5.port,
     tls: tls ? enabled_tls : disabled_tls,
-    user: config.postgres_classic.users.md5,
+    user: config.postgres_md5.users.md5,
   };
 };
 
@@ -103,12 +109,12 @@ export const getScramConfiguration = (tls: boolean): ClientOptions => {
 
 export const getTlsOnlyConfiguration = (): ClientOptions => {
   return {
-    applicationName: config.postgres_classic.applicationName,
-    database: config.postgres_classic.database,
-    hostname: config.postgres_classic.hostname,
-    password: config.postgres_classic.password,
-    port: config.postgres_classic.port,
+    applicationName: config.postgres_md5.applicationName,
+    database: config.postgres_md5.database,
+    hostname: config.postgres_md5.hostname,
+    password: config.postgres_md5.password,
+    port: config.postgres_md5.port,
     tls: enabled_tls,
-    user: config.postgres_classic.users.tls_only,
+    user: config.postgres_md5.users.tls_only,
   };
 };

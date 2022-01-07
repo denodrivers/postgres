@@ -1,13 +1,22 @@
 {
   "ci": {
-    "postgres_classic": {
+    "postgres_clear": {
       "applicationName": "deno_postgres",
       "database": "postgres",
-      "hostname": "postgres_classic",
+      "hostname": "postgres_clear",
       "password": "postgres",
       "port": 5432,
       "users": {
-        "clear": "clear",
+        "clear": "clear"
+      }
+    },
+    "postgres_md5": {
+      "applicationName": "deno_postgres",
+      "database": "postgres",
+      "hostname": "postgres_md5",
+      "password": "postgres",
+      "port": 5432,
+      "users": {
         "main": "postgres",
         "md5": "md5",
         "tls_only": "tls_only"
@@ -25,7 +34,17 @@
     }
   },
   "local": {
-    "postgres_classic": {
+    "postgres_clear": {
+      "applicationName": "deno_postgres",
+      "database": "postgres",
+      "hostname": "localhost",
+      "password": "postgres",
+      "port": 6000,
+      "users": {
+        "clear": "clear"
+      }
+    },
+    "postgres_md5": {
       "applicationName": "deno_postgres",
       "database": "postgres",
       "hostname": "localhost",
