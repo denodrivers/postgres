@@ -441,7 +441,6 @@ export class Connection {
     const authentication_type = authentication_request.reader.readInt32();
 
     let authentication_result: Message;
-    console.log(authentication_type);
     switch (authentication_type) {
       case AUTHENTICATION_TYPE.NO_AUTHENTICATION:
         authentication_result = authentication_request;

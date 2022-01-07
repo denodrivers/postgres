@@ -1,6 +1,3 @@
-CREATE USER CLEAR WITH ENCRYPTED PASSWORD 'postgres';
-GRANT ALL PRIVILEGES ON DATABASE POSTGRES TO CLEAR;
-
 -- Create MD5 user and ensure password is stored as md5
 -- They get created as SCRAM-SHA-256 in newer versions
 CREATE USER MD5 WITH ENCRYPTED PASSWORD 'postgres';

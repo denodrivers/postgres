@@ -133,7 +133,7 @@ filtering, database inspection and test code lens can be achieved by setting up
 a local testing environment, as shown in the following steps:
 
 1. Start the development databases using the Docker service with the command\
-   `docker-compose up postgres_classic postgres_scram`\
+   `docker-compose up postgres_clear postgres_md5 postgres_scram`\
    Though using the detach (`-d`) option is recommended, this will make the
    databases run in the background unless you use docker itself to stop them.
    You can find more info about this

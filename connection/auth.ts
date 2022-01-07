@@ -1,16 +1,9 @@
-import { createHash } from "../deps.ts";
-import { Md5 } from "https://deno.land/std@0.120.0/hash/md5.ts";
+import { Md5 } from "../deps.ts";
 
 const encoder = new TextEncoder();
 
 function md5(bytes: Uint8Array): string {
-  const x = new Md5().update(bytes).toString("hex");
-
-  const y = createHash("md5").update(bytes).toString("hex");
-
-  console.log(x);
-  console.log(y);
-  return y;
+  return new Md5().update(bytes).toString("hex");
 }
 
 // AuthenticationMD5Password
