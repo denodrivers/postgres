@@ -150,7 +150,7 @@ export class Connection {
       // This will be removed once we move to async handling of messages by the frontend
       // However, unnotified disconnection will remain a possibility, that will likely
       // be handled in another place
-      throw new ConnectionError("The session was terminated by the database");
+      throw new ConnectionError("The session was terminated unexpectedly");
     }
     const length = readUInt32BE(this.#message_header, 1) - 4;
     const body = new Uint8Array(length);
@@ -877,9 +877,7 @@ export class Connection {
         return await this.#preparedQuery(query);
       }
     } catch (e) {
-      if (
-        e instanceof ConnectionError
-      ) {
+      if (e instanceof ConnectionError) {
         await this.end();
       }
       throw e;
@@ -894,10 +892,10 @@ export class Connection {
       await this.#bufWriter.write(terminationMessage);
       try {
         await this.#bufWriter.flush();
-        this.#closeConnection();
       } catch (_e) {
-        // This steps can fail if the underlying connection had been closed ungracefully
+        // This steps can fail if the underlying connection was closed ungracefully
       } finally {
+        this.#closeConnection();
         this.#onDisconnection();
       }
     }

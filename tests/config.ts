@@ -1,7 +1,12 @@
-import { ClientOptions } from "../connection/connection_params.ts";
+import {
+  ClientConfiguration,
+  ClientOptions,
+} from "../connection/connection_params.ts";
+
+type Configuration = Omit<ClientConfiguration, "connection">;
 
 type ConfigFileConnection = Pick<
-  ClientOptions,
+  ClientConfiguration,
   "applicationName" | "database" | "hostname" | "password" | "port"
 >;
 
@@ -53,7 +58,9 @@ const enabled_tls = {
 };
 
 const disabled_tls = {
+  caCertificates: [],
   enabled: false,
+  enforce: false,
 };
 
 export const getClearConfiguration = (
@@ -71,7 +78,7 @@ export const getClearConfiguration = (
 };
 
 /** MD5 authenticated user with privileged access to the database */
-export const getMainConfiguration = (): ClientOptions => {
+export const getMainConfiguration = (): Configuration => {
   return {
     applicationName: config.postgres_md5.applicationName,
     database: config.postgres_md5.database,
@@ -83,7 +90,7 @@ export const getMainConfiguration = (): ClientOptions => {
   };
 };
 
-export const getMd5Configuration = (tls: boolean): ClientOptions => {
+export const getMd5Configuration = (tls: boolean): Configuration => {
   return {
     applicationName: config.postgres_md5.applicationName,
     database: config.postgres_md5.database,
@@ -95,7 +102,7 @@ export const getMd5Configuration = (tls: boolean): ClientOptions => {
   };
 };
 
-export const getScramConfiguration = (tls: boolean): ClientOptions => {
+export const getScramConfiguration = (tls: boolean): Configuration => {
   return {
     applicationName: config.postgres_scram.applicationName,
     database: config.postgres_scram.database,
@@ -107,7 +114,7 @@ export const getScramConfiguration = (tls: boolean): ClientOptions => {
   };
 };
 
-export const getTlsOnlyConfiguration = (): ClientOptions => {
+export const getTlsOnlyConfiguration = (): Configuration => {
   return {
     applicationName: config.postgres_md5.applicationName,
     database: config.postgres_md5.database,
