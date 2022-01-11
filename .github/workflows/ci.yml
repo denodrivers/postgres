@@ -53,4 +53,12 @@ jobs:
         uses: peter-evans/commit-comment@v1
         with:
           body: |
-            This commit failed no-check step
+            ### No-check tests failure
+
+            Please report the following failure to https://github.com/denoland/deno with a reproduction
+            of the current commit
+
+            <details>
+              <summary>Failure log</summary>
+              Logs of failure
+            </details>
