@@ -82,7 +82,11 @@ export abstract class QueryClient {
    * In order to create a transaction, use the `createTransaction` method in your client as follows:
    *
    * ```ts
+   * import { Client } from "./client.ts";
+   *
+   * const client = new Client();
    * const transaction = client.createTransaction("my_transaction_name");
+   *
    * await transaction.begin();
    * // All statements between begin and commit will happen inside the transaction
    * await transaction.commit(); // All changes are saved
@@ -92,6 +96,11 @@ export abstract class QueryClient {
    * the client without applying any of the changes that took place inside it
    *
    * ```ts
+   * import { Client } from "./client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * await transaction.begin();
    * await transaction.queryArray`INSERT INTO MY_TABLE (X) VALUES ${"some_value"}`;
    * try {
@@ -105,11 +114,16 @@ export abstract class QueryClient {
    * the transaction
    *
    * ```ts
+   * import { Client } from "./client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * await transaction.begin();
    * await transaction.queryArray`INSERT INTO MY_TABLE (X) VALUES ${"some_value"}`;
    * try {
    *   await transaction.rollback("unexistent_savepoint"); // Validation error
-   * }catch(e){
+   * } catch(e) {
    *   await transaction.commit(); // Transaction will end, changes will be saved
    * }
    * ```
@@ -126,12 +140,18 @@ export abstract class QueryClient {
    * - Repeatable read: This isolates the transaction in a way that any external changes to the data we are reading
    *   won't be visible inside the transaction until it has finished
    *   ```ts
+   *   import { Client } from "./client.ts";
+   *
+   *   const client = new Client();
    *   const transaction = await client.createTransaction("my_transaction", { isolation_level: "repeatable_read" });
    *   ```
    *
    * - Serializable: This isolation level prevents the current transaction from making persistent changes
    *   if the data they were reading at the beginning of the transaction has been modified (recommended)
    *   ```ts
+   *   import { Client } from "./client.ts";
+   *
+   *   const client = new Client();
    *   const transaction = await client.createTransaction("my_transaction", { isolation_level: "serializable" });
    *   ```
    *
@@ -143,6 +163,9 @@ export abstract class QueryClient {
    *   is to in conjuction with the repeatable read isolation, ensuring the data you are reading does not change
    *   during the transaction, specially useful for data extraction
    *   ```ts
+   *   import { Client } from "./client.ts";
+   *
+   *   const client = new Client();
    *   const transaction = await client.createTransaction("my_transaction", { read_only: true });
    *   ```
    *
@@ -152,6 +175,12 @@ export abstract class QueryClient {
    * you can do the following:
    *
    * ```ts
+   * import { Client } from "./client.ts";
+   *
+   * const client_1 = new Client();
+   * const client_2 = new Client();
+   * const transaction_1 = client_1.createTransaction("transaction_1");
+   *
    * const snapshot = await transaction_1.getSnapshot();
    * const transaction_2 = client_2.createTransaction("new_transaction", { isolation_level: "repeatable_read", snapshot });
    * // transaction_2 now shares the same starting state that transaction_1 had
@@ -214,21 +243,31 @@ export abstract class QueryClient {
    * It supports a generic interface in order to type the entries retrieved by the query
    *
    * ```ts
+   * import { Client } from "./client.ts";
+   *
+   * const my_client = new Client();
+   *
    * const {rows} = await my_client.queryArray(
-   *  "SELECT ID, NAME FROM CLIENTS"
+   *   "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<unknown[]>
    * ```
    *
    * You can pass type arguments to the query in order to hint TypeScript what the return value will be
    * ```ts
-   * const {rows} = await my_client.queryArray<[number, string]>(
-   *  "SELECT ID, NAME FROM CLIENTS"
+   * import { Client } from "./client.ts";
+   *
+   * const my_client = new Client();
+   * const { rows } = await my_client.queryArray<[number, string]>(
+   *   "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<[number, string]>
    * ```
    *
    * It also allows you to execute prepared statements with template strings
    *
    * ```ts
+   * import { Client } from "./client.ts";
+   * const my_client = new Client();
+   *
    * const id = 12;
    * // Array<[number, string]>
    * const {rows} = await my_client.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
@@ -278,39 +317,58 @@ export abstract class QueryClient {
    * It supports a generic interface in order to type the entries retrieved by the query
    *
    * ```ts
-   * const {rows} = await my_client.queryObject(
-   *  "SELECT ID, NAME FROM CLIENTS"
-   * ); // Record<string, unknown>
+   * import { Client } from "./client.ts";
    *
-   * const {rows} = await my_client.queryObject<{id: number, name: string}>(
-   *  "SELECT ID, NAME FROM CLIENTS"
-   * ); // Array<{id: number, name: string}>
+   * const my_client = new Client();
+   *
+   * {
+   * 	 const { rows } = await my_client.queryObject(
+   *     "SELECT ID, NAME FROM CLIENTS"
+   * 	 ); // Record<string, unknown>
+   * }
+   *
+   * {
+   * 	 const { rows } = await my_client.queryObject<{id: number, name: string}>(
+   *     "SELECT ID, NAME FROM CLIENTS"
+   *   ); // Array<{id: number, name: string}>
+   * }
    * ```
    *
    * You can also map the expected results to object fields using the configuration interface.
    * This will be assigned in the order they were provided
    *
    * ```ts
-   * const {rows} = await my_client.queryObject(
-   *  "SELECT ID, NAME FROM CLIENTS"
-   * );
+   * import { Client } from "./client.ts";
    *
-   * console.log(rows); // [{id: 78, name: "Frank"}, {id: 15, name: "Sarah"}]
+   * const my_client = new Client();
    *
-   * const {rows} = await my_client.queryObject({
-   *  text: "SELECT ID, NAME FROM CLIENTS",
-   *  fields: ["personal_id", "complete_name"],
-   * });
+   * {
+   *   const {rows} = await my_client.queryObject(
+   *     "SELECT ID, NAME FROM CLIENTS"
+   *   );
    *
-   * console.log(rows); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
+   * 	 console.log(rows); // [{id: 78, name: "Frank"}, {id: 15, name: "Sarah"}]
+   * }
+   *
+   * {
+   * 	 const {rows} = await my_client.queryObject({
+   *     text: "SELECT ID, NAME FROM CLIENTS",
+   *  	 fields: ["personal_id", "complete_name"],
+   * 	  });
+   *
+   * 	 console.log(rows); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
+   * }
    * ```
    *
    * It also allows you to execute prepared statements with template strings
    *
    * ```ts
+   * import { Client } from "./client.ts";
+   *
+   * const my_client = new Client();
    * const id = 12;
    * // Array<{id: number, name: string}>
-   * const {rows} = await my_client.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
+   * const { rows } = await my_client.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
    * ```
    */
   queryObject<T>(
@@ -370,7 +428,9 @@ export abstract class QueryClient {
  * statements asynchronously
  *
  * ```ts
- * const client = new Client(connection_parameters);
+ * import { Client } from "./client.ts";
+ *
+ * const client = new Client();
  * await client.connect();
  * await client.queryArray`UPDATE MY_TABLE SET MY_FIELD = 0`;
  * await client.end();
@@ -380,14 +440,16 @@ export abstract class QueryClient {
  * for concurrency capabilities check out connection pools
  *
  * ```ts
- * const client_1 = new Client(connection_parameters);
+ * import { Client } from "./client.ts";
+ *
+ * const client_1 = new Client();
  * await client_1.connect();
  * // Even if operations are not awaited, they will be executed in the order they were
  * // scheduled
  * client_1.queryArray`UPDATE MY_TABLE SET MY_FIELD = 0`;
  * client_1.queryArray`DELETE FROM MY_TABLE`;
  *
- * const client_2 = new Client(connection_parameters);
+ * const client_2 = new Client();
  * await client_2.connect();
  * // `client_2` will execute it's queries in parallel to `client_1`
  * const {rows: result} = await client_2.queryArray`SELECT * FROM MY_TABLE`;

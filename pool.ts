@@ -14,6 +14,8 @@ import { DeferredAccessStack } from "./utils/deferred.ts";
  * with their PostgreSQL database
  *
  * ```ts
+ * import { Pool } from "./pool.ts";
+ *
  * const pool = new Pool({
  *   database: "database",
  *   hostname: "hostname",
@@ -33,9 +35,11 @@ import { DeferredAccessStack } from "./utils/deferred.ts";
  * available connections in the pool
  *
  * ```ts
+ * import { Pool } from "./pool.ts";
+ *
  * // Creates a pool with 10 max available connections
  * // Connection with the database won't be established until the user requires it
- * const pool = new Pool(connection_params, 10, true);
+ * const pool = new Pool({}, 10, true);
  *
  * // Connection is created here, will be available from now on
  * const client_1 = await pool.connect();
@@ -112,7 +116,10 @@ export class Pool {
    * with the database if no other connections are available
    *
    * ```ts
-   * const client = pool.connect();
+   * import { Pool } from "./pool.ts";
+   *
+   * const pool = new Pool({}, 10);
+   * const client = await pool.connect();
    * await client.queryArray`UPDATE MY_TABLE SET X = 1`;
    * client.release();
    * ```
@@ -131,8 +138,12 @@ export class Pool {
    * This will close all open connections and set a terminated status in the pool
    *
    * ```ts
+   * import { Pool } from "./pool.ts";
+   *
+   * const pool = new Pool({}, 10);
+   *
    * await pool.end();
-   * assertEquals(pool.available, 0);
+   * console.assert(pool.available === 0, "There are connections available after ending the pool");
    * await pool.end(); // An exception will be thrown, pool doesn't have any connections to close
    * ```
    *
@@ -140,10 +151,13 @@ export class Pool {
    * will reinitialize the connections according to the original configuration of the pool
    *
    * ```ts
+   * import { Pool } from "./pool.ts";
+   *
+   * const pool = new Pool({}, 10);
    * await pool.end();
    * const client = await pool.connect();
    * await client.queryArray`SELECT 1`; // Works!
-   * await client.close();
+   * await client.release();
    * ```
    */
   async end(): Promise<void> {
