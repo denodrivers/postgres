@@ -10,6 +10,20 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@master
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: 1.16.0
+      
+      - name: Format
+        run: deno fmt --check
+      
+      - name: Lint
+        run: deno lint --config=deno.json
+
+      - name: Documentation tests
+        run: deno test --doc client.ts mod.ts pool.ts client/ connection/ query/ utils/
+
       - name: Build container
         run: docker-compose build tests
       
