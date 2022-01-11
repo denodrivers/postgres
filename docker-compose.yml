@@ -59,7 +59,7 @@ services:
 
   no_check_tests:
     image: postgres/tests
-    command: sh -c "/wait && deno test --unstable -A --jobs --no-check"
+    command: sh -c "/wait && deno test --unstable -A --jobs --no-check && exit 1"
     depends_on:
       - tests
     environment:

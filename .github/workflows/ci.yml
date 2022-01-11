@@ -24,8 +24,11 @@ jobs:
       - name: Documentation tests
         run: deno test --doc client.ts mod.ts pool.ts client/ connection/ query/ utils/
 
-      - name: Build container
+      - name: Build tests container
         run: docker-compose build tests
       
       - name: Run tests
         run: docker-compose run tests
+
+      - name: Run no-check tests
+        run: docker-compose run no_check_tests
