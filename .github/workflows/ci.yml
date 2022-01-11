@@ -56,8 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set no-typecheck fail comment
-        # This step should only run on the user fork and once it has been merged, not on the PR CI
-        if: ${{ env.no_check_status == 'failed' && github.event_name == 'pull_request' }}
+        if: ${{ env.no_check_status == 'failed' && github.event_name == 'push' }}
         uses: peter-evans/commit-comment@v1
         with:
           body: |
