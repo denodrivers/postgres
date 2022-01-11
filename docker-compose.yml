@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   postgres_clear:
+    # Clear authentication was removed after Postgres 9
     image: postgres:9
     hostname: postgres
     environment:

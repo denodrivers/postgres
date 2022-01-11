@@ -25,6 +25,8 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    env:
+      no_check_status: failed
     steps:
       - name: Clone repo
         uses: actions/checkout@master
@@ -36,5 +38,11 @@ jobs:
         run: docker-compose run tests
 
       - name: Run no-check tests
-        run: docker-compose run no_check_tests
+        run: |
+          docker-compose run no_check_tests
+          echo "no-check-status=passed"
         continue-on-error: true
+
+      - name: Report no-check fail
+        if: ${{ env.no_check_status == 'failed' }}
+        run: echo 'Gotta report failure'
