@@ -1,6 +1,6 @@
 name: ci
 
-on: [push, pull_request, release]
+on: [ push, pull_request, pull_request_target, release ]
 
 env:
   no_check_status: failed
@@ -45,7 +45,8 @@ jobs:
         continue-on-error: true
 
   report_warnings:
-    needs: [code_quality, test]
+    if: ${{ github.event_name == 'pull_request_target' }}
+    needs: [ code_quality, test ]
     runs-on: ubuntu-latest
     steps:
       - name: Find no-check fail comment
@@ -53,6 +54,7 @@ jobs:
         uses: peter-evans/find-comment@v1
         id: no_check
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
           body-includes: No check failure
@@ -61,6 +63,7 @@ jobs:
         if: ${{ env.no_check_status == 'failed' }}
         uses: peter-evans/create-or-update-comment@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           comment-id: ${{ steps.no_check.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
