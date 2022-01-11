@@ -2,9 +2,6 @@ name: ci
 
 on: [ push, pull_request, release ]
 
-env:
-  no_check_status: failed
-
 jobs:
   code_quality:
     runs-on: ubuntu-latest
@@ -46,17 +43,19 @@ jobs:
         continue-on-error: true
 
       - name: Report no typechecking tests status
+        id: no_typecheck_status
         if: steps.no_typecheck.outcome == 'success'
-        run: echo "no_check_status=passed" >> $GITHUB_ENV
+        run: echo "::set-output name=status::success"
     outputs:
       no_typecheck: ${{ steps.no_typecheck.outputs.stdout }}
+      no_typecheck_status: ${{ steps.no_typecheck_status.outputs.status }}
 
   report_warnings:
     needs: [ code_quality, test ]
     runs-on: ubuntu-latest
     steps:
       - name: Set no-typecheck fail comment
-        if: ${{ env.no_check_status == 'failed' && github.event_name == 'push' }}
+        if: ${{ needs.test.outputs.no_typecheck_status != 'success' && github.event_name == 'push' }}
         uses: peter-evans/commit-comment@v1
         with:
           body: |
