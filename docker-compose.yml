@@ -64,5 +64,6 @@ services:
     depends_on:
       - tests
     environment:
+      - NO_COLOR=true
       - WAIT_HOSTS=postgres_clear:5432,postgres_md5:5432,postgres_scram:5432
       - WAIT_AFTER_HOSTS=15
