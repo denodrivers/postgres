@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set no-typecheck fail comment
-        if: ${{ env.no_check_status == 'failed'}}
+        if: ${{ env.no_check_status == 'failed' && github.event_name == 'push' }}
         uses: peter-evans/commit-comment@v1
         with:
           body: |
