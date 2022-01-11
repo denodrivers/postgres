@@ -2,6 +2,9 @@ name: ci
 
 on: [push, pull_request, release]
 
+env:
+  no_check_status: failed
+
 jobs:
   code_quality:
     runs-on: ubuntu-latest
@@ -25,8 +28,6 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    env:
-      no_check_status: failed
     steps:
       - name: Clone repo
         uses: actions/checkout@master
@@ -43,6 +44,26 @@ jobs:
           echo "no_check_status=passed" >> $GITHUB_ENV
         continue-on-error: true
 
-      - name: Report no-check fail
+  report_warnings:
+    needs: [code_quality, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find no-check fail comment
         if: ${{ env.no_check_status == 'failed' }}
-        run: echo 'Gotta report failure'
+        uses: peter-evans/find-comment@v1
+        id: no_check
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: No check failure
+      
+      - name: Set no-check fail comment
+        if: ${{ env.no_check_status == 'failed' }}
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          comment-id: ${{ steps.no_check.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            No check failure
+            Because yes
+          edit-mode: replace
