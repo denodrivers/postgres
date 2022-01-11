@@ -47,14 +47,10 @@ jobs:
   report_warnings:
     needs: [ code_quality, test ]
     runs-on: ubuntu-latest
-    steps:      
+    steps:
       - name: Set no-check fail comment
-        if: ${{ env.no_check_status == 'failed' }}
-        uses: unsplash/comment-on-pr@v1.3.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ env.no_check_status == 'failed' && github.event_name == 'push' }}
+        uses: peter-evans/commit-comment@v1
         with:
-          msg: "Check out this message!"
-          check_for_duplicate_msg: false  # OPTIONAL
-          delete_prev_regex_msg: "[0-9]"  # OPTIONAL
-          duplicate_msg_pattern: "[A-Z]"  # OPTIONAL
+          body: |
+            This commit failed no-check step
