@@ -38,27 +38,31 @@ jobs:
       - name: Run tests
         run: docker-compose run tests
 
-      - name: Run no-check tests
+      - name: Run tests without typechecking
+        id: no_typecheck
         run: |
           docker-compose run no_check_tests
           echo "no_check_status=passed" >> $GITHUB_ENV
         continue-on-error: true
+    outputs:
+      no_typecheck: ${{ steps.no_typecheck.outputs.stdout }}
 
   report_warnings:
     needs: [ code_quality, test ]
     runs-on: ubuntu-latest
     steps:
-      - name: Set no-check fail comment
+      - name: Set no-typecheck fail comment
         if: ${{ env.no_check_status == 'failed' && github.event_name == 'push' }}
         uses: peter-evans/commit-comment@v1
         with:
           body: |
-            ### No-check tests failure
+            # No typecheck tests failure
 
-            Please report the following failure to https://github.com/denoland/deno with a reproduction
-            of the current commit
+            This error was most likely caused by incorrect type stripping from the SWC crate
+
+            Please report the following failure to https://github.com/denoland/deno with a reproduction of the current commit
 
             <details>
               <summary>Failure log</summary>
-              Logs of failure
+              ${{ needs.test.outputs.no_typecheck }}
             </details>
