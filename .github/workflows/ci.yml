@@ -42,10 +42,12 @@ jobs:
         id: no_typecheck
         uses: mathiasvr/command-output@v1
         with:
-          run: |
-            docker-compose run no_check_tests
-            echo "no_check_status=passed" >> $GITHUB_ENV
+          run: docker-compose run no_check_tests
         continue-on-error: true
+
+      - name: Report no typechecking tests status
+        if: steps.no_typecheck.outcome == 'success'
+        run: echo "no_check_status=passed" >> $GITHUB_ENV
     outputs:
       no_typecheck: ${{ steps.no_typecheck.outputs.stdout }}
 
