@@ -6,7 +6,7 @@ import {
 import { Client as ScramClient, Reason } from "../connection/scram.ts";
 
 Deno.test("This should only break on no check", () => {
-  assertEquals(Deno.env.get("NO_COLOR"), "");
+  assertEquals(Deno.env.get("NO_COLOR"), undefined);
 });
 
 Deno.test("Scram client reproduces RFC 7677 example", async () => {
