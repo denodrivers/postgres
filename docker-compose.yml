@@ -13,6 +13,7 @@ services:
       - ./docker/postgres_clear/init/:/docker-entrypoint-initdb.d/
     ports:
       - "6000:5432"
+
   postgres_md5:
     image: postgres:14
     hostname: postgres
@@ -25,6 +26,7 @@ services:
       - ./docker/postgres_md5/init/:/docker-entrypoint-initdb.d/
     ports:
       - "6001:5432"
+
   postgres_scram:
     image: postgres:14
     hostname: postgres_scram
@@ -39,14 +41,27 @@ services:
       - ./docker/postgres_scram/init/:/docker-entrypoint-initdb.d/
     ports:
       - "6002:5432"
+
   tests:
     build: .
+    command: sh -c "/wait && deno test --unstable -A --jobs"
     depends_on:
       - postgres_clear
       - postgres_md5
       - postgres_scram
     environment:
       - WAIT_HOSTS=postgres_clear:5432,postgres_md5:5432,postgres_scram:5432
-      # Wait thirty seconds after database goes online
-      # For database metadata initialization
+      # Wait fifteen seconds after database goes online
+      # for database metadata initialization
+      - WAIT_AFTER_HOSTS=15
+    # Name the image to be reused in no_check_tests
+    image: postgres/tests
+
+  no_check_tests:
+    image: postgres/tests
+    command: sh -c "/wait && deno test --unstable -A --jobs --no-check"
+    depends_on:
+      - tests
+    environment:
+      - WAIT_HOSTS=postgres_clear:5432,postgres_md5:5432,postgres_scram:5432
       - WAIT_AFTER_HOSTS=15

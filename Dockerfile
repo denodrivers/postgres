@@ -16,6 +16,3 @@ RUN deno cache tests/test_deps.ts
 
 ADD . .
 RUN deno cache mod.ts
-
-# Run tests
-CMD /wait && deno test --unstable -A --jobs
