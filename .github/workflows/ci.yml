@@ -66,5 +66,7 @@ jobs:
 
             <details>
               <summary>Failure log</summary>
+              <pre><code>
               ${{ needs.test.outputs.no_typecheck }}
+              </code></pre>
             </details>
