@@ -40,7 +40,7 @@ jobs:
       - name: Run no-check tests
         run: |
           docker-compose run no_check_tests
-          echo "no-check-status=passed"
+          echo "no_check_status=passed" >> $GITHUB_ENV
         continue-on-error: true
 
       - name: Report no-check fail
