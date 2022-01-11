@@ -87,10 +87,14 @@ export interface QueryObjectConfig extends QueryConfig {
  * They will take the position according to the order in which they were provided
  *
  * ```ts
+ * import { Client } from "../client.ts";
+ *
+ * const my_client = new Client();
+ *
  * await my_client.queryArray(
- *  "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
- *  10, // $1
- *  20, // $2
+ *   "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
+ *   10, // $1
+ *   20, // $2
  * );
  * ```
  */

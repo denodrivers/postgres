@@ -38,6 +38,11 @@ export class Savepoint {
    * Releasing a savepoint will remove it's last instance in the transaction
    *
    * ```ts
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * const savepoint = await transaction.savepoint("n1");
    * await savepoint.release();
    * transaction.rollback(savepoint); // Error, can't rollback because the savepoint was released
@@ -45,7 +50,12 @@ export class Savepoint {
    *
    * It will also allow you to set the savepoint to the position it had before the last update
    *
-   * * ```ts
+   * ```ts
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * const savepoint = await transaction.savepoint("n1");
    * await savepoint.update();
    * await savepoint.release(); // This drops the update of the last statement
@@ -67,6 +77,13 @@ export class Savepoint {
    * Updating a savepoint will update its position in the transaction execution
    *
    * ```ts
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
+   * const my_value = "some value";
+   *
    * const savepoint = await transaction.savepoint("n1");
    * transaction.queryArray`INSERT INTO MY_TABLE (X) VALUES (${my_value})`;
    * await savepoint.update(); // Rolling back will now return you to this point on the transaction
@@ -75,6 +92,11 @@ export class Savepoint {
    * You can also undo a savepoint update by using the `release` method
    *
    * ```ts
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * const savepoint = await transaction.savepoint("n1");
    * transaction.queryArray`DELETE FROM VERY_IMPORTANT_TABLE`;
    * await savepoint.update(); // Oops, shouldn't have updated the savepoint
@@ -147,7 +169,11 @@ export class Transaction {
    * The begin method will officially begin the transaction, and it must be called before
    * any query or transaction operation is executed in order to lock the session
    * ```ts
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
    * const transaction = client.createTransaction("transaction_name");
+   *
    * await transaction.begin(); // Session is locked, transaction operations are now safe
    * // Important operations
    * await transaction.commit(); // Session is unlocked, external operations can now take place
@@ -219,6 +245,11 @@ export class Transaction {
    * current transaction and end the current transaction
    *
    * ```ts
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * await transaction.begin();
    * // Important operations
    * await transaction.commit(); // Will terminate the transaction and save all changes
@@ -228,10 +259,14 @@ export class Transaction {
    * start a new with the same transaction parameters in a single statement
    *
    * ```ts
-   * // ...
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * // Transaction operations I want to commit
    * await transaction.commit({ chain: true }); // All changes are saved, following statements will be executed inside a transaction
-   * await transaction.query`DELETE SOMETHING FROM SOMEWHERE`; // Still inside the transaction
+   * await transaction.queryArray`DELETE SOMETHING FROM SOMEWHERE`; // Still inside the transaction
    * await transaction.commit(); // The transaction finishes for good
    * ```
    *
@@ -280,6 +315,12 @@ export class Transaction {
    * the snapshot state between two transactions
    *
    * ```ts
+   * import { Client } from "../client.ts";
+   *
+   * const client_1 = new Client();
+   * const client_2 = new Client();
+   * const transaction_1 = client_1.createTransaction("transaction");
+   *
    * const snapshot = await transaction_1.getSnapshot();
    * const transaction_2 = client_2.createTransaction("new_transaction", { isolation_level: "repeatable_read", snapshot });
    * // transaction_2 now shares the same starting state that transaction_1 had
@@ -299,6 +340,11 @@ export class Transaction {
    * It supports a generic interface in order to type the entries retrieved by the query
    *
    * ```ts
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * const {rows} = await transaction.queryArray(
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<unknown[]>
@@ -306,7 +352,12 @@ export class Transaction {
    *
    * You can pass type arguments to the query in order to hint TypeScript what the return value will be
    * ```ts
-   * const {rows} = await transaction.queryArray<[number, string]>(
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
+   * const { rows } = await transaction.queryArray<[number, string]>(
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<[number, string]>
    * ```
@@ -314,6 +365,11 @@ export class Transaction {
    * It also allows you to execute prepared stamements with template strings
    *
    * ```ts
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * const id = 12;
    * // Array<[number, string]>
    * const {rows} = await transaction.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
@@ -366,36 +422,59 @@ export class Transaction {
    * It supports a generic interface in order to type the entries retrieved by the query
    *
    * ```ts
-   * const {rows} = await transaction.queryObject(
-   *  "SELECT ID, NAME FROM CLIENTS"
-   * ); // Record<string, unknown>
+   * import { Client } from "../client.ts";
    *
-   * const {rows} = await transaction.queryObject<{id: number, name: string}>(
-   *  "SELECT ID, NAME FROM CLIENTS"
-   * ); // Array<{id: number, name: string}>
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
+   * {
+   *   const { rows } = await transaction.queryObject(
+   *     "SELECT ID, NAME FROM CLIENTS"
+   *   ); // Record<string, unknown>
+   * }
+   *
+   * {
+   *   const { rows } = await transaction.queryObject<{id: number, name: string}>(
+   *     "SELECT ID, NAME FROM CLIENTS"
+   *   ); // Array<{id: number, name: string}>
+   * }
    * ```
    *
    * You can also map the expected results to object fields using the configuration interface.
    * This will be assigned in the order they were provided
    *
    * ```ts
-   * const {rows} = await transaction.queryObject(
-   *  "SELECT ID, NAME FROM CLIENTS"
-   * );
+   * import { Client } from "../client.ts";
    *
-   * console.log(rows); // [{id: 78, name: "Frank"}, {id: 15, name: "Sarah"}]
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
    *
-   * const {rows} = await transaction.queryObject({
-   *  text: "SELECT ID, NAME FROM CLIENTS",
-   *  fields: ["personal_id", "complete_name"],
-   * });
+   * {
+   *   const { rows } = await transaction.queryObject(
+   *     "SELECT ID, NAME FROM CLIENTS"
+   *   );
    *
-   * console.log(rows); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
+   *   console.log(rows); // [{id: 78, name: "Frank"}, {id: 15, name: "Sarah"}]
+   * }
+   *
+   * {
+   *   const { rows } = await transaction.queryObject({
+   *     text: "SELECT ID, NAME FROM CLIENTS",
+   *     fields: ["personal_id", "complete_name"],
+   *   });
+   *
+   *   console.log(rows); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
+   * }
    * ```
    *
    * It also allows you to execute prepared stamements with template strings
    *
    * ```ts
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * const id = 12;
    * // Array<{id: number, name: string}>
    * const {rows} = await transaction.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
@@ -457,7 +536,11 @@ export class Transaction {
    *
    * A rollback can be executed the following way
    * ```ts
-   * // ...
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * // Very very important operations that went very, very wrong
    * await transaction.rollback(); // Like nothing ever happened
    * ```
@@ -466,7 +549,11 @@ export class Transaction {
    * but it can be used in conjuction with the savepoint feature to rollback specific changes like the following
    *
    * ```ts
-   * // ...
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * // Important operations I don't want to rollback
    * const savepoint = await transaction.savepoint("before_disaster");
    * await transaction.queryArray`UPDATE MY_TABLE SET X = 0`; // Oops, update without where
@@ -479,10 +566,14 @@ export class Transaction {
    * but to restart it with the same parameters in a single statement
    *
    * ```ts
-   * // ...
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
    * // Transaction operations I want to undo
    * await transaction.rollback({ chain: true }); // All changes are undone, but the following statements will be executed inside a transaction as well
-   * await transaction.query`DELETE SOMETHING FROM SOMEWHERE`; // Still inside the transaction
+   * await transaction.queryArray`DELETE SOMETHING FROM SOMEWHERE`; // Still inside the transaction
    * await transaction.commit(); // The transaction finishes for good
    * ```
    *
@@ -492,7 +583,13 @@ export class Transaction {
    * and start from scratch
    *
    * ```ts
-   * await transaction.rollback({ chain: true, savepoint: my_savepoint }); // Error, can't both return to savepoint and reset transaction
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
+   * // @ts-expect-error
+   * await transaction.rollback({ chain: true, savepoint: "my_savepoint" }); // Error, can't both return to savepoint and reset transaction
    * ```
    * https://www.postgresql.org/docs/14/sql-rollback.html
    */
@@ -588,14 +685,24 @@ export class Transaction {
    *
    * A savepoint can be easily created like this
    * ```ts
-   * const savepoint = await transaction.save("MY_savepoint"); // returns a `Savepoint` with name "my_savepoint"
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
+   * const savepoint = await transaction.savepoint("MY_savepoint"); // returns a `Savepoint` with name "my_savepoint"
    * await transaction.rollback(savepoint);
    * await savepoint.release(); // The savepoint will be removed
    * ```
    * All savepoints can have multiple positions in a transaction, and you can change or update
    * this positions by using the `update` and `release` methods
    * ```ts
-   * const savepoint = await transaction.save("n1");
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
+   * const savepoint = await transaction.savepoint("n1");
    * await transaction.queryArray`INSERT INTO MY_TABLE VALUES (${'A'}, ${2})`;
    * await savepoint.update(); // The savepoint will continue from here
    * await transaction.queryArray`DELETE FROM MY_TABLE`;
@@ -608,9 +715,14 @@ export class Transaction {
    * Creating a new savepoint with an already used name will return you a reference to
    * the original savepoint
    * ```ts
-   * const savepoint_a = await transaction.save("a");
+   * import { Client } from "../client.ts";
+   *
+   * const client = new Client();
+   * const transaction = client.createTransaction("transaction");
+   *
+   * const savepoint_a = await transaction.savepoint("a");
    * await transaction.queryArray`DELETE FROM MY_TABLE`;
-   * const savepoint_b = await transaction.save("a"); // They will be the same savepoint, but the savepoint will be updated to this position
+   * const savepoint_b = await transaction.savepoint("a"); // They will be the same savepoint, but the savepoint will be updated to this position
    * await transaction.rollback(savepoint_a); // Rolls back to savepoint_b
    * ```
    * https://www.postgresql.org/docs/14/sql-savepoint.html

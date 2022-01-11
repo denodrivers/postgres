@@ -17,9 +17,5 @@ RUN deno cache tests/test_deps.ts
 ADD . .
 RUN deno cache mod.ts
 
-# Code health checks
-RUN deno lint --config=deno.json
-RUN deno fmt --check
-
 # Run tests
 CMD /wait && deno test --unstable -A --jobs
