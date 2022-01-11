@@ -3,9 +3,8 @@ name: ci
 on: [push, pull_request, release]
 
 jobs:
-  test:
+  code_quality:
     runs-on: ubuntu-latest
-
     steps:
       - name: Clone repo
         uses: actions/checkout@master
@@ -24,6 +23,12 @@ jobs:
       - name: Documentation tests
         run: deno test --doc client.ts mod.ts pool.ts client/ connection/ query/ utils/
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@master
+
       - name: Build tests container
         run: docker-compose build tests
       
@@ -32,3 +37,4 @@ jobs:
 
       - name: Run no-check tests
         run: docker-compose run no_check_tests
+        continue-on-error: true
