@@ -37,6 +37,11 @@ const withEnv = (env: {
   PGUSER ? Deno.env.set("PGUSER", PGUSER) : Deno.env.delete("PGUSER");
 };
 
+// TODO
+// Replace with test permission options to remove the need for function override
+/**
+ * This function will override getting env variables to simulate having no env permissions
+ */
 function withNotAllowedEnv(fn: () => void) {
   return () => {
     const getEnv = Deno.env.get;
@@ -219,6 +224,23 @@ Deno.test(
     assertEquals(p.user, "deno_postgres");
     assertEquals(p.hostname, "127.0.0.1");
     assertEquals(p.port, 5432);
+  }),
+);
+
+Deno.test(
+  "Throws if it can't obtain necessary parameters from config or env",
+  withNotAllowedEnv(function () {
+    assertThrows(
+      () => createParams(),
+      ConnectionParamsError,
+      "Missing connection parameters: database, user",
+    );
+
+    assertThrows(
+      () => createParams({ user: "some_user" }),
+      ConnectionParamsError,
+      "Missing connection parameters: database",
+    );
   }),
 );
 
