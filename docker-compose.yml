@@ -1,17 +1,29 @@
 version: '3.8'
 
+x-database-env:
+  &database-env
+  POSTGRES_DB: "postgres"
+  POSTGRES_PASSWORD: "postgres"
+  POSTGRES_USER: "postgres"
+
+x-test-env:
+  &test-env
+  WAIT_HOSTS: "postgres_clear:5432,postgres_md5:5432,postgres_scram:5432"
+  # Wait fifteen seconds after database goes online
+  # for database metadata initialization
+  WAIT_AFTER_HOSTS: "15"
+
 services:
   postgres_clear:
     # Clear authentication was removed after Postgres 9
     image: postgres:9
     hostname: postgres
     environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
+      <<: *database-env
     volumes:
       - ./docker/postgres_clear/data/:/var/lib/postgresql/host/
       - ./docker/postgres_clear/init/:/docker-entrypoint-initdb.d/
+      - /var/run/postgres_clear:/var/run/postgresql
     ports:
       - "6000:5432"
 
@@ -19,12 +31,11 @@ services:
     image: postgres:14
     hostname: postgres
     environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
+      <<: *database-env
     volumes:
       - ./docker/postgres_md5/data/:/var/lib/postgresql/host/
       - ./docker/postgres_md5/init/:/docker-entrypoint-initdb.d/
+      - /var/run/postgres_md5:/var/run/postgresql
     ports:
       - "6001:5432"
 
@@ -32,14 +43,13 @@ services:
     image: postgres:14
     hostname: postgres_scram
     environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
-      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
+      <<: *database-env
+      POSTGRES_HOST_AUTH_METHOD: "scram-sha-256"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     volumes:
       - ./docker/postgres_scram/data/:/var/lib/postgresql/host/
       - ./docker/postgres_scram/init/:/docker-entrypoint-initdb.d/
+      - /var/run/postgres_scram:/var/run/postgresql
     ports:
       - "6002:5432"
 
@@ -51,10 +61,7 @@ services:
       - postgres_md5
       - postgres_scram
     environment:
-      - WAIT_HOSTS=postgres_clear:5432,postgres_md5:5432,postgres_scram:5432
-      # Wait fifteen seconds after database goes online
-      # for database metadata initialization
-      - WAIT_AFTER_HOSTS=15
+      <<: *test-env
     # Name the image to be reused in no_check_tests
     image: postgres/tests
 
@@ -64,6 +71,5 @@ services:
     depends_on:
       - tests
     environment:
-      - NO_COLOR=true
-      - WAIT_HOSTS=postgres_clear:5432,postgres_md5:5432,postgres_scram:5432
-      - WAIT_AFTER_HOSTS=15
+      <<: *test-env
+      NO_COLOR: "true"
