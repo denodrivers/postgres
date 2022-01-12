@@ -215,6 +215,8 @@ export function createParams(
     throw new ConnectionParamsError(`"${host_type}" is not a valid host type`);
   }
 
+  // TODO
+  // There should be a default value for both socket and tcp
   const hostname = params.hostname ??
     pgEnv.hostname ??
     DEFAULT_OPTIONS.hostname;
@@ -251,6 +253,11 @@ export function createParams(
     );
   }
 
+  if (host_type === "socket" && params?.tls) {
+    throw new ConnectionParamsError(
+      `No TLS options are allowed when host type is set to "socket"`,
+    );
+  }
   const tls_enabled = !!(params?.tls?.enabled ?? DEFAULT_OPTIONS.tls.enabled);
   const tls_enforced = !!(params?.tls?.enforce ?? DEFAULT_OPTIONS.tls.enforce);
 

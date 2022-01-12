@@ -323,3 +323,20 @@ Deno.test("Determines host type", () => {
     assertEquals(p.host_type, "socket");
   }
 });
+
+Deno.test("Throws when TLS options and socket type are specified", () => {
+  assertThrows(
+    () =>
+      createParams({
+        database: "some_db",
+        hostname: "./some_file",
+        host_type: "socket",
+        user: "some_user",
+        tls: {
+          enabled: true,
+        },
+      }),
+    ConnectionParamsError,
+    `No TLS options are allowed when host type is set to "socket"`,
+  );
+});
