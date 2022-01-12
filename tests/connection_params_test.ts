@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "./test_deps.ts";
+import { assertEquals, assertThrows, fromFileUrl } from "./test_deps.ts";
 import { createParams } from "../connection/connection_params.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 import { has_env_access } from "./constants.ts";
@@ -129,7 +129,7 @@ Deno.test("Throws on connection string with invalid port", function () {
       createParams(
         "postgres://some_user@some_host:abc/deno_postgres",
       ),
-    undefined,
+    TypeError,
     "Invalid URL",
   );
 });
@@ -140,7 +140,7 @@ Deno.test("Throws on connection string with invalid ssl mode", function () {
       createParams(
         "postgres://some_user@some_host:10101/deno_postgres?sslmode=verify-full",
       ),
-    undefined,
+    ConnectionParamsError,
     "Supplied DSN has invalid sslmode 'verify-full'. Only 'disable', 'require', and 'prefer' are supported",
   );
 });
@@ -281,5 +281,45 @@ Deno.test("Throws when required options are not passed", function () {
       ConnectionParamsError,
       "Missing connection parameters: database, user",
     );
+  }
+});
+
+Deno.test("Determines host type", () => {
+  {
+    const p = createParams({
+      database: "some_db",
+      hostname: "127.0.0.1",
+      user: "some_user",
+    });
+
+    assertEquals(p.host_type, "tcp");
+  }
+
+  {
+    const abs_path = "/some/absolute/path";
+
+    const p = createParams({
+      database: "some_db",
+      hostname: abs_path,
+      host_type: "socket",
+      user: "some_user",
+    });
+
+    assertEquals(p.hostname, abs_path);
+    assertEquals(p.host_type, "socket");
+  }
+
+  {
+    const rel_path = "./some_file";
+
+    const p = createParams({
+      database: "some_db",
+      hostname: rel_path,
+      host_type: "socket",
+      user: "some_user",
+    });
+
+    assertEquals(p.hostname, fromFileUrl(new URL(rel_path, import.meta.url)));
+    assertEquals(p.host_type, "socket");
   }
 });

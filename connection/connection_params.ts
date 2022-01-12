@@ -1,5 +1,6 @@
 import { parseDsn } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
+import { fromFileUrl } from "../deps.ts";
 
 /**
  * The connection string must match the following URI structure
@@ -74,6 +75,7 @@ export interface ClientOptions {
   connection?: Partial<ConnectionOptions>;
   database?: string;
   hostname?: string;
+  host_type?: "tcp" | "socket";
   password?: string;
   port?: string | number;
   tls?: Partial<TLSOptions>;
@@ -85,6 +87,7 @@ export interface ClientConfiguration {
   connection: ConnectionOptions;
   database: string;
   hostname: string;
+  host_type: "tcp" | "socket";
   password?: string;
   port: number;
   tls: TLSOptions;
@@ -169,12 +172,15 @@ function parseOptionsFromDsn(connString: string): ClientOptions {
   };
 }
 
+// TODO
+// Maybe default should be looking for unix socket?
 const DEFAULT_OPTIONS: Omit<ClientConfiguration, "database" | "user"> = {
   applicationName: "deno_postgres",
   connection: {
     attempts: 1,
   },
   hostname: "127.0.0.1",
+  host_type: "tcp",
   port: 5432,
   tls: {
     enabled: true,
@@ -187,6 +193,8 @@ export function createParams(
   params: string | ClientOptions = {},
 ): ClientConfiguration {
   if (typeof params === "string") {
+    throw new Error("Host type not handled in connection string yet");
+    // @ts-ignore
     params = parseOptionsFromDsn(params);
   }
 
@@ -199,6 +207,33 @@ export function createParams(
       has_env_access = false;
     } else {
       throw e;
+    }
+  }
+
+  const host_type = params.host_type ?? DEFAULT_OPTIONS.host_type;
+  if (!["tcp", "socket"].includes(host_type)) {
+    throw new ConnectionParamsError(`"${host_type}" is not a valid host type`);
+  }
+
+  const hostname = params.hostname ??
+    pgEnv.hostname ??
+    DEFAULT_OPTIONS.hostname;
+  let host = hostname;
+  if (host_type === "socket") {
+    try {
+      const parsed_host = new URL(
+        hostname,
+        Deno.mainModule,
+      );
+
+      // Resolve relative path
+      if (parsed_host.protocol === "file:") {
+        host = fromFileUrl(parsed_host);
+      }
+    } catch (_e) {
+      // TODO
+      // Add error cause
+      throw new ConnectionParamsError(`Could not parse host "${hostname}"`);
     }
   }
 
@@ -235,7 +270,8 @@ export function createParams(
         DEFAULT_OPTIONS.connection.attempts,
     },
     database: params.database ?? pgEnv.database,
-    hostname: params.hostname ?? pgEnv.hostname ?? DEFAULT_OPTIONS.hostname,
+    hostname: host,
+    host_type,
     password: params.password ?? pgEnv.password,
     port,
     tls: {
@@ -248,7 +284,7 @@ export function createParams(
 
   assertRequiredOptions(
     connection_options,
-    ["applicationName", "database", "hostname", "port", "user"],
+    ["applicationName", "database", "hostname", "host_type", "port", "user"],
     has_env_access,
   );
 

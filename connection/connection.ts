@@ -229,6 +229,8 @@ export class Connection {
     connection: Deno.Conn,
     options: { hostname: string; caCerts: string[] },
   ) {
+    // TODO
+    // Remove unstable check on 1.17.0
     if ("startTls" in Deno) {
       // @ts-ignore This API should be available on unstable
       this.#conn = await Deno.startTls(connection, options);

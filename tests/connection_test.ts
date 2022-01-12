@@ -73,6 +73,21 @@ Deno.test("Clear password authentication (tls)", async () => {
   }
 });
 
+Deno.test("Clear password authentication (socket)", async () => {
+  const client = new Client({
+    ...getClearConfiguration(true),
+    hostname: "/var/run/postgres_clear/.s.PGSQL.5432",
+    tls: undefined,
+  });
+  await client.connect();
+
+  try {
+    assertEquals(client.session.tls, true);
+  } finally {
+    await client.end();
+  }
+});
+
 Deno.test("MD5 authentication (unencrypted)", async () => {
   const client = new Client(getMd5Configuration(false));
   await client.connect();
