@@ -134,7 +134,7 @@ export const getMd5SocketConfiguration = (): SocketConfiguration => {
     host_type: "socket",
     password: config.postgres_md5.password,
     port: config.postgres_md5.port,
-    user: config.postgres_md5.users.md5,
+    user: config.postgres_md5.users.socket,
   };
 };
 
@@ -159,7 +159,7 @@ export const getScramSocketConfiguration = (): SocketConfiguration => {
     host_type: "socket",
     password: config.postgres_scram.password,
     port: config.postgres_scram.port,
-    user: config.postgres_scram.users.scram,
+    user: config.postgres_scram.users.socket,
   };
 };
 

@@ -360,6 +360,7 @@ export class Connection {
             );
             await this.#createNonTlsConnection({ hostname, port });
             this.#tls = false;
+            this.#transport = "tcp";
             startup_response = await this.#sendStartupMessage();
           }
         } else {

@@ -9,7 +9,9 @@ import {
   getClearSocketConfiguration,
   getMainConfiguration,
   getMd5Configuration,
+  getMd5SocketConfiguration,
   getScramConfiguration,
+  getScramSocketConfiguration,
   getTlsOnlyConfiguration,
 } from "./config.ts";
 import { Client, ConnectionError, PostgresError } from "../mod.ts";
@@ -97,6 +99,7 @@ Deno.test("MD5 authentication (unencrypted)", async () => {
 
   try {
     assertEquals(client.session.tls, false);
+    assertEquals(client.session.transport, "tcp");
   } finally {
     await client.end();
   }
@@ -108,6 +111,22 @@ Deno.test("MD5 authentication (tls)", async () => {
 
   try {
     assertEquals(client.session.tls, true);
+    assertEquals(client.session.transport, "tcp");
+  } finally {
+    await client.end();
+  }
+});
+
+Deno.test("MD5 authentication (socket)", async () => {
+  const client = new Client({
+    ...getMd5SocketConfiguration(),
+    hostname: "/var/run/postgres_md5/.s.PGSQL.5432",
+  });
+  await client.connect();
+
+  try {
+    assertEquals(client.session.tls, undefined);
+    assertEquals(client.session.transport, "socket");
   } finally {
     await client.end();
   }
@@ -119,6 +138,7 @@ Deno.test("SCRAM-SHA-256 authentication (unencrypted)", async () => {
 
   try {
     assertEquals(client.session.tls, false);
+    assertEquals(client.session.transport, "tcp");
   } finally {
     await client.end();
   }
@@ -130,10 +150,27 @@ Deno.test("SCRAM-SHA-256 authentication (tls)", async () => {
 
   try {
     assertEquals(client.session.tls, true);
+    assertEquals(client.session.transport, "tcp");
   } finally {
     await client.end();
   }
 });
+
+Deno.test("SCRAM-SHA-256 authentication (socket)", async () => {
+  const client = new Client({
+    ...getScramSocketConfiguration(),
+    hostname: "/var/run/postgres_scram/.s.PGSQL.5432",
+  });
+  await client.connect();
+
+  try {
+    assertEquals(client.session.tls, undefined);
+    assertEquals(client.session.transport, "socket");
+  } finally {
+    await client.end();
+  }
+});
+
 Deno.test("Skips TLS connection when TLS disabled", async () => {
   const client = new Client({
     ...getTlsOnlyConfiguration(),
@@ -150,6 +187,7 @@ Deno.test("Skips TLS connection when TLS disabled", async () => {
   } finally {
     try {
       assertEquals(client.session.tls, undefined);
+      assertEquals(client.session.transport, undefined);
     } finally {
       await client.end();
     }
@@ -177,6 +215,7 @@ Deno.test("Aborts TLS connection when certificate is untrusted", async () => {
   } finally {
     try {
       assertEquals(client.session.tls, undefined);
+      assertEquals(client.session.transport, undefined);
     } finally {
       await client.end();
     }
@@ -195,6 +234,7 @@ Deno.test("Defaults to unencrypted when certificate is invalid and TLS is not en
   // Connection will fail due to TLS only user
   try {
     assertEquals(client.session.tls, false);
+    assertEquals(client.session.transport, "tcp");
   } finally {
     await client.end();
   }
@@ -271,6 +311,23 @@ Deno.test("Exposes session encryption", async () => {
       client.session.tls,
       undefined,
       "TLS was not cleared after disconnection",
+    );
+  }
+});
+
+Deno.test("Exposes session transport", async () => {
+  const client = new Client(getMainConfiguration());
+  await client.connect();
+
+  try {
+    assertEquals(client.session.transport, "tcp");
+  } finally {
+    await client.end();
+
+    assertEquals(
+      client.session.transport,
+      undefined,
+      "Transport was not cleared after disconnection",
     );
   }
 });
