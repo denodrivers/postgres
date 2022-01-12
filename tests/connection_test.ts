@@ -6,6 +6,7 @@ import {
 } from "./test_deps.ts";
 import {
   getClearConfiguration,
+  getClearSocketConfiguration,
   getMainConfiguration,
   getMd5Configuration,
   getScramConfiguration,
@@ -57,6 +58,7 @@ Deno.test("Clear password authentication (unencrypted)", async () => {
 
   try {
     assertEquals(client.session.tls, false);
+    assertEquals(client.session.transport, "tcp");
   } finally {
     await client.end();
   }
@@ -68,6 +70,7 @@ Deno.test("Clear password authentication (tls)", async () => {
 
   try {
     assertEquals(client.session.tls, true);
+    assertEquals(client.session.transport, "tcp");
   } finally {
     await client.end();
   }
@@ -75,14 +78,14 @@ Deno.test("Clear password authentication (tls)", async () => {
 
 Deno.test("Clear password authentication (socket)", async () => {
   const client = new Client({
-    ...getClearConfiguration(true),
+    ...getClearSocketConfiguration(),
     hostname: "/var/run/postgres_clear/.s.PGSQL.5432",
-    tls: undefined,
   });
   await client.connect();
 
   try {
-    assertEquals(client.session.tls, true);
+    assertEquals(client.session.tls, undefined);
+    assertEquals(client.session.transport, "socket");
   } finally {
     await client.end();
   }
