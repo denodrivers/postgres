@@ -35,6 +35,12 @@ export interface Session {
    * there is no connection stablished
    */
   tls: boolean | undefined;
+  /**
+   * This indicates the protocol used to connect to the database
+   *
+   * The two supported transports are TCP and Unix sockets
+   */
+  transport: "tcp" | "socket" | undefined;
 }
 
 export abstract class QueryClient {
@@ -55,6 +61,7 @@ export abstract class QueryClient {
       current_transaction: this.#transaction,
       pid: this.#connection.pid,
       tls: this.#connection.tls,
+      transport: this.#connection.transport,
     };
   }
 

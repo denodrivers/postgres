@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "./test_deps.ts";
+import { assertEquals, assertThrows, fromFileUrl } from "./test_deps.ts";
 import { createParams } from "../connection/connection_params.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 import { has_env_access } from "./constants.ts";
@@ -64,9 +64,24 @@ Deno.test("Parses connection string", function () {
   );
 
   assertEquals(p.database, "deno_postgres");
-  assertEquals(p.user, "some_user");
+  assertEquals(p.host_type, "tcp");
   assertEquals(p.hostname, "some_host");
   assertEquals(p.port, 10101);
+  assertEquals(p.user, "some_user");
+});
+
+Deno.test("Parses connection string with socket host", function () {
+  const socket = "/var/run/postgresql";
+
+  const p = createParams(
+    `postgres://some_user@${encodeURIComponent(socket)}:10101/deno_postgres`,
+  );
+
+  assertEquals(p.database, "deno_postgres");
+  assertEquals(p.hostname, socket);
+  assertEquals(p.host_type, "socket");
+  assertEquals(p.port, 10101);
+  assertEquals(p.user, "some_user");
 });
 
 Deno.test('Parses connection string with "postgresql" as driver', function () {
@@ -103,6 +118,15 @@ Deno.test("Parses connection string with application name", function () {
   assertEquals(p.port, 10101);
 });
 
+Deno.test("Parses connection string with reserved URL parameters", () => {
+  const p = createParams(
+    "postgres://?dbname=some_db&user=some_user",
+  );
+
+  assertEquals(p.database, "some_db");
+  assertEquals(p.user, "some_user");
+});
+
 Deno.test("Parses connection string with sslmode required", function () {
   const p = createParams(
     "postgres://some_user@some_host:10101/deno_postgres?sslmode=require",
@@ -129,8 +153,8 @@ Deno.test("Throws on connection string with invalid port", function () {
       createParams(
         "postgres://some_user@some_host:abc/deno_postgres",
       ),
-    undefined,
-    "Invalid URL",
+    ConnectionParamsError,
+    "Could not parse the connection string",
   );
 });
 
@@ -140,7 +164,7 @@ Deno.test("Throws on connection string with invalid ssl mode", function () {
       createParams(
         "postgres://some_user@some_host:10101/deno_postgres?sslmode=verify-full",
       ),
-    undefined,
+    ConnectionParamsError,
     "Supplied DSN has invalid sslmode 'verify-full'. Only 'disable', 'require', and 'prefer' are supported",
   );
 });
@@ -151,6 +175,7 @@ Deno.test("Parses connection options", function () {
     hostname: "some_host",
     port: 10101,
     database: "deno_postgres",
+    host_type: "tcp",
   });
 
   assertEquals(p.database, "deno_postgres");
@@ -163,6 +188,7 @@ Deno.test("Throws on invalid tls options", function () {
   assertThrows(
     () =>
       createParams({
+        host_type: "tcp",
         tls: {
           enabled: false,
           enforce: true,
@@ -217,6 +243,7 @@ Deno.test(
   withNotAllowedEnv(function () {
     const p = createParams({
       database: "deno_postgres",
+      host_type: "tcp",
       user: "deno_postgres",
     });
 
@@ -250,6 +277,7 @@ Deno.test("Uses default connection options", function () {
 
   const p = createParams({
     database,
+    host_type: "tcp",
     user,
   });
 
@@ -282,4 +310,89 @@ Deno.test("Throws when required options are not passed", function () {
       "Missing connection parameters: database, user",
     );
   }
+});
+
+Deno.test("Determines host type", () => {
+  {
+    const p = createParams({
+      database: "some_db",
+      hostname: "127.0.0.1",
+      user: "some_user",
+    });
+
+    assertEquals(p.host_type, "tcp");
+  }
+
+  {
+    const p = createParams(
+      "postgres://somehost.com?dbname=some_db&user=some_user",
+    );
+    assertEquals(p.hostname, "somehost.com");
+    assertEquals(p.host_type, "tcp");
+  }
+
+  {
+    const abs_path = "/some/absolute/path";
+
+    const p = createParams({
+      database: "some_db",
+      hostname: abs_path,
+      host_type: "socket",
+      user: "some_user",
+    });
+
+    assertEquals(p.hostname, abs_path);
+    assertEquals(p.host_type, "socket");
+  }
+
+  {
+    const rel_path = "./some_file";
+
+    const p = createParams({
+      database: "some_db",
+      hostname: rel_path,
+      host_type: "socket",
+      user: "some_user",
+    });
+
+    assertEquals(p.hostname, fromFileUrl(new URL(rel_path, import.meta.url)));
+    assertEquals(p.host_type, "socket");
+  }
+
+  {
+    const p = createParams("postgres://?dbname=some_db&user=some_user");
+    assertEquals(p.hostname, "/tmp");
+    assertEquals(p.host_type, "socket");
+  }
+});
+
+Deno.test("Throws when TLS options and socket type are specified", () => {
+  assertThrows(
+    () =>
+      createParams({
+        database: "some_db",
+        hostname: "./some_file",
+        host_type: "socket",
+        user: "some_user",
+        tls: {
+          enabled: true,
+        },
+      }),
+    ConnectionParamsError,
+    `No TLS options are allowed when host type is set to "socket"`,
+  );
+});
+
+Deno.test("Throws when host is a URL and host type is socket", () => {
+  assertThrows(
+    () =>
+      createParams({
+        database: "some_db",
+        hostname: "https://some_host.com",
+        host_type: "socket",
+        user: "some_user",
+      }),
+    ConnectionParamsError,
+    "The provided host is not a file path",
+  );
 });

@@ -5,9 +5,11 @@
       "database": "postgres",
       "hostname": "postgres_clear",
       "password": "postgres",
-      "port": 5432,
+      "port": 6000,
+      "socket": "/var/run/postgres_clear",
       "users": {
-        "clear": "clear"
+        "clear": "clear",
+        "socket": "socket"
       }
     },
     "postgres_md5": {
@@ -15,10 +17,12 @@
       "database": "postgres",
       "hostname": "postgres_md5",
       "password": "postgres",
-      "port": 5432,
+      "port": 6001,
+      "socket": "/var/run/postgres_md5",
       "users": {
         "main": "postgres",
         "md5": "md5",
+        "socket": "socket",
         "tls_only": "tls_only"
       }
     },
@@ -27,9 +31,11 @@
       "database": "postgres",
       "hostname": "postgres_scram",
       "password": "postgres",
-      "port": 5432,
+      "port": 6002,
+      "socket": "/var/run/postgres_scram",
       "users": {
-        "scram": "scram"
+        "scram": "scram",
+        "socket": "socket"
       }
     }
   },
@@ -40,8 +46,10 @@
       "hostname": "localhost",
       "password": "postgres",
       "port": 6000,
+      "socket": "/var/run/postgres_clear",
       "users": {
-        "clear": "clear"
+        "clear": "clear",
+        "socket": "socket"
       }
     },
     "postgres_md5": {
@@ -50,10 +58,12 @@
       "hostname": "localhost",
       "password": "postgres",
       "port": 6001,
+      "socket": "/var/run/postgres_md5",
       "users": {
         "clear": "clear",
         "main": "postgres",
         "md5": "md5",
+        "socket": "socket",
         "tls_only": "tls_only"
       }
     },
@@ -63,8 +73,10 @@
       "hostname": "localhost",
       "password": "postgres",
       "port": 6002,
+      "socket": "/var/run/postgres_scram",
       "users": {
-        "scram": "scram"
+        "scram": "scram",
+        "socket": "socket"
       }
     }
   }

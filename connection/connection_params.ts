@@ -1,14 +1,21 @@
-import { parseDsn } from "../utils/utils.ts";
+import { parseConnectionUri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
+import { fromFileUrl, isAbsolute } from "../deps.ts";
 
 /**
- * The connection string must match the following URI structure
+ * The connection string must match the following URI structure. All parameters but database and user are optional
  *
- * ```ts
- * const connection = "postgres://user:password@hostname:port/database?application_name=application_name";
- * ```
+ * `postgres://user:password@hostname:port/database?sslmode=mode...`
  *
- * Password, port and application name are optional parameters
+ * You can additionally provide the following url search parameters
+ *
+ * - application_name
+ * - dbname
+ * - host
+ * - password
+ * - port
+ * - sslmode
+ * - user
  */
 export type ConnectionString = string;
 
@@ -40,6 +47,8 @@ export interface ConnectionOptions {
    */
   attempts: number;
 }
+
+type TLSModes = "disable" | "prefer" | "require";
 
 // TODO
 // Refactor enabled and enforce into one single option for 1.0
@@ -74,6 +83,7 @@ export interface ClientOptions {
   connection?: Partial<ConnectionOptions>;
   database?: string;
   hostname?: string;
+  host_type?: "tcp" | "socket";
   password?: string;
   port?: string | number;
   tls?: Partial<TLSOptions>;
@@ -85,6 +95,7 @@ export interface ClientConfiguration {
   connection: ConnectionOptions;
   database: string;
   hostname: string;
+  host_type: "tcp" | "socket";
   password?: string;
   port: number;
   tls: TLSOptions;
@@ -133,61 +144,116 @@ function assertRequiredOptions(
   }
 }
 
-function parseOptionsFromDsn(connString: string): ClientOptions {
-  const dsn = parseDsn(connString);
+// TODO
+// Support more options from the spec
+/** options from URI per https://www.postgresql.org/docs/14/libpq-connect.html#LIBPQ-CONNSTRING */
+interface PostgresUri {
+  application_name?: string;
+  dbname?: string;
+  driver: string;
+  host?: string;
+  password?: string;
+  port?: string;
+  sslmode?: TLSModes;
+  user?: string;
+}
 
-  if (dsn.driver !== "postgres" && dsn.driver !== "postgresql") {
+function parseOptionsFromUri(connString: string): ClientOptions {
+  let postgres_uri: PostgresUri;
+  try {
+    const uri = parseConnectionUri(connString);
+    postgres_uri = {
+      application_name: uri.params.application_name,
+      dbname: uri.path || uri.params.dbname,
+      driver: uri.driver,
+      host: uri.host || uri.params.host,
+      password: uri.password || uri.params.password,
+      port: uri.port || uri.params.port,
+      // Compatibility with JDBC, not standard
+      // Treat as sslmode=require
+      sslmode: uri.params.ssl === "true"
+        ? "require"
+        : uri.params.sslmode as TLSModes,
+      user: uri.user || uri.params.user,
+    };
+  } catch (e) {
+    // TODO
+    // Use error cause
     throw new ConnectionParamsError(
-      `Supplied DSN has invalid driver: ${dsn.driver}.`,
+      `Could not parse the connection string due to ${e}`,
     );
   }
 
-  let tls: TLSOptions = { enabled: true, enforce: false, caCertificates: [] };
-  if (dsn.params.sslmode) {
-    const sslmode = dsn.params.sslmode;
-    delete dsn.params.sslmode;
+  if (!["postgres", "postgresql"].includes(postgres_uri.driver)) {
+    throw new ConnectionParamsError(
+      `Supplied DSN has invalid driver: ${postgres_uri.driver}.`,
+    );
+  }
 
-    if (!["disable", "require", "prefer"].includes(sslmode)) {
-      throw new ConnectionParamsError(
-        `Supplied DSN has invalid sslmode '${sslmode}'. Only 'disable', 'require', and 'prefer' are supported`,
-      );
+  // No host by default means socket connection
+  const host_type = postgres_uri.host
+    ? (isAbsolute(postgres_uri.host) ? "socket" : "tcp")
+    : "socket";
+
+  let tls: TLSOptions | undefined;
+  switch (postgres_uri.sslmode) {
+    case undefined: {
+      break;
     }
-
-    if (sslmode === "require") {
-      tls = { enabled: true, enforce: true, caCertificates: [] };
-    }
-
-    if (sslmode === "disable") {
+    case "disable": {
       tls = { enabled: false, enforce: false, caCertificates: [] };
+      break;
+    }
+    case "prefer": {
+      tls = { enabled: true, enforce: false, caCertificates: [] };
+      break;
+    }
+    case "require": {
+      tls = { enabled: true, enforce: true, caCertificates: [] };
+      break;
+    }
+    default: {
+      throw new ConnectionParamsError(
+        `Supplied DSN has invalid sslmode '${postgres_uri.sslmode}'. Only 'disable', 'require', and 'prefer' are supported`,
+      );
     }
   }
 
   return {
-    ...dsn,
-    applicationName: dsn.params.application_name,
+    applicationName: postgres_uri.application_name,
+    database: postgres_uri.dbname,
+    hostname: postgres_uri.host,
+    host_type,
+    password: postgres_uri.password,
+    port: postgres_uri.port,
     tls,
+    user: postgres_uri.user,
   };
 }
 
-const DEFAULT_OPTIONS: Omit<ClientConfiguration, "database" | "user"> = {
-  applicationName: "deno_postgres",
-  connection: {
-    attempts: 1,
-  },
-  hostname: "127.0.0.1",
-  port: 5432,
-  tls: {
-    enabled: true,
-    enforce: false,
-    caCertificates: [],
-  },
-};
+const DEFAULT_OPTIONS:
+  & Omit<ClientConfiguration, "database" | "user" | "hostname">
+  & { host: string; socket: string } = {
+    applicationName: "deno_postgres",
+    connection: {
+      attempts: 1,
+    },
+    host: "127.0.0.1",
+    socket: "/tmp",
+    host_type: "socket",
+    port: 5432,
+    tls: {
+      enabled: true,
+      enforce: false,
+      caCertificates: [],
+    },
+  };
 
 export function createParams(
   params: string | ClientOptions = {},
 ): ClientConfiguration {
   if (typeof params === "string") {
-    params = parseOptionsFromDsn(params);
+    params = parseOptionsFromUri(params);
   }
 
   let pgEnv: ClientOptions = {};
@@ -200,6 +266,44 @@ export function createParams(
     } else {
       throw e;
     }
+  }
+
+  const provided_host = params.hostname ?? pgEnv.hostname;
+
+  // If a host is provided, the default connection type is TCP
+  const host_type = params.host_type ??
+    (provided_host ? "tcp" : DEFAULT_OPTIONS.host_type);
+  if (!["tcp", "socket"].includes(host_type)) {
+    throw new ConnectionParamsError(`"${host_type}" is not a valid host type`);
+  }
+
+  let host: string;
+  if (host_type === "socket") {
+    const socket = provided_host ?? DEFAULT_OPTIONS.socket;
+    try {
+      if (!isAbsolute(socket)) {
+        const parsed_host = new URL(socket, Deno.mainModule);
+
+        // Resolve relative path
+        if (parsed_host.protocol === "file:") {
+          host = fromFileUrl(parsed_host);
+        } else {
+          throw new ConnectionParamsError(
+            "The provided host is not a file path",
+          );
+        }
+      } else {
+        host = socket;
+      }
+    } catch (e) {
+      // TODO
+      // Add error cause
+      throw new ConnectionParamsError(
+        `Could not parse host "${socket}" due to "${e}"`,
+      );
+    }
+  } else {
+    host = provided_host ?? DEFAULT_OPTIONS.host;
   }
 
   let port: number;
@@ -216,6 +320,11 @@ export function createParams(
     );
   }
 
+  if (host_type === "socket" && params?.tls) {
+    throw new ConnectionParamsError(
+      `No TLS options are allowed when host type is set to "socket"`,
+    );
+  }
   const tls_enabled = !!(params?.tls?.enabled ?? DEFAULT_OPTIONS.tls.enabled);
   const tls_enforced = !!(params?.tls?.enforce ?? DEFAULT_OPTIONS.tls.enforce);
 
@@ -235,7 +344,8 @@ export function createParams(
         DEFAULT_OPTIONS.connection.attempts,
     },
     database: params.database ?? pgEnv.database,
-    hostname: params.hostname ?? pgEnv.hostname ?? DEFAULT_OPTIONS.hostname,
+    hostname: host,
+    host_type,
     password: params.password ?? pgEnv.password,
     port,
     tls: {
@@ -248,7 +358,7 @@ export function createParams(
 
   assertRequiredOptions(
     connection_options,
-    ["applicationName", "database", "hostname", "port", "user"],
+    ["applicationName", "database", "hostname", "host_type", "port", "user"],
     has_env_access,
   );
 

@@ -2,16 +2,21 @@ import {
   assertEquals,
   assertThrowsAsync,
   deferred,
+  joinPath,
   streams,
 } from "./test_deps.ts";
 import {
   getClearConfiguration,
+  getClearSocketConfiguration,
   getMainConfiguration,
   getMd5Configuration,
+  getMd5SocketConfiguration,
   getScramConfiguration,
+  getScramSocketConfiguration,
   getTlsOnlyConfiguration,
 } from "./config.ts";
 import { Client, ConnectionError, PostgresError } from "../mod.ts";
+import { getSocketName } from "../utils/utils.ts";
 
 function createProxy(
   target: Deno.Listener,
@@ -57,6 +62,7 @@ Deno.test("Clear password authentication (unencrypted)", async () => {
 
   try {
     assertEquals(client.session.tls, false);
+    assertEquals(client.session.transport, "tcp");
   } finally {
     await client.end();
   }
@@ -68,6 +74,19 @@ Deno.test("Clear password authentication (tls)", async () => {
 
   try {
     assertEquals(client.session.tls, true);
+    assertEquals(client.session.transport, "tcp");
+  } finally {
+    await client.end();
+  }
+});
+
+Deno.test("Clear password authentication (socket)", async () => {
+  const client = new Client(getClearSocketConfiguration());
+  await client.connect();
+
+  try {
+    assertEquals(client.session.tls, undefined);
+    assertEquals(client.session.transport, "socket");
   } finally {
     await client.end();
   }
@@ -79,6 +98,7 @@ Deno.test("MD5 authentication (unencrypted)", async () => {
 
   try {
     assertEquals(client.session.tls, false);
+    assertEquals(client.session.transport, "tcp");
   } finally {
     await client.end();
   }
@@ -90,6 +110,19 @@ Deno.test("MD5 authentication (tls)", async () => {
 
   try {
     assertEquals(client.session.tls, true);
+    assertEquals(client.session.transport, "tcp");
+  } finally {
+    await client.end();
+  }
+});
+
+Deno.test("MD5 authentication (socket)", async () => {
+  const client = new Client(getMd5SocketConfiguration());
+  await client.connect();
+
+  try {
+    assertEquals(client.session.tls, undefined);
+    assertEquals(client.session.transport, "socket");
   } finally {
     await client.end();
   }
@@ -101,6 +134,7 @@ Deno.test("SCRAM-SHA-256 authentication (unencrypted)", async () => {
 
   try {
     assertEquals(client.session.tls, false);
+    assertEquals(client.session.transport, "tcp");
   } finally {
     await client.end();
   }
@@ -112,10 +146,24 @@ Deno.test("SCRAM-SHA-256 authentication (tls)", async () => {
 
   try {
     assertEquals(client.session.tls, true);
+    assertEquals(client.session.transport, "tcp");
   } finally {
     await client.end();
   }
 });
+
+Deno.test("SCRAM-SHA-256 authentication (socket)", async () => {
+  const client = new Client(getScramSocketConfiguration());
+  await client.connect();
+
+  try {
+    assertEquals(client.session.tls, undefined);
+    assertEquals(client.session.transport, "socket");
+  } finally {
+    await client.end();
+  }
+});
+
 Deno.test("Skips TLS connection when TLS disabled", async () => {
   const client = new Client({
     ...getTlsOnlyConfiguration(),
@@ -132,6 +180,7 @@ Deno.test("Skips TLS connection when TLS disabled", async () => {
   } finally {
     try {
       assertEquals(client.session.tls, undefined);
+      assertEquals(client.session.transport, undefined);
     } finally {
       await client.end();
     }
@@ -159,6 +208,7 @@ Deno.test("Aborts TLS connection when certificate is untrusted", async () => {
   } finally {
     try {
       assertEquals(client.session.tls, undefined);
+      assertEquals(client.session.transport, undefined);
     } finally {
       await client.end();
     }
@@ -177,6 +227,7 @@ Deno.test("Defaults to unencrypted when certificate is invalid and TLS is not en
   // Connection will fail due to TLS only user
   try {
     assertEquals(client.session.tls, false);
+    assertEquals(client.session.transport, "tcp");
   } finally {
     await client.end();
   }
@@ -255,6 +306,63 @@ Deno.test("Exposes session encryption", async () => {
       "TLS was not cleared after disconnection",
     );
   }
+});
+
+Deno.test("Exposes session transport", async () => {
+  const client = new Client(getMainConfiguration());
+  await client.connect();
+
+  try {
+    assertEquals(client.session.transport, "tcp");
+  } finally {
+    await client.end();
+
+    assertEquals(
+      client.session.transport,
+      undefined,
+      "Transport was not cleared after disconnection",
+    );
+  }
+});
+
+Deno.test("Attempts to guess socket route", async () => {
+  await assertThrowsAsync(
+    async () => {
+      const mock_socket = await Deno.makeTempFile({
+        prefix: ".postgres_socket.",
+      });
+
+      const client = new Client({
+        database: "some_database",
+        hostname: mock_socket,
+        host_type: "socket",
+        user: "some_user",
+      });
+      await client.connect();
+    },
+    Deno.errors.ConnectionRefused,
+    undefined,
+    "It doesn't use exact file name when real file provided",
+  );
+
+  const path = await Deno.makeTempDir({ prefix: "postgres_socket" });
+  const port = 1234;
+
+  await assertThrowsAsync(
+    async () => {
+      const client = new Client({
+        database: "some_database",
+        hostname: path,
+        host_type: "socket",
+        user: "some_user",
+        port,
+      });
+      await client.connect();
+    },
+    ConnectionError,
+    `Could not open socket in path "${joinPath(path, getSocketName(port))}"`,
+    "It doesn't guess socket location based on port",
+  );
 });
 
 Deno.test("Closes connection on bad TLS availability verification", async function () {
@@ -462,6 +570,28 @@ Deno.test("Attempts reconnection on disconnection", async function () {
     await client.end();
   }
 });
+
+Deno.test("Attempts reconnection on socket disconnection", async () => {
+  const client = new Client(getMd5SocketConfiguration());
+  await client.connect();
+
+  try {
+    await assertThrowsAsync(
+      () =>
+        client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
+      ConnectionError,
+      "The session was terminated unexpectedly",
+    );
+
+    const { rows: query_1 } = await client.queryArray`SELECT 1`;
+    assertEquals(query_1, [[1]]);
+  } finally {
+    await client.end();
+  }
+});
+
+// TODO
+// Find a way to unlink the socket to simulate unexpected socket disconnection
 
 Deno.test("Attempts reconnection when connection is lost", async function () {
   const cfg = getMainConfiguration();

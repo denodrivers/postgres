@@ -1,5 +1,5 @@
-import { assertEquals } from "./test_deps.ts";
-import { DsnResult, parseDsn } from "../utils/utils.ts";
+import { assertEquals, assertThrows } from "./test_deps.ts";
+import { parseConnectionUri, Uri } from "../utils/utils.ts";
 import { DeferredAccessStack } from "../utils/deferred.ts";
 
 class LazilyInitializedObject {
@@ -22,29 +22,118 @@ class LazilyInitializedObject {
   }
 }
 
-Deno.test("Parses connection string into config", function () {
-  let c: DsnResult;
+const dns_examples: Partial<Uri>[] = [
+  { driver: "postgresql", host: "localhost" },
+  { driver: "postgresql", host: "localhost", port: "5433" },
+  { driver: "postgresql", host: "localhost", port: "5433", path: "mydb" },
+  { driver: "postgresql", host: "localhost", path: "mydb" },
+  { driver: "postgresql", host: "localhost", user: "user" },
+  { driver: "postgresql", host: "localhost", password: "secret" },
+  { driver: "postgresql", host: "localhost", user: "user", password: "secret" },
+  {
+    driver: "postgresql",
+    host: "localhost",
+    user: "user",
+    password: "secret",
+    params: { "param_1": "a" },
+  },
+  {
+    driver: "postgresql",
+    host: "localhost",
+    user: "user",
+    password: "secret",
+    path: "otherdb",
+    params: { "param_1": "a" },
+  },
+  {
+    driver: "postgresql",
+    path: "otherdb",
+    params: { "param_1": "a" },
+  },
+  {
+    driver: "postgresql",
+    host: "[2001:db8::1234]",
+  },
+  {
+    driver: "postgresql",
+    host: "[2001:db8::1234]",
+    port: "1500",
+  },
+  {
+    driver: "postgresql",
+    host: "[2001:db8::1234]",
+    port: "1500",
+    params: { "param_1": "a" },
+  },
+];
 
-  c = parseDsn("postgres://deno.land/test_database");
+Deno.test("Parses connection string into config", async function (context) {
+  for (
+    const {
+      driver,
+      user = "",
+      host = "",
+      params = {},
+      password = "",
+      path = "",
+      port = "",
+    } of dns_examples
+  ) {
+    const url_params = new URLSearchParams();
+    for (const key in params) {
+      url_params.set(key, params[key]);
+    }
 
-  assertEquals(c.driver, "postgres");
-  assertEquals(c.user, "");
-  assertEquals(c.password, "");
-  assertEquals(c.hostname, "deno.land");
-  assertEquals(c.port, "");
-  assertEquals(c.database, "test_database");
+    const dirty_dns =
+      `${driver}://${user}:${password}@${host}:${port}/${path}?${url_params.toString()}`;
 
-  c = parseDsn(
-    "postgres://fizz:buzz@deno.land:8000/test_database?application_name=myapp",
+    await context.step(dirty_dns, () => {
+      const parsed_dirty_dsn = parseConnectionUri(dirty_dns);
+
+      assertEquals(parsed_dirty_dsn.driver, driver);
+      assertEquals(parsed_dirty_dsn.host, host);
+      assertEquals(parsed_dirty_dsn.params, params);
+      assertEquals(parsed_dirty_dsn.password, password);
+      assertEquals(parsed_dirty_dsn.path, path);
+      assertEquals(parsed_dirty_dsn.port, port);
+      assertEquals(parsed_dirty_dsn.user, user);
+    });
+
+    // Build the URL without leaving placeholders
+    let clean_dns_string = `${driver}://`;
+    if (user || password) {
+      clean_dns_string += `${user ?? ""}${password ? `:${password}` : ""}@`;
+    }
+    if (host || port) {
+      clean_dns_string += `${host ?? ""}${port ? `:${port}` : ""}`;
+    }
+    if (path) {
+      clean_dns_string += `/${path}`;
+    }
+    if (Object.keys(params).length > 0) {
+      clean_dns_string += `?${url_params.toString()}`;
+    }
+
+    await context.step(clean_dns_string, () => {
+      const parsed_clean_dsn = parseConnectionUri(clean_dns_string);
+
+      assertEquals(parsed_clean_dsn.driver, driver);
+      assertEquals(parsed_clean_dsn.host, host);
+      assertEquals(parsed_clean_dsn.params, params);
+      assertEquals(parsed_clean_dsn.password, password);
+      assertEquals(parsed_clean_dsn.path, path);
+      assertEquals(parsed_clean_dsn.port, port);
+      assertEquals(parsed_clean_dsn.user, user);
+    });
+  }
+});
+
+Deno.test("Throws on invalid parameters", () => {
+  assertThrows(
+    () => parseConnectionUri("postgres://some_host:invalid"),
+    Error,
+    `The provided port "invalid" is not a valid number`,
   );
-
-  assertEquals(c.driver, "postgres");
-  assertEquals(c.user, "fizz");
-  assertEquals(c.password, "buzz");
-  assertEquals(c.hostname, "deno.land");
-  assertEquals(c.port, "8000");
-  assertEquals(c.database, "test_database");
-  assertEquals(c.params.application_name, "myapp");
 });
 
 Deno.test("Parses connection string params into param object", function () {
@@ -59,39 +148,63 @@ Deno.test("Parses connection string params into param object", function () {
     base_url.searchParams.set(key, value);
   }
 
-  const parsed_dsn = parseDsn(base_url.toString());
+  const parsed_dsn = parseConnectionUri(base_url.toString());
 
   assertEquals(parsed_dsn.params, params);
 });
 
-Deno.test("Decodes connection string password correctly", function () {
-  let parsed_dsn: DsnResult;
-  let password: string;
+const encoded_hosts = ["/var/user/postgres", "./some_other_route"];
+const encoded_passwords = ["Mtx=", "pássword!=?with_symbols"];
 
-  password = "Mtx=";
-  parsed_dsn = parseDsn(
-    `postgres://root:${encodeURIComponent(password)}@localhost:9999/txdb`,
-  );
-  assertEquals(parsed_dsn.password, password);
+Deno.test("Decodes connection string values correctly", async (context) => {
+  await context.step("Host", () => {
+    for (const host of encoded_hosts) {
+      assertEquals(
+        parseConnectionUri(
+          `postgres://${encodeURIComponent(host)}:9999/txdb`,
+        ).host,
+        host,
+      );
+    }
+  });
 
-  password = "pássword!=?with_symbols";
-  parsed_dsn = parseDsn(
-    `postgres://root:${encodeURIComponent(password)}@localhost:9999/txdb`,
-  );
-  assertEquals(parsed_dsn.password, password);
+  await context.step("Password", () => {
+    for (const pwd of encoded_passwords) {
+      assertEquals(
+        parseConnectionUri(
+          `postgres://root:${encodeURIComponent(pwd)}@localhost:9999/txdb`,
+        ).password,
+        pwd,
+      );
+    }
+  });
 });
 
-Deno.test("Defaults to connection string password literal if decoding fails", function () {
-  let parsed_dsn: DsnResult;
-  let password: string;
+const invalid_hosts = ["Mtx%3", "%E0%A4%A.socket"];
+const invalid_passwords = ["Mtx%3", "%E0%A4%A"];
 
-  password = "Mtx%3";
-  parsed_dsn = parseDsn(`postgres://root:${password}@localhost:9999/txdb`);
-  assertEquals(parsed_dsn.password, password);
+Deno.test("Defaults to connection string literal if decoding fails", async (context) => {
+  await context.step("Host", () => {
+    for (const host of invalid_hosts) {
+      assertEquals(
+        parseConnectionUri(
+          `postgres://${host}`,
+        ).host,
+        host,
+      );
+    }
+  });
 
-  password = "%E0%A4%A";
-  parsed_dsn = parseDsn(`postgres://root:${password}@localhost:9999/txdb`);
-  assertEquals(parsed_dsn.password, password);
+  await context.step("Password", () => {
+    for (const pwd of invalid_passwords) {
+      assertEquals(
+        parseConnectionUri(
+          `postgres://root:${pwd}@localhost:9999/txdb`,
+        ).password,
+        pwd,
+      );
+    }
+  });
 });
 
 Deno.test("DeferredAccessStack", async () => {
