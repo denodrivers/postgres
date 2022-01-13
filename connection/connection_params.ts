@@ -1,6 +1,6 @@
-import { parseConnectionUri } from "../utils/utils.ts";
+import { parseConnectionUri, Uri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
-import { fromFileUrl } from "../deps.ts";
+import { fromFileUrl, isAbsolute } from "../deps.ts";
 
 /**
  * The connection string must match the following URI structure
@@ -136,46 +136,68 @@ function assertRequiredOptions(
   }
 }
 
+// TODO
+// Support more options from the spec
+/**
+ * Decodes options from URI per https://www.postgresql.org/docs/14/libpq-connect.html#LIBPQ-CONNSTRING
+ */
 function parseOptionsFromDsn(connString: string): ClientOptions {
-  let dsn;
+  let uri: Uri;
   try {
-    dsn = parseConnectionUri(connString);
-  } catch (_e) {
+    uri = parseConnectionUri(connString);
+  } catch (e) {
     // TODO
     // Use error cause
-    throw new ConnectionParamsError("Could not parse the connection string");
-  }
-
-  if (dsn.driver !== "postgres" && dsn.driver !== "postgresql") {
     throw new ConnectionParamsError(
-      `Supplied DSN has invalid driver: ${dsn.driver}.`,
+      `Could not parse the connection string due to ${e}`,
     );
   }
 
-  let tls: TLSOptions = { enabled: true, enforce: false, caCertificates: [] };
-  if (dsn.params.sslmode) {
-    const sslmode = dsn.params.sslmode;
-    delete dsn.params.sslmode;
+  if (!["postgres", "postgresql"].includes(uri.driver)) {
+    throw new ConnectionParamsError(
+      `Supplied DSN has invalid driver: ${uri.driver}.`,
+    );
+  }
 
-    if (!["disable", "require", "prefer"].includes(sslmode)) {
-      throw new ConnectionParamsError(
-        `Supplied DSN has invalid sslmode '${sslmode}'. Only 'disable', 'require', and 'prefer' are supported`,
-      );
-    }
+  const host_type = isAbsolute(uri.host) ? "socket" : "tcp";
 
-    if (sslmode === "require") {
-      tls = { enabled: true, enforce: true, caCertificates: [] };
-    }
+  let tls: TLSOptions | undefined;
+  // Compatibility with JDBC, not standard
+  // Treat as sslmode=require
+  // TODO
+  // Should probably throw when trying to use both ssl and sslmode
+  if (uri.params.ssl === "true") {
+    tls = { enabled: true, enforce: true, caCertificates: [] };
+  } else {
+    if (uri.params.sslmode) {
+      const sslmode = uri.params.sslmode;
+      delete uri.params.sslmode;
 
-    if (sslmode === "disable") {
-      tls = { enabled: false, enforce: false, caCertificates: [] };
+      if (!["disable", "require", "prefer"].includes(sslmode)) {
+        throw new ConnectionParamsError(
+          `Supplied DSN has invalid sslmode '${sslmode}'. Only 'disable', 'require', and 'prefer' are supported`,
+        );
+      }
+
+      if (sslmode === "require") {
+        tls = { enabled: true, enforce: true, caCertificates: [] };
+      }
+
+      if (sslmode === "disable") {
+        tls = { enabled: false, enforce: false, caCertificates: [] };
+      }
     }
   }
 
   return {
-    ...dsn,
-    applicationName: dsn.params.application_name,
+    applicationName: uri.params.application_name,
+    database: uri.path,
+    hostname: uri.host,
+    host_type,
+    password: uri.password,
+    port: uri.port,
     tls,
+    user: uri.user,
   };
 }
 

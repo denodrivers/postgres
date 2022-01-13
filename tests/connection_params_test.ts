@@ -64,9 +64,24 @@ Deno.test("Parses connection string", function () {
   );
 
   assertEquals(p.database, "deno_postgres");
-  assertEquals(p.user, "some_user");
+  assertEquals(p.host_type, "tcp");
   assertEquals(p.hostname, "some_host");
   assertEquals(p.port, 10101);
+  assertEquals(p.user, "some_user");
+});
+
+Deno.test("Parses connection string with socket host", function () {
+  const socket = "/var/run/postgresql";
+
+  const p = createParams(
+    `postgres://some_user@${encodeURIComponent(socket)}:10101/deno_postgres`,
+  );
+
+  assertEquals(p.database, "deno_postgres");
+  assertEquals(p.hostname, socket);
+  assertEquals(p.host_type, "socket");
+  assertEquals(p.port, 10101);
+  assertEquals(p.user, "some_user");
 });
 
 Deno.test('Parses connection string with "postgresql" as driver', function () {
