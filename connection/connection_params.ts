@@ -281,13 +281,19 @@ export function createParams(
   if (host_type === "socket") {
     const socket = provided_host ?? DEFAULT_OPTIONS.socket;
     try {
-      const parsed_host = new URL(socket, Deno.mainModule);
+      if (!isAbsolute(socket)) {
+        const parsed_host = new URL(socket, Deno.mainModule);
 
-      // Resolve relative path
-      if (parsed_host.protocol === "file:") {
-        host = fromFileUrl(parsed_host);
+        // Resolve relative path
+        if (parsed_host.protocol === "file:") {
+          host = fromFileUrl(parsed_host);
+        } else {
+          throw new ConnectionParamsError(
+            "The provided host is not a file path",
+          );
+        }
       } else {
-        throw new ConnectionParamsError("The provided host is not a file path");
+        host = socket;
       }
     } catch (e) {
       // TODO

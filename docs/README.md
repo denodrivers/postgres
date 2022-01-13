@@ -199,6 +199,16 @@ instead of TCP by providing the route to the socket file your Postgres database
 creates automatically. You can manually set the protocol used by using the
 `host_type` property in the client options
 
+In order to connect to the socket you can pass the path as a host in the client
+initialization. Alternatively, you can specify the port the database is
+listening on and the parent folder as a host, this way the client will try and
+guess the name for the socket file based on postgres defaults
+
+Instead of requiring net access, to connect an IPC socket you need read and
+write permissions to the socket file (You may need read permissions to the whole
+folder containing the socket in case you only specified the socket folder as a
+path)
+
 If you provide no host when initializing a client it will instead look in your
 `/tmp` folder for the socket file to try and connect (In some Linux
 distributions such as Debian, the default route for the socket file is
