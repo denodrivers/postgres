@@ -165,6 +165,81 @@ to your database in the first attempt, the client will keep trying to connect as
 many times as requested, meaning that if your attempt configuration is three,
 your total first-connection-attempts will ammount to four.
 
+#### Unix socket connection
+
+On Unix systems, it's possible to connect to your database through IPC sockets
+instead of TCP by providing the route to the socket file your Postgres database
+creates automatically.
+
+If you provide no host when initializing a client it will instead look in your
+`/tmp` folder for the socket file to try and connect (In some Linux
+distributions such as Debian, the default route for the socket file is
+`/var/run/postgresql`), unless you specify the connection type as `tcp`, in
+which case it will try and connect to `127.0.0.1` by default.
+
+```ts
+{
+  // Will connect to some_host.com using TCP
+  const client = new Client({
+    database: "some_db",
+    hostname: "https://some_host.com",
+    user: "some_user",
+  });
+}
+
+{
+  // Will look for the socket file 6000 in /tmp
+  const client = new Client({
+    database: "some_db",
+    port: 6000,
+    user: "some_user",
+  });
+}
+
+{
+  // Will try an connect to socket_folder:6000 using TCP
+  const client = new Client({
+    database: "some_db",
+    hostname: "socket_folder",
+    port: 6000,
+    user: "some_user",
+  });
+}
+
+{
+  // Will look for the socket file 6000 in ./socket_folder
+  const client = new Client({
+    database: "some_db",
+    hostname: "socket_folder",
+    host_type: "socket",
+    port: 6000,
+    user: "some_user",
+  });
+}
+```
+
+Per https://www.postgresql.org/docs/14/libpq-connect.html#LIBPQ-CONNSTRING, to
+connect to a unix socket using a connection string, you need to URI encode the
+absolute path in order for it to be recognized. Otherwise, it will be treated as
+a TCP host.
+
+```ts
+const path = "/var/run/postgresql";
+
+const client = new Client(
+  // postgres://user:password@%2Fvar%2Frun%2Fpostgresql:port/database_name
+  `postgres://user:password@${encodeURIComponent(path)}:port/database_name`,
+);
+```
+
+Additionally you can specify the host using the `host` URL parameter
+
+```ts
+const client = new Client(
+  `postgres://user:password@:port/database_name?host=/var/run/postgresql`,
+);
+```
+
 #### SSL/TLS connection
 
 Using a database that supports TLS is quite simple. After providing your
