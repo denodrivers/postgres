@@ -1,4 +1,4 @@
-import { parseConnectionUri, Uri } from "../utils/utils.ts";
+import { parseConnectionUri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 import { fromFileUrl, isAbsolute } from "../deps.ts";
 

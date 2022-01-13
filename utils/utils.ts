@@ -33,7 +33,7 @@ export function readUInt32BE(buffer: Uint8Array, offset: number): number {
   );
 }
 
-export interface Uri {
+interface Uri {
   driver: string;
   host: string;
   password: string;
