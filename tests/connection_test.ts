@@ -2,6 +2,7 @@ import {
   assertEquals,
   assertThrowsAsync,
   deferred,
+  joinPath,
   streams,
 } from "./test_deps.ts";
 import {
@@ -15,6 +16,7 @@ import {
   getTlsOnlyConfiguration,
 } from "./config.ts";
 import { Client, ConnectionError, PostgresError } from "../mod.ts";
+import { getSocketName } from "../utils/utils.ts";
 
 function createProxy(
   target: Deno.Listener,
@@ -79,10 +81,7 @@ Deno.test("Clear password authentication (tls)", async () => {
 });
 
 Deno.test("Clear password authentication (socket)", async () => {
-  const client = new Client({
-    ...getClearSocketConfiguration(),
-    hostname: "/var/run/postgres_clear/.s.PGSQL.5432",
-  });
+  const client = new Client(getClearSocketConfiguration());
   await client.connect();
 
   try {
@@ -118,10 +117,7 @@ Deno.test("MD5 authentication (tls)", async () => {
 });
 
 Deno.test("MD5 authentication (socket)", async () => {
-  const client = new Client({
-    ...getMd5SocketConfiguration(),
-    hostname: "/var/run/postgres_md5/.s.PGSQL.5432",
-  });
+  const client = new Client(getMd5SocketConfiguration());
   await client.connect();
 
   try {
@@ -157,10 +153,7 @@ Deno.test("SCRAM-SHA-256 authentication (tls)", async () => {
 });
 
 Deno.test("SCRAM-SHA-256 authentication (socket)", async () => {
-  const client = new Client({
-    ...getScramSocketConfiguration(),
-    hostname: "/var/run/postgres_scram/.s.PGSQL.5432",
-  });
+  const client = new Client(getScramSocketConfiguration());
   await client.connect();
 
   try {
@@ -330,6 +323,46 @@ Deno.test("Exposes session transport", async () => {
       "Transport was not cleared after disconnection",
     );
   }
+});
+
+Deno.test("Attempts to guess socket route", async () => {
+  await assertThrowsAsync(
+    async () => {
+      const mock_socket = await Deno.makeTempFile({
+        prefix: ".postgres_socket.",
+      });
+
+      const client = new Client({
+        database: "some_database",
+        hostname: mock_socket,
+        host_type: "socket",
+        user: "some_user",
+      });
+      await client.connect();
+    },
+    Deno.errors.ConnectionRefused,
+    undefined,
+    "It doesn't use exact file name when real file provided",
+  );
+
+  const path = await Deno.makeTempDir({ prefix: "postgres_socket" });
+  const port = 1234;
+
+  await assertThrowsAsync(
+    async () => {
+      const client = new Client({
+        database: "some_database",
+        hostname: path,
+        host_type: "socket",
+        user: "some_user",
+        port,
+      });
+      await client.connect();
+    },
+    ConnectionError,
+    `Could not open socket in path "${joinPath(path, getSocketName(port))}"`,
+    "It doesn't guess socket location based on port",
+  );
 });
 
 Deno.test("Closes connection on bad TLS availability verification", async function () {

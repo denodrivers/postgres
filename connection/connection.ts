@@ -26,9 +26,9 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { bold, BufReader, BufWriter, yellow } from "../deps.ts";
+import { bold, BufReader, BufWriter, joinPath, yellow } from "../deps.ts";
 import { DeferredStack } from "../utils/deferred.ts";
-import { readUInt32BE } from "../utils/utils.ts";
+import { getSocketName, readUInt32BE } from "../utils/utils.ts";
 import { PacketWriter } from "./packet.ts";
 import {
   Message,
@@ -225,7 +225,7 @@ export class Connection {
     return await this.#readMessage();
   }
 
-  async #createNonTlsConnection(
+  async #openConnection(
     options: Deno.ConnectOptions | Deno.UnixConnectOptions,
   ) {
     this.#conn = await Deno.connect(options);
@@ -233,7 +233,30 @@ export class Connection {
     this.#bufReader = new BufReader(this.#conn);
   }
 
-  async #createTlsConnection(
+  async #openSocketConnection(path: string, port: number) {
+    const socket = await Deno.stat(path);
+
+    if (socket.isFile) {
+      await this.#openConnection({ path, transport: "unix" });
+    } else {
+      const socket_guess = joinPath(path, getSocketName(port));
+      try {
+        await this.#openConnection({
+          path: socket_guess,
+          transport: "unix",
+        });
+      } catch (e) {
+        if (e instanceof Deno.errors.NotFound) {
+          throw new ConnectionError(
+            `Could not open socket in path "${socket_guess}"`,
+          );
+        }
+        throw e;
+      }
+    }
+  }
+
+  async #openTlsConnection(
     connection: Deno.Conn,
     options: { hostname: string; caCerts: string[] },
   ) {
@@ -289,12 +312,12 @@ export class Connection {
     } = this.#connection_params;
 
     if (host_type === "socket") {
-      await this.#createNonTlsConnection({ path: hostname, transport: "unix" });
+      await this.#openSocketConnection(hostname, port);
       this.#tls = undefined;
       this.#transport = "socket";
     } else {
       // A BufWriter needs to be available in order to check if the server accepts TLS connections
-      await this.#createNonTlsConnection({ hostname, port });
+      await this.#openConnection({ hostname, port });
       this.#tls = false;
       this.#transport = "tcp";
 
@@ -310,7 +333,7 @@ export class Connection {
         // https://www.postgresql.org/docs/14/protocol-flow.html#id-1.10.5.7.11
         if (accepts_tls) {
           try {
-            await this.#createTlsConnection(this.#conn, {
+            await this.#openTlsConnection(this.#conn, {
               hostname,
               caCerts: caCertificates,
             });
@@ -323,7 +346,7 @@ export class Connection {
                   "\n" +
                   bold("Defaulting to non-encrypted connection"),
               );
-              await this.#createNonTlsConnection({ hostname, port });
+              await this.#openConnection({ hostname, port });
               this.#tls = false;
             } else {
               throw e;
@@ -358,7 +381,7 @@ export class Connection {
                 "\n" +
                 bold("Defaulting to non-encrypted connection"),
             );
-            await this.#createNonTlsConnection({ hostname, port });
+            await this.#openConnection({ hostname, port });
             this.#tls = false;
             this.#transport = "tcp";
             startup_response = await this.#sendStartupMessage();

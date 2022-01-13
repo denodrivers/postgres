@@ -92,7 +92,7 @@ export const getClearSocketConfiguration = (): SocketConfiguration => {
     applicationName: config.postgres_clear.applicationName,
     database: config.postgres_clear.database,
     host_type: "socket",
-    hostname: config.postgres_clear.hostname,
+    hostname: config.postgres_clear.socket,
     password: config.postgres_clear.password,
     port: config.postgres_clear.port,
     user: config.postgres_clear.users.socket,
@@ -130,7 +130,7 @@ export const getMd5SocketConfiguration = (): SocketConfiguration => {
   return {
     applicationName: config.postgres_md5.applicationName,
     database: config.postgres_md5.database,
-    hostname: config.postgres_md5.hostname,
+    hostname: config.postgres_md5.socket,
     host_type: "socket",
     password: config.postgres_md5.password,
     port: config.postgres_md5.port,
@@ -155,7 +155,7 @@ export const getScramSocketConfiguration = (): SocketConfiguration => {
   return {
     applicationName: config.postgres_scram.applicationName,
     database: config.postgres_scram.database,
-    hostname: config.postgres_scram.hostname,
+    hostname: config.postgres_scram.socket,
     host_type: "socket",
     password: config.postgres_scram.password,
     port: config.postgres_scram.port,

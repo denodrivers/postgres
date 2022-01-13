@@ -8,7 +8,7 @@ x-database-env:
 
 x-test-env:
   &test-env
-  WAIT_HOSTS: "postgres_clear:5432,postgres_md5:5432,postgres_scram:5432"
+  WAIT_HOSTS: "postgres_clear:6000,postgres_md5:6001,postgres_scram:6002"
   # Wait fifteen seconds after database goes online
   # for database metadata initialization
   WAIT_AFTER_HOSTS: "15"
@@ -31,7 +31,7 @@ services:
       - ./docker/postgres_clear/init/:/docker-entrypoint-initdb.d/
       - /var/run/postgres_clear:/var/run/postgresql
     ports:
-      - "6000:5432"
+      - "6000:6000"
 
   postgres_md5:
     image: postgres:14
@@ -43,7 +43,7 @@ services:
       - ./docker/postgres_md5/init/:/docker-entrypoint-initdb.d/
       - /var/run/postgres_md5:/var/run/postgresql
     ports:
-      - "6001:5432"
+      - "6001:6001"
 
   postgres_scram:
     image: postgres:14
@@ -57,7 +57,7 @@ services:
       - ./docker/postgres_scram/init/:/docker-entrypoint-initdb.d/
       - /var/run/postgres_scram:/var/run/postgresql
     ports:
-      - "6002:5432"
+      - "6002:6002"
 
   tests:
     build: .

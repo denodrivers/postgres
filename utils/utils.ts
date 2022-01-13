@@ -129,3 +129,9 @@ export function isTemplateString(
   }
   return true;
 }
+
+/**
+ * https://www.postgresql.org/docs/14/runtime-config-connection.html#RUNTIME-CONFIG-CONNECTION-SETTINGS
+ * unix_socket_directories
+ */
+export const getSocketName = (port: number) => `.s.PGSQL.${port}`;

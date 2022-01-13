@@ -12,4 +12,5 @@ export { bold, yellow } from "https://deno.land/std@0.114.0/fmt/colors.ts";
 export {
   fromFileUrl,
   isAbsolute,
+  join as joinPath,
 } from "https://deno.land/std@0.114.0/path/mod.ts";
