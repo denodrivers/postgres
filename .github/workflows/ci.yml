@@ -21,7 +21,7 @@ jobs:
         run: deno lint --config=deno.json
 
       - name: Documentation tests
-        run: deno test --doc --unstable client.ts mod.ts pool.ts client/ connection/ query/ utils/
+        run: deno test --doc client.ts mod.ts pool.ts client/ connection/ query/ utils/
 
   test:
     runs-on: ubuntu-latest
