@@ -571,6 +571,28 @@ Deno.test("Attempts reconnection on disconnection", async function () {
   }
 });
 
+Deno.test("Attempts reconnection on socket disconnection", async () => {
+  const client = new Client(getMd5SocketConfiguration());
+  await client.connect();
+
+  try {
+    await assertThrowsAsync(
+      () =>
+        client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
+      ConnectionError,
+      "The session was terminated unexpectedly",
+    );
+
+    const { rows: query_1 } = await client.queryArray`SELECT 1`;
+    assertEquals(query_1, [[1]]);
+  } finally {
+    await client.end();
+  }
+});
+
+// TODO
+// Find a way to unlink the socket to simulate unexpected socket disconnection
+
 Deno.test("Attempts reconnection when connection is lost", async function () {
   const cfg = getMainConfiguration();
   const listener = Deno.listen({ hostname: "127.0.0.1", port: 0 });
