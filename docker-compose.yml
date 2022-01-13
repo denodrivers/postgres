@@ -13,6 +13,12 @@ x-test-env:
   # for database metadata initialization
   WAIT_AFTER_HOSTS: "15"
 
+x-test-volumes:
+  &test-volumes
+  - /var/run/postgres_clear:/var/run/postgres_clear
+  - /var/run/postgres_md5:/var/run/postgres_md5
+  - /var/run/postgres_scram:/var/run/postgres_scram
+
 services:
   postgres_clear:
     # Clear authentication was removed after Postgres 9
@@ -55,6 +61,8 @@ services:
 
   tests:
     build: .
+    # Name the image to be reused in no_check_tests
+    image: postgres/tests
     command: sh -c "/wait && deno test --unstable -A --jobs"
     depends_on:
       - postgres_clear
@@ -62,8 +70,7 @@ services:
       - postgres_scram
     environment:
       <<: *test-env
-    # Name the image to be reused in no_check_tests
-    image: postgres/tests
+    volumes: *test-volumes
 
   no_check_tests:
     image: postgres/tests
@@ -73,3 +80,4 @@ services:
     environment:
       <<: *test-env
       NO_COLOR: "true"
+    volumes: *test-volumes
