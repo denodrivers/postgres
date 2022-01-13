@@ -118,6 +118,15 @@ Deno.test("Parses connection string with application name", function () {
   assertEquals(p.port, 10101);
 });
 
+Deno.test("Parses connection string with reserved URL parameters", () => {
+  const p = createParams(
+    "postgres://?dbname=some_db&user=some_user",
+  );
+
+  assertEquals(p.database, "some_db");
+  assertEquals(p.user, "some_user");
+});
+
 Deno.test("Parses connection string with sslmode required", function () {
   const p = createParams(
     "postgres://some_user@some_host:10101/deno_postgres?sslmode=require",
@@ -315,6 +324,14 @@ Deno.test("Determines host type", () => {
   }
 
   {
+    const p = createParams(
+      "postgres://somehost.com?dbname=some_db&user=some_user",
+    );
+    assertEquals(p.hostname, "somehost.com");
+    assertEquals(p.host_type, "tcp");
+  }
+
+  {
     const abs_path = "/some/absolute/path";
 
     const p = createParams({
@@ -339,6 +356,12 @@ Deno.test("Determines host type", () => {
     });
 
     assertEquals(p.hostname, fromFileUrl(new URL(rel_path, import.meta.url)));
+    assertEquals(p.host_type, "socket");
+  }
+
+  {
+    const p = createParams("postgres://?dbname=some_db&user=some_user");
+    assertEquals(p.hostname, "/tmp");
     assertEquals(p.host_type, "socket");
   }
 });

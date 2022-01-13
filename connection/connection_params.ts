@@ -42,6 +42,8 @@ export interface ConnectionOptions {
   attempts: number;
 }
 
+type TLSModes = "disable" | "prefer" | "require";
+
 // TODO
 // Refactor enabled and enforce into one single option for 1.0
 export interface TLSOptions {
@@ -138,13 +140,36 @@ function assertRequiredOptions(
 
 // TODO
 // Support more options from the spec
-/**
- * Decodes options from URI per https://www.postgresql.org/docs/14/libpq-connect.html#LIBPQ-CONNSTRING
- */
-function parseOptionsFromDsn(connString: string): ClientOptions {
-  let uri: Uri;
+/** options from URI per https://www.postgresql.org/docs/14/libpq-connect.html#LIBPQ-CONNSTRING */
+interface PostgresUri {
+  application_name?: string;
+  dbname?: string;
+  driver: string;
+  host?: string;
+  password?: string;
+  port?: string;
+  sslmode?: TLSModes;
+  user?: string;
+}
+
+function parseOptionsFromUri(connString: string): ClientOptions {
+  let postgres_uri: PostgresUri;
   try {
-    uri = parseConnectionUri(connString);
+    const uri = parseConnectionUri(connString);
+    postgres_uri = {
+      application_name: uri.params.application_name,
+      dbname: uri.path || uri.params.dbname,
+      driver: uri.driver,
+      host: uri.host || uri.params.host,
+      password: uri.password || uri.params.password,
+      port: uri.port || uri.params.port,
+      // Compatibility with JDBC, not standard
+      // Treat as sslmode=require
+      sslmode: uri.params.ssl === "true"
+        ? "require"
+        : uri.params.sslmode as TLSModes,
+      user: uri.user || uri.params.user,
+    };
   } catch (e) {
     // TODO
     // Use error cause
@@ -153,51 +178,50 @@ function parseOptionsFromDsn(connString: string): ClientOptions {
     );
   }
 
-  if (!["postgres", "postgresql"].includes(uri.driver)) {
+  if (!["postgres", "postgresql"].includes(postgres_uri.driver)) {
     throw new ConnectionParamsError(
-      `Supplied DSN has invalid driver: ${uri.driver}.`,
+      `Supplied DSN has invalid driver: ${postgres_uri.driver}.`,
     );
   }
 
-  const host_type = isAbsolute(uri.host) ? "socket" : "tcp";
+  // No host by default means socket connection
+  const host_type = postgres_uri.host
+    ? (isAbsolute(postgres_uri.host) ? "socket" : "tcp")
+    : "socket";
 
   let tls: TLSOptions | undefined;
-  // Compatibility with JDBC, not standard
-  // Treat as sslmode=require
-  // TODO
-  // Should probably throw when trying to use both ssl and sslmode
-  if (uri.params.ssl === "true") {
-    tls = { enabled: true, enforce: true, caCertificates: [] };
-  } else {
-    if (uri.params.sslmode) {
-      const sslmode = uri.params.sslmode;
-      delete uri.params.sslmode;
-
-      if (!["disable", "require", "prefer"].includes(sslmode)) {
-        throw new ConnectionParamsError(
-          `Supplied DSN has invalid sslmode '${sslmode}'. Only 'disable', 'require', and 'prefer' are supported`,
-        );
-      }
-
-      if (sslmode === "require") {
-        tls = { enabled: true, enforce: true, caCertificates: [] };
-      }
-
-      if (sslmode === "disable") {
-        tls = { enabled: false, enforce: false, caCertificates: [] };
-      }
+  switch (postgres_uri.sslmode) {
+    case undefined: {
+      break;
+    }
+    case "disable": {
+      tls = { enabled: false, enforce: false, caCertificates: [] };
+      break;
+    }
+    case "prefer": {
+      tls = { enabled: true, enforce: false, caCertificates: [] };
+      break;
+    }
+    case "require": {
+      tls = { enabled: true, enforce: true, caCertificates: [] };
+      break;
+    }
+    default: {
+      throw new ConnectionParamsError(
+        `Supplied DSN has invalid sslmode '${postgres_uri.sslmode}'. Only 'disable', 'require', and 'prefer' are supported`,
+      );
     }
   }
 
   return {
-    applicationName: uri.params.application_name,
-    database: uri.path,
-    hostname: uri.host,
+    applicationName: postgres_uri.application_name,
+    database: postgres_uri.dbname,
+    hostname: postgres_uri.host,
     host_type,
-    password: uri.password,
-    port: uri.port,
+    password: postgres_uri.password,
+    port: postgres_uri.port,
     tls,
-    user: uri.user,
+    user: postgres_uri.user,
   };
 }
 
@@ -223,7 +247,7 @@ export function createParams(
   params: string | ClientOptions = {},
 ): ClientConfiguration {
   if (typeof params === "string") {
-    params = parseOptionsFromDsn(params);
+    params = parseOptionsFromUri(params);
   }
 
   let pgEnv: ClientOptions = {};
