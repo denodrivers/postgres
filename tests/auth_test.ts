@@ -1,8 +1,4 @@
-import {
-  assertEquals,
-  assertNotEquals,
-  assertThrowsAsync,
-} from "./test_deps.ts";
+import { assertEquals, assertNotEquals, assertRejects } from "./test_deps.ts";
 import { Client as ScramClient, Reason } from "../connection/scram.ts";
 
 Deno.test("Scram client reproduces RFC 7677 example", async () => {
@@ -36,7 +32,7 @@ Deno.test("Scram client catches bad server nonce", async () => {
   for (const testCase of testCases) {
     const client = new ScramClient("user", "password", "nonce1");
     client.composeChallenge();
-    await assertThrowsAsync(
+    await assertRejects(
       () => client.receiveChallenge(testCase),
       Error,
       Reason.BadServerNonce,
@@ -52,7 +48,7 @@ Deno.test("Scram client catches bad salt", async () => {
   for (const testCase of testCases) {
     const client = new ScramClient("user", "password", "nonce1");
     client.composeChallenge();
-    await assertThrowsAsync(
+    await assertRejects(
       () => client.receiveChallenge(testCase),
       Error,
       Reason.BadSalt,
@@ -71,7 +67,7 @@ Deno.test("Scram client catches bad iteration count", async () => {
   for (const testCase of testCases) {
     const client = new ScramClient("user", "password", "nonce1");
     client.composeChallenge();
-    await assertThrowsAsync(
+    await assertRejects(
       () => client.receiveChallenge(testCase),
       Error,
       Reason.BadIterationCount,
@@ -84,7 +80,7 @@ Deno.test("Scram client catches bad verifier", async () => {
   client.composeChallenge();
   await client.receiveChallenge("r=nonce12,s=c2FsdA==,i=4096");
   await client.composeResponse();
-  await assertThrowsAsync(
+  await assertRejects(
     () => client.receiveResponse("v=xxxx"),
     Error,
     Reason.BadVerifier,
@@ -98,7 +94,7 @@ Deno.test("Scram client catches server rejection", async () => {
   await client.composeResponse();
 
   const message = "auth error";
-  await assertThrowsAsync(
+  await assertRejects(
     () => client.receiveResponse(`e=${message}`),
     Error,
     message,

@@ -3,7 +3,7 @@ import {
   assert,
   assertEquals,
   assertObjectMatch,
-  assertThrowsAsync,
+  assertRejects,
 } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
 import { PoolClient, QueryClient } from "../client.ts";
@@ -83,7 +83,7 @@ testClient(
 
     await client.queryArray`CREATE TEMP TABLE PREPARED_STATEMENT_ERROR (X INT)`;
 
-    await assertThrowsAsync(() =>
+    await assertRejects(() =>
       client.queryArray(
         "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
         "TEXT",
@@ -104,7 +104,7 @@ testClient(
   async function (generateClient) {
     const client = await generateClient();
 
-    await assertThrowsAsync(
+    await assertRejects(
       () =>
         client.queryArray(
           "SELECT 1; SELECT '2'::INT; SELECT 'A'::INT",
@@ -127,7 +127,7 @@ testClient(
   async function (generateClient) {
     const client = await generateClient();
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => client.queryObject`SELECT 'A' AS X, 'B' AS X`,
     );
 
@@ -168,7 +168,7 @@ testClient(
 
     await client.queryArray`CREATE TEMP TABLE PREPARED_STATEMENT_ERROR (X INT)`;
 
-    await assertThrowsAsync(() =>
+    await assertRejects(() =>
       client.queryArray(
         "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
         "TEXT",
@@ -191,7 +191,7 @@ testClient(
   async function (generateClient) {
     const client = await generateClient();
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => client.queryObject`SELECT ${1} AS A, ${2} AS A`,
     );
 
@@ -250,7 +250,7 @@ testClient(
 			END;
 			$$ LANGUAGE PLPGSQL;`;
 
-    await assertThrowsAsync(
+    await assertRejects(
       () =>
         client.queryArray("SELECT * FROM PG_TEMP.CHANGE_TIMEZONE($1)", result),
       PostgresError,
@@ -287,7 +287,7 @@ testClient(
 			END;
 			$$ LANGUAGE PLPGSQL;`;
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => client.queryArray`SELECT * FROM PG_TEMP.CHANGE_TIMEZONE()`,
       PostgresError,
       "control reached end of function without RETURN",
@@ -299,7 +299,7 @@ testClient("Terminated connections", async function (generateClient) {
   const client = await generateClient();
   await client.end();
 
-  await assertThrowsAsync(
+  await assertRejects(
     async () => {
       await client.queryArray`SELECT 1`;
     },
@@ -313,7 +313,7 @@ testClient("Terminated connections", async function (generateClient) {
 testClient("Default reconnection", async (generateClient) => {
   const client = await generateClient();
 
-  await assertThrowsAsync(
+  await assertRejects(
     () => client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
     ConnectionError,
   );
@@ -595,7 +595,7 @@ testClient(
   async function (generateClient) {
     const client = await generateClient();
 
-    await assertThrowsAsync(
+    await assertRejects(
       () =>
         client.queryObject({
           text: "SELECT 1",
@@ -612,13 +612,13 @@ testClient(
   async function (generateClient) {
     const client = await generateClient();
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => client.queryObject`SELECT 1 AS "a", 2 AS A`,
       Error,
       `Field names "a" are duplicated in the result of the query`,
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       () =>
         client.queryObject({
           camelcase: true,
@@ -645,7 +645,7 @@ testClient(
       1,
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       async () => {
         await client.queryObject({
           text: "SELECT 1",
@@ -663,7 +663,7 @@ testClient(
   async function (generateClient) {
     const client = await generateClient();
 
-    await assertThrowsAsync(
+    await assertRejects(
       async () => {
         await client.queryObject({
           text: "SELECT 1",
@@ -674,7 +674,7 @@ testClient(
       "The fields provided for the query must contain only letters and underscores",
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       async () => {
         await client.queryObject({
           text: "SELECT 1",
@@ -685,7 +685,7 @@ testClient(
       "The fields provided for the query must contain only letters and underscores",
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       async () => {
         await client.queryObject({
           text: "SELECT 1",
@@ -703,7 +703,7 @@ testClient(
   async function (generateClient) {
     const client = await generateClient();
 
-    await assertThrowsAsync(
+    await assertRejects(
       async () => {
         await client.queryObject({
           text: "SELECT 1",
@@ -721,7 +721,7 @@ testClient(
   async function (generateClient) {
     const client = await generateClient();
 
-    await assertThrowsAsync(
+    await assertRejects(
       () =>
         client.queryObject<{ result: number }>({
           text: "SELECT 1; SELECT '2'::INT, '3'",
@@ -860,7 +860,7 @@ testClient(
     // Modify data outside the transaction
     await client_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction_rr.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 3`,
       undefined,
       undefined,
@@ -889,7 +889,7 @@ testClient("Transaction read only", async function (generateClient) {
   });
   await transaction.begin();
 
-  await assertThrowsAsync(
+  await assertRejects(
     () => transaction.queryArray`DELETE FROM FOR_TRANSACTION_TEST`,
     undefined,
     "cannot execute DELETE in a read-only transaction",
@@ -955,7 +955,7 @@ testClient("Transaction locks client", async function (generateClient) {
 
   await transaction.begin();
   await transaction.queryArray`SELECT 1`;
-  await assertThrowsAsync(
+  await assertRejects(
     () => client.queryArray`SELECT 1`,
     undefined,
     "This connection is currently locked",
@@ -1040,7 +1040,7 @@ testClient("Transaction rollback validations", async function (generateClient) {
   );
   await transaction.begin();
 
-  await assertThrowsAsync(
+  await assertRejects(
     // @ts-ignore This is made to check the two properties aren't passed at once
     () => transaction.rollback({ savepoint: "unexistent", chain: true }),
     undefined,
@@ -1059,7 +1059,7 @@ testClient(
     const transaction = client.createTransaction(name);
 
     await transaction.begin();
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction.queryArray`SELECT []`,
       undefined,
       `The transaction "${name}" has been aborted due to \`PostgresError:`,
@@ -1067,7 +1067,7 @@ testClient(
     assertEquals(client.session.current_transaction, null);
 
     await transaction.begin();
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction.queryObject`SELECT []`,
       undefined,
       `The transaction "${name}" has been aborted due to \`PostgresError:`,
@@ -1137,13 +1137,13 @@ testClient(
     const transaction = client.createTransaction("x");
     await transaction.begin();
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction.savepoint("1"),
       undefined,
       "The savepoint name can't begin with a number",
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       () =>
         transaction.savepoint(
           "this_savepoint_is_going_to_be_longer_than_sixty_three_characters",
@@ -1152,7 +1152,7 @@ testClient(
       "The savepoint name can't be longer than 63 characters",
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction.savepoint("+"),
       undefined,
       "The savepoint name can only contain alphanumeric characters",
@@ -1170,19 +1170,19 @@ testClient(
 
     await savepoint.release();
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => savepoint.release(),
       undefined,
       "This savepoint has no instances to release",
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction.rollback(savepoint),
       undefined,
       `There are no savepoints of "abc1" left to rollback to`,
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction.rollback("UNEXISTENT"),
       undefined,
       `There is no "unexistent" savepoint registered in this transaction`,
@@ -1203,7 +1203,7 @@ testClient(
 
     await transaction_x.begin();
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction_y.begin(),
       undefined,
       `This client already has an ongoing transaction "x"`,
@@ -1211,44 +1211,44 @@ testClient(
 
     await transaction_x.commit();
     await transaction_y.begin();
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction_y.begin(),
       undefined,
       "This transaction is already open",
     );
 
     await transaction_y.commit();
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction_y.commit(),
       undefined,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction_y.commit(),
       undefined,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction_y.queryArray`SELECT 1`,
       undefined,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction_y.queryObject`SELECT 1`,
       undefined,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction_y.rollback(),
       undefined,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => transaction_y.savepoint("SOME"),
       undefined,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,

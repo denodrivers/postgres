@@ -552,7 +552,7 @@ export class Connection {
       );
     }
 
-    const password = hashMd5Password(
+    const password = await hashMd5Password(
       this.#connection_params.password,
       this.#connection_params.user,
       salt,

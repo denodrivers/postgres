@@ -1,6 +1,6 @@
 import {
   assertEquals,
-  assertThrowsAsync,
+  assertRejects,
   deferred,
   joinPath,
   streams,
@@ -172,7 +172,7 @@ Deno.test("Skips TLS connection when TLS disabled", async () => {
 
   // Connection will fail due to TLS only user
   try {
-    await assertThrowsAsync(
+    await assertRejects(
       () => client.connect(),
       PostgresError,
       "no pg_hba.conf",
@@ -198,7 +198,7 @@ Deno.test("Aborts TLS connection when certificate is untrusted", async () => {
   });
 
   try {
-    await assertThrowsAsync(
+    await assertRejects(
       async (): Promise<void> => {
         await client.connect();
       },
@@ -239,7 +239,7 @@ Deno.test("Handles bad authentication correctly", async function () {
   const client = new Client(badConnectionData);
 
   try {
-    await assertThrowsAsync(
+    await assertRejects(
       async (): Promise<void> => {
         await client.connect();
       },
@@ -259,7 +259,7 @@ Deno.test("Startup error when database does not exist", async function () {
   const client = new Client(badConnectionData);
 
   try {
-    await assertThrowsAsync(
+    await assertRejects(
       async (): Promise<void> => {
         await client.connect();
       },
@@ -326,7 +326,7 @@ Deno.test("Exposes session transport", async () => {
 });
 
 Deno.test("Attempts to guess socket route", async () => {
-  await assertThrowsAsync(
+  await assertRejects(
     async () => {
       const mock_socket = await Deno.makeTempFile({
         prefix: ".postgres_socket.",
@@ -348,7 +348,7 @@ Deno.test("Attempts to guess socket route", async () => {
   const path = await Deno.makeTempDir({ prefix: "postgres_socket" });
   const port = 1234;
 
-  await assertThrowsAsync(
+  await assertRejects(
     async () => {
       const client = new Client({
         database: "some_database",
@@ -534,7 +534,7 @@ Deno.test("Attempts reconnection on disconnection", async function () {
     await client.queryArray(`DROP TABLE IF EXISTS ${test_table}`);
     await client.queryArray(`CREATE TABLE ${test_table} (X INT)`);
 
-    await assertThrowsAsync(
+    await assertRejects(
       () =>
         client.queryArray(
           `INSERT INTO ${test_table} VALUES (${test_value}); COMMIT; SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
@@ -576,7 +576,7 @@ Deno.test("Attempts reconnection on socket disconnection", async () => {
   await client.connect();
 
   try {
-    await assertThrowsAsync(
+    await assertRejects(
       () =>
         client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
       ConnectionError,
@@ -617,7 +617,7 @@ Deno.test("Attempts reconnection when connection is lost", async function () {
   // a new connection should be established.
   aborter.abort();
 
-  await assertThrowsAsync(
+  await assertRejects(
     () => client.queryObject("SELECT 1"),
     ConnectionError,
     "The session was terminated unexpectedly",
@@ -639,12 +639,12 @@ Deno.test("Doesn't attempt reconnection when attempts are set to zero", async fu
   await client.connect();
 
   try {
-    await assertThrowsAsync(() =>
+    await assertRejects(() =>
       client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`
     );
     assertEquals(client.connected, false);
 
-    await assertThrowsAsync(
+    await assertRejects(
       () => client.queryArray`SELECT 1`,
       Error,
       "The client has been disconnected from the database",
