@@ -166,6 +166,7 @@ Deno.test("Parses connection options", function () {
     hostname: "some_host",
     port: 10101,
     database: "deno_postgres",
+    host_type: "tcp",
   });
 
   assertEquals(p.database, "deno_postgres");
@@ -178,6 +179,7 @@ Deno.test("Throws on invalid tls options", function () {
   assertThrows(
     () =>
       createParams({
+        host_type: "tcp",
         tls: {
           enabled: false,
           enforce: true,
@@ -232,6 +234,7 @@ Deno.test(
   withNotAllowedEnv(function () {
     const p = createParams({
       database: "deno_postgres",
+      host_type: "tcp",
       user: "deno_postgres",
     });
 
@@ -265,6 +268,7 @@ Deno.test("Uses default connection options", function () {
 
   const p = createParams({
     database,
+    host_type: "tcp",
     user,
   });
 
@@ -353,5 +357,19 @@ Deno.test("Throws when TLS options and socket type are specified", () => {
       }),
     ConnectionParamsError,
     `No TLS options are allowed when host type is set to "socket"`,
+  );
+});
+
+Deno.test("Throws when host is a URL and host type is socket", () => {
+  assertThrows(
+    () =>
+      createParams({
+        database: "some_db",
+        hostname: "https://some_host.com",
+        host_type: "socket",
+        user: "some_user",
+      }),
+    ConnectionParamsError,
+    "The provided host is not a file path",
   );
 });

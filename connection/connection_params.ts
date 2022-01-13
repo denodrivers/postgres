@@ -201,22 +201,23 @@ function parseOptionsFromDsn(connString: string): ClientOptions {
   };
 }
 
-// TODO
-// Maybe default should be looking for unix socket?
-const DEFAULT_OPTIONS: Omit<ClientConfiguration, "database" | "user"> = {
-  applicationName: "deno_postgres",
-  connection: {
-    attempts: 1,
-  },
-  hostname: "127.0.0.1",
-  host_type: "tcp",
-  port: 5432,
-  tls: {
-    enabled: true,
-    enforce: false,
-    caCertificates: [],
-  },
-};
+const DEFAULT_OPTIONS:
+  & Omit<ClientConfiguration, "database" | "user" | "hostname">
+  & { host: string; socket: string } = {
+    applicationName: "deno_postgres",
+    connection: {
+      attempts: 1,
+    },
+    host: "127.0.0.1",
+    socket: "/tmp",
+    host_type: "socket",
+    port: 5432,
+    tls: {
+      enabled: true,
+      enforce: false,
+      caCertificates: [],
+    },
+  };
 
 export function createParams(
   params: string | ClientOptions = {},
@@ -237,33 +238,36 @@ export function createParams(
     }
   }
 
-  const host_type = params.host_type ?? DEFAULT_OPTIONS.host_type;
+  const provided_host = params.hostname ?? pgEnv.hostname;
+
+  // If a host is provided, the default connection type is TCP
+  const host_type = params.host_type ??
+    (provided_host ? "tcp" : DEFAULT_OPTIONS.host_type);
   if (!["tcp", "socket"].includes(host_type)) {
     throw new ConnectionParamsError(`"${host_type}" is not a valid host type`);
   }
 
-  // TODO
-  // There should be a default value for both socket and tcp
-  const hostname = params.hostname ??
-    pgEnv.hostname ??
-    DEFAULT_OPTIONS.hostname;
-  let host = hostname;
+  let host: string;
   if (host_type === "socket") {
+    const socket = provided_host ?? DEFAULT_OPTIONS.socket;
     try {
-      const parsed_host = new URL(
-        hostname,
-        Deno.mainModule,
-      );
+      const parsed_host = new URL(socket, Deno.mainModule);
 
       // Resolve relative path
       if (parsed_host.protocol === "file:") {
         host = fromFileUrl(parsed_host);
+      } else {
+        throw new ConnectionParamsError("The provided host is not a file path");
       }
-    } catch (_e) {
+    } catch (e) {
       // TODO
       // Add error cause
-      throw new ConnectionParamsError(`Could not parse host "${hostname}"`);
+      throw new ConnectionParamsError(
+        `Could not parse host "${socket}" due to "${e}"`,
+      );
     }
+  } else {
+    host = provided_host ?? DEFAULT_OPTIONS.host;
   }
 
   let port: number;
