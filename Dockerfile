@@ -15,4 +15,4 @@ COPY deps.ts deps.ts
 RUN deno cache tests/test_deps.ts
 
 ADD . .
-RUN deno cache mod.ts
+RUN deno cache --unstable mod.ts
