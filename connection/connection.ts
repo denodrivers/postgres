@@ -62,6 +62,11 @@ import {
 } from "./message_code.ts";
 import { hashMd5Password } from "./auth.ts";
 
+// Work around unstable limitation
+type ConnectOptions =
+  | { hostname: string; port: number; transport: "tcp" }
+  | { path: string; transport: "unix" };
+
 function assertSuccessfulStartup(msg: Message) {
   switch (msg.type) {
     case ERROR_MESSAGE:
@@ -225,15 +230,20 @@ export class Connection {
     return await this.#readMessage();
   }
 
-  async #openConnection(
-    options: Deno.ConnectOptions | Deno.UnixConnectOptions,
-  ) {
+  async #openConnection(options: ConnectOptions) {
+    // @ts-ignore This will throw in runtime if the options passed to it are socket related and deno is running
+    // on stable
     this.#conn = await Deno.connect(options);
     this.#bufWriter = new BufWriter(this.#conn);
     this.#bufReader = new BufReader(this.#conn);
   }
 
   async #openSocketConnection(path: string, port: number) {
+    if (Deno.build.os === "windows") {
+      throw new Error(
+        "Socket connection is only available on UNIX systems",
+      );
+    }
     const socket = await Deno.stat(path);
 
     if (socket.isFile) {
@@ -317,7 +327,7 @@ export class Connection {
       this.#transport = "socket";
     } else {
       // A BufWriter needs to be available in order to check if the server accepts TLS connections
-      await this.#openConnection({ hostname, port });
+      await this.#openConnection({ hostname, port, transport: "tcp" });
       this.#tls = false;
       this.#transport = "tcp";
 
@@ -346,7 +356,7 @@ export class Connection {
                   "\n" +
                   bold("Defaulting to non-encrypted connection"),
               );
-              await this.#openConnection({ hostname, port });
+              await this.#openConnection({ hostname, port, transport: "tcp" });
               this.#tls = false;
             } else {
               throw e;
@@ -381,7 +391,7 @@ export class Connection {
                 "\n" +
                 bold("Defaulting to non-encrypted connection"),
             );
-            await this.#openConnection({ hostname, port });
+            await this.#openConnection({ hostname, port, transport: "tcp" });
             this.#tls = false;
             this.#transport = "tcp";
             startup_response = await this.#sendStartupMessage();

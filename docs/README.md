@@ -199,6 +199,9 @@ instead of TCP by providing the route to the socket file your Postgres database
 creates automatically. You can manually set the protocol used by using the
 `host_type` property in the client options
 
+**Note**: This functionality is only available on UNIX systems under the
+`--unstable` flag
+
 In order to connect to the socket you can pass the path as a host in the client
 initialization. Alternatively, you can specify the port the database is
 listening on and the parent folder as a host, this way the client will try and
