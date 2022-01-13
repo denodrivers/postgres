@@ -1,4 +1,4 @@
-import { parseDsn } from "../utils/utils.ts";
+import { parseConnectionUri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 import { fromFileUrl } from "../deps.ts";
 
@@ -137,7 +137,14 @@ function assertRequiredOptions(
 }
 
 function parseOptionsFromDsn(connString: string): ClientOptions {
-  const dsn = parseDsn(connString);
+  let dsn;
+  try {
+    dsn = parseConnectionUri(connString);
+  } catch (_e) {
+    // TODO
+    // Use error cause
+    throw new ConnectionParamsError("Could not parse the connection string");
+  }
 
   if (dsn.driver !== "postgres" && dsn.driver !== "postgresql") {
     throw new ConnectionParamsError(
@@ -193,8 +200,6 @@ export function createParams(
   params: string | ClientOptions = {},
 ): ClientConfiguration {
   if (typeof params === "string") {
-    throw new Error("Host type not handled in connection string yet");
-    // @ts-ignore
     params = parseOptionsFromDsn(params);
   }
 

@@ -129,8 +129,8 @@ Deno.test("Throws on connection string with invalid port", function () {
       createParams(
         "postgres://some_user@some_host:abc/deno_postgres",
       ),
-    TypeError,
-    "Invalid URL",
+    ConnectionParamsError,
+    "Could not parse the connection string",
   );
 });
 

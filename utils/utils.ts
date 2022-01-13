@@ -33,28 +33,58 @@ export function readUInt32BE(buffer: Uint8Array, offset: number): number {
   );
 }
 
-export interface DsnResult {
+export interface Uri {
   driver: string;
-  user: string;
+  host: string;
   password: string;
-  hostname: string;
+  path: string;
+  params: Record<string, string>;
   port: string;
-  database: string;
-  params: {
-    [key: string]: string;
-  };
+  user: string;
 }
 
-export function parseDsn(dsn: string): DsnResult {
-  //URL object won't parse the URL if it doesn't recognize the protocol
-  //This line replaces the protocol with http and then leaves it up to URL
-  const [protocol, strippedUrl] = dsn.match(/(?:(?!:\/\/).)+/g) ?? ["", ""];
-  const url = new URL(`http:${strippedUrl}`);
+/**
+ * This function parses valid connection strings according to https://www.postgresql.org/docs/14/libpq-connect.html#LIBPQ-CONNSTRING
+ *
+ * The only exception to this rule are multi-host connection strings
+ */
+export function parseConnectionUri(uri: string): Uri {
+  const parsed_uri = uri.match(
+    /(?<driver>\w+):\/{2}((?<user>[^\/?#\s:]+?)?(:(?<password>[^\/?#\s]+)?)?@)?(?<full_host>[^\/?#\s]+)?(\/(?<path>[^?#\s]*))?(\?(?<params>[^#\s]+))?.*/,
+  );
+  if (!parsed_uri) throw new Error("Could not parse the provided URL");
+  let {
+    driver = "",
+    full_host = "",
+    params = "",
+    password = "",
+    path = "",
+    user = "",
+  }: {
+    driver?: string;
+    user?: string;
+    password?: string;
+    full_host?: string;
+    path?: string;
+    params?: string;
+  } = parsed_uri.groups ?? {};
 
-  let password = url.password;
-  // Special characters in the password may be url-encoded by URL(), such as =
+  const parsed_host = full_host.match(
+    /(?<host>(\[.+\])|(.*?))(:(?<port>[0-9]*))?$/,
+  );
+  if (!parsed_host) throw new Error(`Could not parse "${full_host}" host`);
+  let {
+    host = "",
+    port = "",
+  }: {
+    host?: string;
+    port?: string;
+  } = parsed_host.groups ?? {};
+
   try {
-    password = decodeURIComponent(password);
+    if (password) {
+      password = decodeURIComponent(password);
+    }
   } catch (_e) {
     console.error(
       bold(
@@ -65,14 +95,13 @@ export function parseDsn(dsn: string): DsnResult {
   }
 
   return {
+    driver,
+    host,
+    params: Object.fromEntries(new URLSearchParams(params).entries()),
     password,
-    driver: protocol,
-    user: url.username,
-    hostname: url.hostname,
-    port: url.port,
-    // remove leading slash from path
-    database: url.pathname.slice(1),
-    params: Object.fromEntries(url.searchParams.entries()),
+    path,
+    port,
+    user,
   };
 }
 
