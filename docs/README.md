@@ -11,7 +11,7 @@ experience. It provides abstractions for most common operations such as typed
 queries, prepared statements, connection pools and transactions.
 
 ```ts
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+import { Client } from "https://deno.land/x/postgres@v0.14.3/mod.ts";
 
 const client = new Client({
   user: "user",
@@ -38,7 +38,7 @@ All `deno-postgres` clients provide the following options to authenticate and
 manage your connections
 
 ```ts
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+import { Client } from "https://deno.land/x/postgres@v0.14.3/mod.ts";
 
 let config;
 
@@ -50,6 +50,7 @@ config = {
   },
   database: "test",
   hostname: "localhost",
+  host_type: "tcp",
   password: "password",
   port: 5432,
   user: "user",
@@ -67,14 +68,54 @@ await client.connect();
 await client.end();
 ```
 
+### Connection defaults
+
+The only required parameters for stablishing connection with your database are
+the database name and your user, the rest of them have sensible defaults to save
+up time when configuring your connection, such as the following:
+
+- connection.attempts: "1"
+- hostname: If host_type is set to TCP, it will be "127.0.0.1". Otherwise, it
+  will default to the "/tmp" folder to look for a socket connection
+- host_type: "socket", unless a host is manually specified
+- password: blank
+- port: "5432"
+- tls.enable: "true"
+- tls.enforce: "false"
+
 ### Connection string
 
-A valid connection string must reflect most of the options that will otherwise
-be available in a client configuration, with the following structure:
+Many services provide a connection string as a global format to connect to your
+database, and `deno-postgres` makes it easy to integrate this into your code by
+parsing the options in your connection string as if it was an options object
+
+You can create your own connection string by using the following structure:
 
 ```
 driver://user:password@host:port/database_name
+
+driver://host:port/database_name?user=user&password=password&application_name=my_app
 ```
+
+#### URL parameters
+
+Additional to the basic URI structure, connection strings may contain a variety
+of search parameters such as the following:
+
+- application_name: The equivalent of applicationName in client configuration
+- dbname: If database is not specified on the url path, this will be taken
+  instead
+- host: If host is not specified in the url, this will be taken instead
+- password: If password is not specified in the url, this will be taken instead
+- port: If port is not specified in the url, this will be taken instead
+- sslmode: Allows you to specify the tls configuration for your client, the
+  allowed values are the following:
+  - disable: Skip TLS connection altogether
+  - prefer: Attempt to stablish a TLS connection, default to unencrypted if the
+    negotiation fails
+  - require: Attempt to stablish a TLS connection, abort the connection if the
+    negotiation fails
+- user: If user is not specified in the url, this will be taken instead
 
 #### Password encoding
 
@@ -93,25 +134,11 @@ and passing your password as an argument.
 - `postgres://me:Mtx%253@localhost:5432/my_database`
 - `postgres://me:p%C3%A1ssword!%3Dwith_symbols@localhost:5432/my_database`
 
-When possible and if the password is not encoded correctly, the driver will try
-and pass the raw password to the database, however it's highly recommended that
-all passwords are always encoded.
+If the password is not encoded correctly, the driver will try and pass the raw
+password to the database, however it's highly recommended that all passwords are
+always encoded to prevent authentication errors
 
-#### URL parameters
-
-Additional to the basic structure, connection strings may contain a variety of
-search parameters such as the following:
-
-- application_name: The equivalent of applicationName in client configuration
-- sslmode: Allows you to specify the tls configuration for your client, the
-  allowed values are the following:
-  - disable: Skip TLS connection altogether
-  - prefer: Attempt to stablish a TLS connection, default to unencrypted if the
-    negotiation fails
-  - require: Attempt to stablish a TLS connection, abort the connection if the
-    negotiation fails
-
-#### Database reconnection
+### Database reconnection
 
 It's a very common occurrence to get broken connections due to connectivity
 issues or OS related problems, however while this may be a minor inconvenience
@@ -165,17 +192,18 @@ to your database in the first attempt, the client will keep trying to connect as
 many times as requested, meaning that if your attempt configuration is three,
 your total first-connection-attempts will ammount to four.
 
-#### Unix socket connection
+### Unix socket connection
 
 On Unix systems, it's possible to connect to your database through IPC sockets
 instead of TCP by providing the route to the socket file your Postgres database
-creates automatically.
+creates automatically. You can manually set the protocol used by using the
+`host_type` property in the client options
 
 If you provide no host when initializing a client it will instead look in your
 `/tmp` folder for the socket file to try and connect (In some Linux
 distributions such as Debian, the default route for the socket file is
-`/var/run/postgresql`), unless you specify the connection type as `tcp`, in
-which case it will try and connect to `127.0.0.1` by default.
+`/var/run/postgresql`), unless you specify the protocol as `tcp`, in which case
+it will try and connect to `127.0.0.1` by default.
 
 ```ts
 {
@@ -240,7 +268,7 @@ const client = new Client(
 );
 ```
 
-#### SSL/TLS connection
+### SSL/TLS connection
 
 Using a database that supports TLS is quite simple. After providing your
 connection parameters, the client will check if the database accepts encrypted
@@ -263,7 +291,7 @@ connection string. Although discouraged, this option is pretty useful when
 dealing with development databases or versions of Postgres that didn't support
 TLS encrypted connections.
 
-##### About invalid and custom TLS certificates
+#### About invalid and custom TLS certificates
 
 There is a miriad of factors you have to take into account when using a
 certificate to encrypt your connection that, if not taken care of, can render
@@ -295,7 +323,7 @@ TLS can be disabled from your server by editing your `postgresql.conf` file and
 setting the `ssl` option to `off`, or in the driver side by using the "disabled"
 option in the client configuration.
 
-#### Env parameters
+### Env parameters
 
 The values required to connect to the database can be read directly from
 environmental variables, given the case that the user doesn't provide them while

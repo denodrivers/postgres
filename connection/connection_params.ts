@@ -3,13 +3,19 @@ import { ConnectionParamsError } from "../client/error.ts";
 import { fromFileUrl, isAbsolute } from "../deps.ts";
 
 /**
- * The connection string must match the following URI structure
+ * The connection string must match the following URI structure. All parameters but database and user are optional
  *
- * ```ts
- * const connection = "postgres://user:password@hostname:port/database?application_name=application_name";
- * ```
+ * `postgres://user:password@hostname:port/database?sslmode=mode...`
  *
- * Password, port and application name are optional parameters
+ * You can additionally provide the following url search parameters
+ *
+ * - application_name
+ * - dbname
+ * - host
+ * - password
+ * - port
+ * - sslmode
+ * - user
  */
 export type ConnectionString = string;
 
