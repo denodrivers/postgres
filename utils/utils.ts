@@ -70,7 +70,7 @@ export function parseConnectionUri(uri: string): Uri {
   } = parsed_uri.groups ?? {};
 
   const parsed_host = full_host.match(
-    /(?<host>(\[.+\])|(.*?))(:(?<port>[0-9]*))?$/,
+    /(?<host>(\[.+\])|(.*?))(:(?<port>[\w]*))?$/,
   );
   if (!parsed_host) throw new Error(`Could not parse "${full_host}" host`);
   let {
@@ -80,6 +80,22 @@ export function parseConnectionUri(uri: string): Uri {
     host?: string;
     port?: string;
   } = parsed_host.groups ?? {};
+
+  try {
+    if (host) {
+      host = decodeURIComponent(host);
+    }
+  } catch (_e) {
+    console.error(
+      bold(
+        yellow("Failed to decode URL host") + "\nDefaulting to raw host",
+      ),
+    );
+  }
+
+  if (port && Number.isNaN(Number(port))) {
+    throw new Error(`The provided port "${port}" is not a valid number`);
+  }
 
   try {
     if (password) {

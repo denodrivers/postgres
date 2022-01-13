@@ -130,9 +130,9 @@ Deno.test("Parses connection string into config", async function (context) {
 
 Deno.test("Throws on invalid parameters", () => {
   assertThrows(
-    () => parseConnectionUri("postgres://"),
+    () => parseConnectionUri("postgres://some_host:invalid"),
     Error,
-    "Could not parse the provided URL",
+    `The provided port "invalid" is not a valid number`,
   );
 });
 
@@ -153,38 +153,58 @@ Deno.test("Parses connection string params into param object", function () {
   assertEquals(parsed_dsn.params, params);
 });
 
-Deno.test("Decodes connection string password correctly", function () {
-  let parsed_dsn: Uri;
-  let password: string;
+const encoded_hosts = ["/var/user/postgres", "./some_other_route"];
+const encoded_passwords = ["Mtx=", "pássword!=?with_symbols"];
 
-  password = "Mtx=";
-  parsed_dsn = parseConnectionUri(
-    `postgres://root:${encodeURIComponent(password)}@localhost:9999/txdb`,
-  );
-  assertEquals(parsed_dsn.password, password);
+Deno.test("Decodes connection string values correctly", async (context) => {
+  await context.step("Host", () => {
+    for (const host of encoded_hosts) {
+      assertEquals(
+        parseConnectionUri(
+          `postgres://${encodeURIComponent(host)}:9999/txdb`,
+        ).host,
+        host,
+      );
+    }
+  });
 
-  password = "pássword!=?with_symbols";
-  parsed_dsn = parseConnectionUri(
-    `postgres://root:${encodeURIComponent(password)}@localhost:9999/txdb`,
-  );
-  assertEquals(parsed_dsn.password, password);
+  await context.step("Password", () => {
+    for (const pwd of encoded_passwords) {
+      assertEquals(
+        parseConnectionUri(
+          `postgres://root:${encodeURIComponent(pwd)}@localhost:9999/txdb`,
+        ).password,
+        pwd,
+      );
+    }
+  });
 });
 
-Deno.test("Defaults to connection string password literal if decoding fails", function () {
-  let parsed_dsn: Uri;
-  let password: string;
+const invalid_hosts = ["Mtx%3", "%E0%A4%A.socket"];
+const invalid_passwords = ["Mtx%3", "%E0%A4%A"];
 
-  password = "Mtx%3";
-  parsed_dsn = parseConnectionUri(
-    `postgres://root:${password}@localhost:9999/txdb`,
-  );
-  assertEquals(parsed_dsn.password, password);
+Deno.test("Defaults to connection string literal if decoding fails", async (context) => {
+  await context.step("Host", () => {
+    for (const host of invalid_hosts) {
+      assertEquals(
+        parseConnectionUri(
+          `postgres://${host}`,
+        ).host,
+        host,
+      );
+    }
+  });
 
-  password = "%E0%A4%A";
-  parsed_dsn = parseConnectionUri(
-    `postgres://root:${password}@localhost:9999/txdb`,
-  );
-  assertEquals(parsed_dsn.password, password);
+  await context.step("Password", () => {
+    for (const pwd of invalid_passwords) {
+      assertEquals(
+        parseConnectionUri(
+          `postgres://root:${pwd}@localhost:9999/txdb`,
+        ).password,
+        pwd,
+      );
+    }
+  });
 });
 
 Deno.test("DeferredAccessStack", async () => {
