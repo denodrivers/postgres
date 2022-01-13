@@ -196,7 +196,7 @@ your total first-connection-attempts will ammount to four.
 
 On Unix systems, it's possible to connect to your database through IPC sockets
 instead of TCP by providing the route to the socket file your Postgres database
-creates automatically. You can manually set the protocol used by using the
+creates automatically. You can manually set the protocol used with the
 `host_type` property in the client options
 
 **Note**: This functionality is only available on UNIX systems under the
@@ -204,19 +204,19 @@ creates automatically. You can manually set the protocol used by using the
 
 In order to connect to the socket you can pass the path as a host in the client
 initialization. Alternatively, you can specify the port the database is
-listening on and the parent folder as a host, this way the client will try and
-guess the name for the socket file based on postgres defaults
+listening on and the parent folder of the socket as a host (The equivalent of
+Postgres' `unix_socket_directory` option), this way the client will try and
+guess the name for the socket file based on Postgres' defaults
 
 Instead of requiring net access, to connect an IPC socket you need read and
-write permissions to the socket file (You may need read permissions to the whole
-folder containing the socket in case you only specified the socket folder as a
-path)
+write permissions to the socket file (You will need read permissions to the
+folder containing the socket in case you specified the socket folder as a path)
 
-If you provide no host when initializing a client it will instead look in your
-`/tmp` folder for the socket file to try and connect (In some Linux
-distributions such as Debian, the default route for the socket file is
-`/var/run/postgresql`), unless you specify the protocol as `tcp`, in which case
-it will try and connect to `127.0.0.1` by default.
+If you provide no host when initializing a client it will instead lookup the
+socket file in your `/tmp` folder (In some Linux distributions such as Debian,
+the default route for the socket file is `/var/run/postgresql`), unless you
+specify the protocol as `tcp`, in which case it will try and connect to
+`127.0.0.1` by default
 
 ```ts
 {
@@ -356,7 +356,7 @@ await client.connect();
 await client.end();
 ```
 
-### Clients (Single clients)
+## Connection Client
 
 Clients are the most basic block for establishing communication with your
 database. They provide abstractions over queries, transactions and connection
@@ -401,7 +401,7 @@ connections are a synonym for session, which means that temporal operations such
 as the creation of temporal tables or the use of the `PG_TEMP` schema will not
 be persisted after your connection is terminated.
 
-### Pools
+## Connection Pools
 
 For stronger management and scalability, you can use **pools**:
 
