@@ -70,7 +70,7 @@ testClient("Array arguments", async function (generateClient) {
   const client = await generateClient();
 
   {
-    const value = 1;
+    const value = "1";
     const result = await client.queryArray(
       "SELECT $1",
       [value],
@@ -79,7 +79,7 @@ testClient("Array arguments", async function (generateClient) {
   }
 
   {
-    const value = 2;
+    const value = "2";
     const result = await client.queryArray({
       args: [value],
       text: "SELECT $1",
@@ -88,7 +88,7 @@ testClient("Array arguments", async function (generateClient) {
   }
 
   {
-    const value = 3;
+    const value = "3";
     const result = await client.queryObject(
       "SELECT $1 AS ID",
       [value],
@@ -97,7 +97,7 @@ testClient("Array arguments", async function (generateClient) {
   }
 
   {
-    const value = 4;
+    const value = "4";
     const result = await client.queryObject({
       args: [value],
       text: "SELECT $1 AS ID",

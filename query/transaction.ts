@@ -372,7 +372,7 @@ export class Transaction {
    *
    * const id = 12;
    * // Array<[number, string]>
-   * const {rows} = await transaction.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
+   * const { rows } = await transaction.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
    * ```
    */
   async queryArray<T extends Array<unknown>>(
@@ -486,7 +486,7 @@ export class Transaction {
    */
   async queryObject<T>(
     query: string,
-    args: QueryArguments,
+    args?: QueryArguments,
   ): Promise<QueryObjectResult<T>>;
   async queryObject<T>(
     config: QueryObjectConfig,
