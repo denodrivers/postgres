@@ -296,7 +296,11 @@ export class Query<T extends ResultType> {
    * for duplicates and invalid names
    */
   public fields?: string[];
+  // TODO
+  // Should be private
   public result_type: ResultType;
+  // TODO
+  // Document that this text is the one sent to the database, not the original one
   public text: string;
   constructor(config: QueryObjectConfig, result_type: T);
   constructor(text: string, result_type: T, args?: QueryArguments);
