@@ -166,9 +166,9 @@ When contributing to repository make sure to:
 2. All public interfaces must be typed and have a corresponding JS block
    explaining their usage
 3. All code must pass the format and lint checks enforced by `deno fmt` and
-   `deno lint --config=deno.json` respectively. The build will not pass the
-   tests if these conditions are not met. Ignore rules will be accepted in the
-   code base when their respective justification is given in a comment
+   `deno lint` respectively. The build will not pass the tests if these
+   conditions are not met. Ignore rules will be accepted in the code base when
+   their respective justification is given in a comment
 4. All features and fixes must have a corresponding test added in order to be
    accepted
 

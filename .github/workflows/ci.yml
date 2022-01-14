@@ -18,7 +18,7 @@ jobs:
         run: deno fmt --check
       
       - name: Lint
-        run: deno lint --config=deno.json
+        run: deno lint
 
       - name: Documentation tests
         run: deno test --doc client.ts mod.ts pool.ts client/ connection/ query/ utils/
