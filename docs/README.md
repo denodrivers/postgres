@@ -496,8 +496,8 @@ async function runQuery(query: string) {
   return result;
 }
 
-await runQuery("SELECT ID, NAME FROM users"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
-await runQuery("SELECT ID, NAME FROM users WHERE id = '1'"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+await runQuery("SELECT ID, NAME FROM USERS"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+await runQuery("SELECT ID, NAME FROM USERS WHERE ID = '1'"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
 ```
 
 ## Executing queries
@@ -527,8 +527,7 @@ call
 {
   const result = await client.queryArray(
     "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
-    10,
-    20,
+    [10, 20],
   );
   console.log(result.rows);
 }
