@@ -63,7 +63,7 @@ function encodeArray(array: Array<unknown>): string {
       // TODO: it should be encoded as bytea?
       throw new Error("Can't encode array of buffers.");
     } else {
-      const encodedElement = encode(element);
+      const encodedElement = encodeArgument(element);
       encodedArray += escapeArrayElement(encodedElement as string);
     }
   });
@@ -81,7 +81,7 @@ function encodeBytes(value: Uint8Array): string {
 
 export type EncodedArg = null | string | Uint8Array;
 
-export function encode(value: unknown): EncodedArg {
+export function encodeArgument(value: unknown): EncodedArg {
   if (value === null || typeof value === "undefined") {
     return null;
   } else if (value instanceof Uint8Array) {

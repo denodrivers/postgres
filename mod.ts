@@ -17,6 +17,6 @@ export type {
 } from "./connection/connection_params.ts";
 export type { Session } from "./client.ts";
 export { PoolClient, QueryClient } from "./client.ts";
-export type { QueryConfig, QueryObjectConfig } from "./query/query.ts";
+export type { QueryObjectOptions, QueryOptions } from "./query/query.ts";
 export { Savepoint, Transaction } from "./query/transaction.ts";
 export type { TransactionOptions } from "./query/transaction.ts";

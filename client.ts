@@ -9,9 +9,9 @@ import {
   Query,
   QueryArguments,
   QueryArrayResult,
-  QueryConfig,
-  QueryObjectConfig,
+  QueryObjectOptions,
   QueryObjectResult,
+  QueryOptions,
   QueryResult,
   ResultType,
   templateStringToQuery,
@@ -282,18 +282,18 @@ export abstract class QueryClient {
    */
   queryArray<T extends Array<unknown>>(
     query: string,
-    ...args: QueryArguments
+    args?: QueryArguments,
   ): Promise<QueryArrayResult<T>>;
   queryArray<T extends Array<unknown>>(
-    config: QueryConfig,
+    config: QueryOptions,
   ): Promise<QueryArrayResult<T>>;
   queryArray<T extends Array<unknown>>(
     strings: TemplateStringsArray,
-    ...args: QueryArguments
+    ...args: unknown[]
   ): Promise<QueryArrayResult<T>>;
   queryArray<T extends Array<unknown> = Array<unknown>>(
-    query_template_or_config: TemplateStringsArray | string | QueryConfig,
-    ...args: QueryArguments
+    query_template_or_config: TemplateStringsArray | string | QueryOptions,
+    ...args: unknown[] | [QueryArguments | undefined]
   ): Promise<QueryArrayResult<T>> {
     this.#assertOpenConnection();
 
@@ -305,7 +305,11 @@ export abstract class QueryClient {
 
     let query: Query<ResultType.ARRAY>;
     if (typeof query_template_or_config === "string") {
-      query = new Query(query_template_or_config, ResultType.ARRAY, ...args);
+      query = new Query(
+        query_template_or_config,
+        ResultType.ARRAY,
+        args[0] as QueryArguments | undefined,
+      );
     } else if (isTemplateString(query_template_or_config)) {
       query = templateStringToQuery(
         query_template_or_config,
@@ -380,23 +384,23 @@ export abstract class QueryClient {
    */
   queryObject<T>(
     query: string,
-    ...args: QueryArguments
+    args?: QueryArguments,
   ): Promise<QueryObjectResult<T>>;
   queryObject<T>(
-    config: QueryObjectConfig,
+    config: QueryObjectOptions,
   ): Promise<QueryObjectResult<T>>;
   queryObject<T>(
     query: TemplateStringsArray,
-    ...args: QueryArguments
+    ...args: unknown[]
   ): Promise<QueryObjectResult<T>>;
   queryObject<
     T = Record<string, unknown>,
   >(
     query_template_or_config:
       | string
-      | QueryObjectConfig
+      | QueryObjectOptions
       | TemplateStringsArray,
-    ...args: QueryArguments
+    ...args: unknown[] | [QueryArguments | undefined]
   ): Promise<QueryObjectResult<T>> {
     this.#assertOpenConnection();
 
@@ -408,7 +412,11 @@ export abstract class QueryClient {
 
     let query: Query<ResultType.OBJECT>;
     if (typeof query_template_or_config === "string") {
-      query = new Query(query_template_or_config, ResultType.OBJECT, ...args);
+      query = new Query(
+        query_template_or_config,
+        ResultType.OBJECT,
+        args[0] as QueryArguments | undefined,
+      );
     } else if (isTemplateString(query_template_or_config)) {
       query = templateStringToQuery(
         query_template_or_config,
@@ -417,7 +425,7 @@ export abstract class QueryClient {
       );
     } else {
       query = new Query(
-        query_template_or_config as QueryObjectConfig,
+        query_template_or_config as QueryObjectOptions,
         ResultType.OBJECT,
       );
     }

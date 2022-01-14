@@ -496,13 +496,11 @@ async function runQuery(query: string) {
   return result;
 }
 
-await runQuery("SELECT ID, NAME FROM users"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
-await runQuery("SELECT ID, NAME FROM users WHERE id = '1'"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+await runQuery("SELECT ID, NAME FROM USERS"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+await runQuery("SELECT ID, NAME FROM USERS WHERE ID = '1'"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
 ```
 
 ## Executing queries
-
-### Executing simple queries
 
 Executing a query is as simple as providing the raw SQL to your client, it will
 automatically be queued, validated and processed so you can get a human
@@ -513,35 +511,83 @@ const result = await client.queryArray("SELECT ID, NAME FROM PEOPLE");
 console.log(result.rows); // [[1, "Laura"], [2, "Jason"]]
 ```
 
-### Executing prepared statements
+### Prepared statements and query arguments
 
 Prepared statements are a Postgres mechanism designed to prevent SQL injection
 and maximize query performance for multiple queries (see
-https://security.stackexchange.com/questions/15214/are-prepared-statements-100-safe-against-sql-injection).
+https://security.stackexchange.com/questions/15214/are-prepared-statements-100-safe-against-sql-injection)
+
 The idea is simple, provide a base sql statement with placeholders for any
-variables required, and then provide said variables as arguments for the query
-call
+variables required, and then provide said variables in an array of arguments
 
 ```ts
 // Example using the simplified argument interface
 {
   const result = await client.queryArray(
     "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
-    10,
-    20,
+    [10, 20],
   );
   console.log(result.rows);
 }
 
-// Example using the advanced query interface
 {
   const result = await client.queryArray({
-    text: "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
     args: [10, 20],
+    text: "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
   });
   console.log(result.rows);
 }
 ```
+
+#### Named arguments
+
+Alternatively, you can provide such placeholders in the form of variables to be
+replaced at runtime with an argument object
+
+```ts
+{
+  const result = await client.queryArray(
+    "SELECT ID, NAME FROM PEOPLE WHERE AGE > $MIN AND AGE < $MAX",
+    { min: 10, max: 20 },
+  );
+  console.log(result.rows);
+}
+
+{
+  const result = await client.queryArray({
+    args: { min: 10, max: 20 },
+    text: "SELECT ID, NAME FROM PEOPLE WHERE AGE > $MIN AND AGE < $MAX",
+  });
+  console.log(result.rows);
+}
+```
+
+Behind the scenes, `deno-postgres` will replace the variables names in your
+query for Postgres-readable placeholders making it easy to reuse values in
+multiple places in your query
+
+```ts
+{
+  const result = await client.queryArray(
+    `SELECT
+			ID,
+			NAME||LASTNAME
+		FROM PEOPLE
+		WHERE NAME ILIKE $SEARCH
+		OR LASTNAME ILIKE $SEARCH`,
+    { search: "JACKSON" },
+  );
+  console.log(result.rows);
+}
+```
+
+The placeholders in the query will be looked up in the argument object without
+taking case into account, so having a variable named `$Value` and an object
+argument like `{value: 1}` will still match the values together
+
+**Note**: This feature has a little overhead when compared to the array of
+arguments, since it needs to transform the SQL and validate the structure of the
+arguments object
 
 #### Template strings
 

@@ -49,7 +49,7 @@ function testClient(
   Deno.test({ fn: poolWrapper, name: `Pool: ${name}` });
 }
 
-testClient("Simple query", async function (generateClient) {
+testClient("Array query", async function (generateClient) {
   const client = await generateClient();
 
   const result = await client.queryArray("SELECT UNNEST(ARRAY[1, 2])");
@@ -66,18 +66,108 @@ testClient("Object query", async function (generateClient) {
   assertEquals(result.rows, [{ id: [1, 2, 3], type: "DATA" }]);
 });
 
-testClient("Prepared statements", async function (generateClient) {
+testClient("Array arguments", async function (generateClient) {
   const client = await generateClient();
 
-  const result = await client.queryObject(
-    "SELECT ID FROM ( SELECT UNNEST(ARRAY[1, 2]) AS ID ) A WHERE ID < $1",
-    2,
-  );
-  assertEquals(result.rows, [{ id: 1 }]);
+  {
+    const value = "1";
+    const result = await client.queryArray(
+      "SELECT $1",
+      [value],
+    );
+    assertEquals(result.rows, [[value]]);
+  }
+
+  {
+    const value = "2";
+    const result = await client.queryArray({
+      args: [value],
+      text: "SELECT $1",
+    });
+    assertEquals(result.rows, [[value]]);
+  }
+
+  {
+    const value = "3";
+    const result = await client.queryObject(
+      "SELECT $1 AS ID",
+      [value],
+    );
+    assertEquals(result.rows, [{ id: value }]);
+  }
+
+  {
+    const value = "4";
+    const result = await client.queryObject({
+      args: [value],
+      text: "SELECT $1 AS ID",
+    });
+    assertEquals(result.rows, [{ id: value }]);
+  }
+});
+
+testClient("Object arguments", async function (generateClient) {
+  const client = await generateClient();
+
+  {
+    const value = "1";
+    const result = await client.queryArray(
+      "SELECT $id",
+      { id: value },
+    );
+    assertEquals(result.rows, [[value]]);
+  }
+
+  {
+    const value = "2";
+    const result = await client.queryArray({
+      args: { id: value },
+      text: "SELECT $ID",
+    });
+    assertEquals(result.rows, [[value]]);
+  }
+
+  {
+    const value = "3";
+    const result = await client.queryObject(
+      "SELECT $id as ID",
+      { id: value },
+    );
+    assertEquals(result.rows, [{ id: value }]);
+  }
+
+  {
+    const value = "4";
+    const result = await client.queryObject({
+      args: { id: value },
+      text: "SELECT $ID AS ID",
+    });
+    assertEquals(result.rows, [{ id: value }]);
+  }
 });
 
 testClient(
-  "Simple query handles recovery after error state",
+  "Throws on duplicate object arguments",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    const value = "some_value";
+    const { rows: res } = await client.queryArray(
+      "SELECT $value, $VaLue, $VALUE",
+      { value },
+    );
+    assertEquals(res, [[value, value, value]]);
+
+    await assertRejects(
+      () => client.queryArray("SELECT $A", { a: 1, A: 2 }),
+      Error,
+      "The arguments provided for the query must be unique (insensitive)",
+    );
+  },
+);
+
+testClient(
+  "Array query handles recovery after error state",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -86,7 +176,7 @@ testClient(
     await assertRejects(() =>
       client.queryArray(
         "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
-        "TEXT",
+        ["TEXT"],
       )
     );
 
@@ -100,7 +190,7 @@ testClient(
 );
 
 testClient(
-  "Simple query can handle multiple query failures at once",
+  "Array query can handle multiple query failures at once",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -123,7 +213,7 @@ testClient(
 );
 
 testClient(
-  "Simple query handles error during data processing",
+  "Array query handles error during data processing",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -138,7 +228,7 @@ testClient(
 );
 
 testClient(
-  "Simple query can return multiple queries",
+  "Array query can return multiple queries",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -152,7 +242,7 @@ testClient(
 );
 
 testClient(
-  "Simple query handles empty query",
+  "Array query handles empty query",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -171,7 +261,7 @@ testClient(
     await assertRejects(() =>
       client.queryArray(
         "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
-        "TEXT",
+        ["TEXT"],
       ), PostgresError);
 
     const result = "handled";
@@ -210,15 +300,14 @@ testClient(
 
     const { rows: result_1 } = await client.queryArray(
       `SELECT ARRAY[$1, $2]`,
-      item_1,
-      item_2,
+      [item_1, item_2],
     );
     assertEquals(result_1[0], [[item_1, item_2]]);
   },
 );
 
 testClient(
-  "Handles parameter status messages on simple query",
+  "Handles parameter status messages on array query",
   async (generateClient) => {
     const client = await generateClient();
 
@@ -252,7 +341,9 @@ testClient(
 
     await assertRejects(
       () =>
-        client.queryArray("SELECT * FROM PG_TEMP.CHANGE_TIMEZONE($1)", result),
+        client.queryArray("SELECT * FROM PG_TEMP.CHANGE_TIMEZONE($1)", [
+          result,
+        ]),
       PostgresError,
       "control reached end of function without RETURN",
     );
@@ -424,7 +515,7 @@ testClient("Binary data is parsed correctly", async function (generateClient) {
 
   const { rows: result_2 } = await client.queryArray(
     "SELECT $1::BYTEA",
-    expectedBytes,
+    [expectedBytes],
   );
   assertEquals(result_2[0][0], expectedBytes);
 });
@@ -446,8 +537,7 @@ testClient("Result object metadata", async function (generateClient) {
   // parameterized select
   result = await client.queryArray(
     "SELECT * FROM METADATA WHERE VALUE IN ($1, $2)",
-    200,
-    300,
+    [200, 300],
   );
   assertEquals(result.command, "SELECT");
   assertEquals(result.rowCount, 2);
@@ -462,7 +552,7 @@ testClient("Result object metadata", async function (generateClient) {
   // parameterized delete
   result = await client.queryArray(
     "DELETE FROM METADATA WHERE VALUE = $1",
-    300,
+    [300],
   );
   assertEquals(result.command, "DELETE");
   assertEquals(result.rowCount, 1);
@@ -473,7 +563,7 @@ testClient("Result object metadata", async function (generateClient) {
   assertEquals(result.rowCount, 2);
 
   // parameterized insert
-  result = await client.queryArray("INSERT INTO METADATA VALUES ($1)", 3);
+  result = await client.queryArray("INSERT INTO METADATA VALUES ($1)", [3]);
   assertEquals(result.command, "INSERT");
   assertEquals(result.rowCount, 1);
 
@@ -487,7 +577,7 @@ testClient("Result object metadata", async function (generateClient) {
   // parameterized update
   result = await client.queryArray(
     "UPDATE METADATA SET VALUE = 400 WHERE VALUE = $1",
-    400,
+    [400],
   );
   assertEquals(result.command, "UPDATE");
   assertEquals(result.rowCount, 1);

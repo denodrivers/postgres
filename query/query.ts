@@ -1,6 +1,30 @@
-import { encode, EncodedArg } from "./encode.ts";
+import { encodeArgument, EncodedArg } from "./encode.ts";
 import { Column, decode } from "./decode.ts";
 import { Notice } from "../connection/message.ts";
+
+// TODO
+// Limit the type of parameters that can be passed
+// to a query
+/**
+ * https://www.postgresql.org/docs/14/sql-prepare.html
+ *
+ * This arguments will be appended to the prepared statement passed
+ * as query
+ *
+ * They will take the position according to the order in which they were provided
+ *
+ * ```ts
+ * import { Client } from "../client.ts";
+ *
+ * const my_client = new Client();
+ *
+ * await my_client.queryArray("SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2", [
+ *   10, // $1
+ *   20, // $2
+ * ]);
+ * ```
+ */
+export type QueryArguments = unknown[] | Record<string, unknown>;
 
 const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
 
@@ -33,18 +57,61 @@ export class RowDescription {
  */
 export function templateStringToQuery<T extends ResultType>(
   template: TemplateStringsArray,
-  args: QueryArguments,
+  args: unknown[],
   result_type: T,
 ): Query<T> {
   const text = template.reduce((curr, next, index) => {
     return `${curr}$${index}${next}`;
   });
 
-  return new Query(text, result_type, ...args);
+  return new Query(text, result_type, args);
 }
 
-export interface QueryConfig {
-  args?: Array<unknown>;
+function objectQueryToQueryArgs(
+  query: string,
+  args: Record<string, unknown>,
+): [string, unknown[]] {
+  args = normalizeObjectQueryArgs(args);
+
+  let counter = 0;
+  const clean_args: unknown[] = [];
+  const clean_query = query.replaceAll(/(?<=\$)\w+/g, (match) => {
+    match = match.toLowerCase();
+    if (match in args) {
+      clean_args.push(args[match]);
+    } else {
+      throw new Error(
+        `No value was provided for the query argument "${match}"`,
+      );
+    }
+
+    return String(++counter);
+  });
+
+  return [clean_query, clean_args];
+}
+
+/** This function lowercases all the keys of the object passed to it and checks for collission names */
+function normalizeObjectQueryArgs(
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  const normalized_args = Object.fromEntries(
+    Object.entries(args).map((
+      [key, value],
+    ) => [key.toLowerCase(), value]),
+  );
+
+  if (Object.keys(normalized_args).length !== Object.keys(args).length) {
+    throw new Error(
+      "The arguments provided for the query must be unique (insensitive)",
+    );
+  }
+
+  return normalized_args;
+}
+
+export interface QueryOptions {
+  args?: QueryArguments;
   encoder?: (arg: unknown) => EncodedArg;
   name?: string;
   // TODO
@@ -52,9 +119,9 @@ export interface QueryConfig {
   text: string;
 }
 
-// TODO
-// Support multiple case options
-export interface QueryObjectConfig extends QueryConfig {
+export interface QueryObjectOptions extends QueryOptions {
+  // TODO
+  // Support multiple case options
   /**
    * Enabling camelcase will transform any snake case field names coming from the database into camel case ones
    *
@@ -74,32 +141,6 @@ export interface QueryObjectConfig extends QueryConfig {
    */
   fields?: string[];
 }
-
-// TODO
-// Limit the type of parameters that can be passed
-// to a query
-/**
- * https://www.postgresql.org/docs/14/sql-prepare.html
- *
- * This arguments will be appended to the prepared statement passed
- * as query
- *
- * They will take the position according to the order in which they were provided
- *
- * ```ts
- * import { Client } from "../client.ts";
- *
- * const my_client = new Client();
- *
- * await my_client.queryArray(
- *   "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
- *   10, // $1
- *   20, // $2
- * );
- * ```
- */
-// deno-lint-ignore no-explicit-any
-export type QueryArguments = any[];
 
 export class QueryResult {
   public command!: CommandType;
@@ -298,25 +339,36 @@ export class Query<T extends ResultType> {
    * for duplicates and invalid names
    */
   public fields?: string[];
+  // TODO
+  // Should be private
   public result_type: ResultType;
+  // TODO
+  // Document that this text is the one sent to the database, not the original one
   public text: string;
-  constructor(config: QueryObjectConfig, result_type: T);
-  constructor(text: string, result_type: T, ...args: unknown[]);
+  constructor(config: QueryObjectOptions, result_type: T);
+  constructor(text: string, result_type: T, args?: QueryArguments);
   constructor(
-    config_or_text: string | QueryObjectConfig,
+    config_or_text: string | QueryObjectOptions,
     result_type: T,
-    ...args: unknown[]
+    args: QueryArguments = [],
   ) {
     this.result_type = result_type;
-
-    let config: QueryConfig;
     if (typeof config_or_text === "string") {
-      config = { text: config_or_text, args };
+      if (!Array.isArray(args)) {
+        [config_or_text, args] = objectQueryToQueryArgs(config_or_text, args);
+      }
+
+      this.text = config_or_text;
+      this.args = args.map(encodeArgument);
     } else {
-      const {
-        fields,
+      let {
+        args = [],
         camelcase,
-        ...query_config
+        encoder = encodeArgument,
+        fields,
+        // deno-lint-ignore no-unused-vars
+        name,
+        text,
       } = config_or_text;
 
       // Check that the fields passed are valid and can be used to map
@@ -341,14 +393,13 @@ export class Query<T extends ResultType> {
       }
 
       this.camelcase = camelcase;
-      config = query_config;
-    }
-    this.text = config.text;
-    this.args = this.#prepareArgs(config);
-  }
 
-  #prepareArgs(config: QueryConfig): EncodedArg[] {
-    const encodingFn = config.encoder ? config.encoder : encode;
-    return (config.args || []).map(encodingFn);
+      if (!Array.isArray(args)) {
+        [text, args] = objectQueryToQueryArgs(text, args);
+      }
+
+      this.args = args.map(encoder);
+      this.text = text;
+    }
   }
 }
