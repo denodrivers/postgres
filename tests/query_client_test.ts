@@ -40,17 +40,21 @@ function withClient(
 }
 
 function withClientGenerator(
-  name: string,
   t: (getClient: () => Promise<QueryClient>) => void | Promise<void>,
+  pool_size = 10,
 ) {
   async function clientWrapper() {
     const clients: Client[] = [];
     try {
+      let client_count = 0;
       await t(async () => {
-        const client = new Client(getMainConfiguration());
-        await client.connect();
-        clients.push(client);
-        return client;
+        if (client_count < pool_size) {
+          const client = new Client(getMainConfiguration());
+          await client.connect();
+          clients.push(client);
+          client_count++;
+          return client;
+        } else throw new Error("Max client size exceeded");
       });
     } finally {
       for (const client of clients) {
@@ -60,7 +64,7 @@ function withClientGenerator(
   }
 
   async function poolWrapper() {
-    const pool = new Pool(getMainConfiguration(), 10);
+    const pool = new Pool(getMainConfiguration(), pool_size);
     const clients: PoolClient[] = [];
     try {
       await t(async () => {
@@ -76,8 +80,10 @@ function withClientGenerator(
     }
   }
 
-  Deno.test({ fn: clientWrapper, name: `Client: ${name}` });
-  Deno.test({ fn: poolWrapper, name: `Pool: ${name}` });
+  return async (test: Deno.TestContext) => {
+    await test.step({ fn: clientWrapper, name: "Client" });
+    await test.step({ fn: poolWrapper, name: "Pool" });
+  };
 }
 
 Deno.test(
@@ -879,9 +885,9 @@ Deno.test(
   }),
 );
 
-withClientGenerator(
+Deno.test(
   "Transaction with repeatable read isolation level",
-  async function (generateClient) {
+  withClientGenerator(async (generateClient) => {
     const client_1 = await generateClient();
 
     const client_2 = await generateClient();
@@ -927,12 +933,12 @@ withClientGenerator(
     );
 
     await client_1.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
-  },
+  }),
 );
 
-withClientGenerator(
+Deno.test(
   "Transaction with serializable isolation level",
-  async function (generateClient) {
+  withClientGenerator(async (generateClient) => {
     const client_1 = await generateClient();
 
     const client_2 = await generateClient();
@@ -970,7 +976,7 @@ withClientGenerator(
     );
 
     await client_1.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
-  },
+  }),
 );
 
 Deno.test(
@@ -993,55 +999,58 @@ Deno.test(
   }),
 );
 
-withClientGenerator("Transaction snapshot", async function (generateClient) {
-  const client_1 = await generateClient();
-  const client_2 = await generateClient();
+Deno.test(
+  "Transaction snapshot",
+  withClientGenerator(async (generateClient) => {
+    const client_1 = await generateClient();
+    const client_2 = await generateClient();
 
-  await client_1.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
-  await client_1.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
-  await client_1.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
-  const transaction_1 = client_1.createTransaction(
-    "transactionSnapshot1",
-    { isolation_level: "repeatable_read" },
-  );
-  await transaction_1.begin();
+    await client_1.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
+    await client_1.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
+    await client_1.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
+    const transaction_1 = client_1.createTransaction(
+      "transactionSnapshot1",
+      { isolation_level: "repeatable_read" },
+    );
+    await transaction_1.begin();
 
-  // This locks the current value of the test table
-  await transaction_1.queryObject<{ x: number }>
-    `SELECT X FROM FOR_TRANSACTION_TEST`;
+    // This locks the current value of the test table
+    await transaction_1.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
 
-  // Modify data outside the transaction
-  await client_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
+    // Modify data outside the transaction
+    await client_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
 
-  const { rows: query_1 } = await transaction_1.queryObject<{ x: number }>
-    `SELECT X FROM FOR_TRANSACTION_TEST`;
-  assertEquals(
-    query_1,
-    [{ x: 1 }],
-    "External changes shouldn't affect repeatable read transaction",
-  );
+    const { rows: query_1 } = await transaction_1.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
+    assertEquals(
+      query_1,
+      [{ x: 1 }],
+      "External changes shouldn't affect repeatable read transaction",
+    );
 
-  const snapshot = await transaction_1.getSnapshot();
+    const snapshot = await transaction_1.getSnapshot();
 
-  const transaction_2 = client_2.createTransaction(
-    "transactionSnapshot2",
-    { isolation_level: "repeatable_read", snapshot },
-  );
-  await transaction_2.begin();
+    const transaction_2 = client_2.createTransaction(
+      "transactionSnapshot2",
+      { isolation_level: "repeatable_read", snapshot },
+    );
+    await transaction_2.begin();
 
-  const { rows: query_2 } = await transaction_2.queryObject<{ x: number }>
-    `SELECT X FROM FOR_TRANSACTION_TEST`;
-  assertEquals(
-    query_2,
-    [{ x: 1 }],
-    "External changes shouldn't affect repeatable read transaction with previous snapshot",
-  );
+    const { rows: query_2 } = await transaction_2.queryObject<{ x: number }>
+      `SELECT X FROM FOR_TRANSACTION_TEST`;
+    assertEquals(
+      query_2,
+      [{ x: 1 }],
+      "External changes shouldn't affect repeatable read transaction with previous snapshot",
+    );
 
-  await transaction_1.commit();
-  await transaction_2.commit();
+    await transaction_1.commit();
+    await transaction_2.commit();
 
-  await client_1.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
-});
+    await client_1.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
+  }),
+);
 
 Deno.test(
   "Transaction locks client",
