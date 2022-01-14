@@ -8,7 +8,38 @@ import {
 import { getMainConfiguration } from "./config.ts";
 import { PoolClient, QueryClient } from "../client.ts";
 
-function testClient(
+function withClient(
+  t: (client: QueryClient) => void | Promise<void>,
+) {
+  async function clientWrapper() {
+    const client = new Client(getMainConfiguration());
+    try {
+      await client.connect();
+      await t(client);
+    } finally {
+      await client.end();
+    }
+  }
+
+  async function poolWrapper() {
+    const pool = new Pool(getMainConfiguration(), 1);
+    let client;
+    try {
+      client = await pool.connect();
+      await t(client);
+    } finally {
+      client?.release();
+      await pool.end();
+    }
+  }
+
+  return async (test: Deno.TestContext) => {
+    await test.step({ fn: clientWrapper, name: "Client" });
+    await test.step({ fn: poolWrapper, name: "Pool" });
+  };
+}
+
+function withClientGenerator(
   name: string,
   t: (getClient: () => Promise<QueryClient>) => void | Promise<void>,
 ) {
@@ -49,108 +80,110 @@ function testClient(
   Deno.test({ fn: poolWrapper, name: `Pool: ${name}` });
 }
 
-testClient("Array query", async function (generateClient) {
-  const client = await generateClient();
+Deno.test(
+  "Array query",
+  withClient(async (client) => {
+    const result = await client.queryArray("SELECT UNNEST(ARRAY[1, 2])");
+    assertEquals(result.rows.length, 2);
+  }),
+);
 
-  const result = await client.queryArray("SELECT UNNEST(ARRAY[1, 2])");
-  assertEquals(result.rows.length, 2);
-});
-
-testClient("Object query", async function (generateClient) {
-  const client = await generateClient();
-
-  const result = await client.queryObject(
-    "SELECT ARRAY[1, 2, 3] AS ID, 'DATA' AS TYPE",
-  );
-
-  assertEquals(result.rows, [{ id: [1, 2, 3], type: "DATA" }]);
-});
-
-testClient("Array arguments", async function (generateClient) {
-  const client = await generateClient();
-
-  {
-    const value = "1";
-    const result = await client.queryArray(
-      "SELECT $1",
-      [value],
-    );
-    assertEquals(result.rows, [[value]]);
-  }
-
-  {
-    const value = "2";
-    const result = await client.queryArray({
-      args: [value],
-      text: "SELECT $1",
-    });
-    assertEquals(result.rows, [[value]]);
-  }
-
-  {
-    const value = "3";
+Deno.test(
+  "Object query",
+  withClient(async (client) => {
     const result = await client.queryObject(
-      "SELECT $1 AS ID",
-      [value],
+      "SELECT ARRAY[1, 2, 3] AS ID, 'DATA' AS TYPE",
     );
-    assertEquals(result.rows, [{ id: value }]);
-  }
 
-  {
-    const value = "4";
-    const result = await client.queryObject({
-      args: [value],
-      text: "SELECT $1 AS ID",
-    });
-    assertEquals(result.rows, [{ id: value }]);
-  }
-});
+    assertEquals(result.rows, [{ id: [1, 2, 3], type: "DATA" }]);
+  }),
+);
 
-testClient("Object arguments", async function (generateClient) {
-  const client = await generateClient();
+Deno.test(
+  "Array arguments",
+  withClient(async (client) => {
+    {
+      const value = "1";
+      const result = await client.queryArray(
+        "SELECT $1",
+        [value],
+      );
+      assertEquals(result.rows, [[value]]);
+    }
 
-  {
-    const value = "1";
-    const result = await client.queryArray(
-      "SELECT $id",
-      { id: value },
-    );
-    assertEquals(result.rows, [[value]]);
-  }
+    {
+      const value = "2";
+      const result = await client.queryArray({
+        args: [value],
+        text: "SELECT $1",
+      });
+      assertEquals(result.rows, [[value]]);
+    }
 
-  {
-    const value = "2";
-    const result = await client.queryArray({
-      args: { id: value },
-      text: "SELECT $ID",
-    });
-    assertEquals(result.rows, [[value]]);
-  }
+    {
+      const value = "3";
+      const result = await client.queryObject(
+        "SELECT $1 AS ID",
+        [value],
+      );
+      assertEquals(result.rows, [{ id: value }]);
+    }
 
-  {
-    const value = "3";
-    const result = await client.queryObject(
-      "SELECT $id as ID",
-      { id: value },
-    );
-    assertEquals(result.rows, [{ id: value }]);
-  }
+    {
+      const value = "4";
+      const result = await client.queryObject({
+        args: [value],
+        text: "SELECT $1 AS ID",
+      });
+      assertEquals(result.rows, [{ id: value }]);
+    }
+  }),
+);
 
-  {
-    const value = "4";
-    const result = await client.queryObject({
-      args: { id: value },
-      text: "SELECT $ID AS ID",
-    });
-    assertEquals(result.rows, [{ id: value }]);
-  }
-});
+Deno.test(
+  "Object arguments",
+  withClient(async (client) => {
+    {
+      const value = "1";
+      const result = await client.queryArray(
+        "SELECT $id",
+        { id: value },
+      );
+      assertEquals(result.rows, [[value]]);
+    }
 
-testClient(
+    {
+      const value = "2";
+      const result = await client.queryArray({
+        args: { id: value },
+        text: "SELECT $ID",
+      });
+      assertEquals(result.rows, [[value]]);
+    }
+
+    {
+      const value = "3";
+      const result = await client.queryObject(
+        "SELECT $id as ID",
+        { id: value },
+      );
+      assertEquals(result.rows, [{ id: value }]);
+    }
+
+    {
+      const value = "4";
+      const result = await client.queryObject({
+        args: { id: value },
+        text: "SELECT $ID AS ID",
+      });
+      assertEquals(result.rows, [{ id: value }]);
+    }
+  }),
+);
+
+Deno.test(
   "Throws on duplicate object arguments",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const value = "some_value";
     const { rows: res } = await client.queryArray(
       "SELECT $value, $VaLue, $VALUE",
@@ -163,14 +196,12 @@ testClient(
       Error,
       "The arguments provided for the query must be unique (insensitive)",
     );
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Array query handles recovery after error state",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     await client.queryArray`CREATE TEMP TABLE PREPARED_STATEMENT_ERROR (X INT)`;
 
     await assertRejects(() =>
@@ -186,14 +217,12 @@ testClient(
     });
 
     assertEquals(rows[0], { result: 1 });
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Array query can handle multiple query failures at once",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     await assertRejects(
       () =>
         client.queryArray(
@@ -209,14 +238,12 @@ testClient(
     });
 
     assertEquals(rows[0], { result: 1 });
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Array query handles error during data processing",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     await assertRejects(
       () => client.queryObject`SELECT 'A' AS X, 'B' AS X`,
     );
@@ -224,38 +251,32 @@ testClient(
     const value = "193";
     const { rows: result_2 } = await client.queryObject`SELECT ${value} AS B`;
     assertEquals(result_2[0], { b: value });
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Array query can return multiple queries",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const { rows: result } = await client.queryObject<{ result: number }>({
       text: "SELECT 1; SELECT '2'::INT",
       fields: ["result"],
     });
 
     assertEquals(result, [{ result: 1 }, { result: 2 }]);
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Array query handles empty query",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const { rows: result } = await client.queryArray("");
     assertEquals(result, []);
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Prepared query handles recovery after error state",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     await client.queryArray`CREATE TEMP TABLE PREPARED_STATEMENT_ERROR (X INT)`;
 
     await assertRejects(() =>
@@ -273,14 +294,12 @@ testClient(
     });
 
     assertEquals(rows[0], { result });
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Prepared query handles error during data processing",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     await assertRejects(
       () => client.queryObject`SELECT ${1} AS A, ${2} AS A`,
     );
@@ -288,13 +307,12 @@ testClient(
     const value = "z";
     const { rows: result_2 } = await client.queryObject`SELECT ${value} AS B`;
     assertEquals(result_2[0], { b: value });
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Handles array with semicolon separator",
-  async (generateClient) => {
-    const client = await generateClient();
+  withClient(async (client) => {
     const item_1 = "Test;Azer";
     const item_2 = "123;456";
 
@@ -303,14 +321,12 @@ testClient(
       [item_1, item_2],
     );
     assertEquals(result_1[0], [[item_1, item_2]]);
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Handles parameter status messages on array query",
-  async (generateClient) => {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const { rows: result_1 } = await client.queryArray
       `SET TIME ZONE 'HongKong'`;
 
@@ -322,14 +338,12 @@ testClient(
     });
 
     assertEquals(result_2, [{ result: 1 }]);
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Handles parameter status messages on prepared query",
-  async (generateClient) => {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const result = 10;
 
     await client.queryArray
@@ -363,14 +377,12 @@ testClient(
     });
 
     assertEquals(result_1, [{ result }]);
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Handles parameter status after error",
-  async (generateClient) => {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     await client.queryArray
       `CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE() RETURNS INT AS $$
 			BEGIN
@@ -383,78 +395,82 @@ testClient(
       PostgresError,
       "control reached end of function without RETURN",
     );
-  },
+  }),
 );
 
-testClient("Terminated connections", async function (generateClient) {
-  const client = await generateClient();
-  await client.end();
+Deno.test(
+  "Terminated connections",
+  withClient(async (client) => {
+    await client.end();
 
-  await assertRejects(
-    async () => {
-      await client.queryArray`SELECT 1`;
-    },
-    Error,
-    "Connection to the database has been terminated",
-  );
-});
+    await assertRejects(
+      async () => {
+        await client.queryArray`SELECT 1`;
+      },
+      Error,
+      "Connection to the database has been terminated",
+    );
+  }),
+);
 
 // This test depends on the assumption that all clients will default to
 // one reconneciton by default
-testClient("Default reconnection", async (generateClient) => {
-  const client = await generateClient();
+Deno.test(
+  "Default reconnection",
+  withClient(async (client) => {
+    await assertRejects(
+      () =>
+        client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
+      ConnectionError,
+    );
 
-  await assertRejects(
-    () => client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
-    ConnectionError,
-  );
+    const { rows: result } = await client.queryObject<{ res: number }>({
+      text: `SELECT 1`,
+      fields: ["res"],
+    });
+    assertEquals(
+      result[0].res,
+      1,
+    );
 
-  const { rows: result } = await client.queryObject<{ res: number }>({
-    text: `SELECT 1`,
-    fields: ["res"],
-  });
-  assertEquals(
-    result[0].res,
-    1,
-  );
+    assertEquals(client.connected, true);
+  }),
+);
 
-  assertEquals(client.connected, true);
-});
+Deno.test(
+  "Handling of debug notices",
+  withClient(async (client) => {
+    // Create temporary function
+    await client.queryArray
+      `CREATE OR REPLACE FUNCTION PG_TEMP.CREATE_NOTICE () RETURNS INT AS $$ BEGIN RAISE NOTICE 'NOTICED'; RETURN (SELECT 1); END; $$ LANGUAGE PLPGSQL;`;
 
-testClient("Handling of debug notices", async function (generateClient) {
-  const client = await generateClient();
-
-  // Create temporary function
-  await client.queryArray
-    `CREATE OR REPLACE FUNCTION PG_TEMP.CREATE_NOTICE () RETURNS INT AS $$ BEGIN RAISE NOTICE 'NOTICED'; RETURN (SELECT 1); END; $$ LANGUAGE PLPGSQL;`;
-
-  const { rows, warnings } = await client.queryArray(
-    "SELECT * FROM PG_TEMP.CREATE_NOTICE();",
-  );
-  assertEquals(rows[0][0], 1);
-  assertEquals(warnings[0].message, "NOTICED");
-});
+    const { rows, warnings } = await client.queryArray(
+      "SELECT * FROM PG_TEMP.CREATE_NOTICE();",
+    );
+    assertEquals(rows[0][0], 1);
+    assertEquals(warnings[0].message, "NOTICED");
+  }),
+);
 
 // This query doesn't recreate the table and outputs
 // a notice instead
-testClient("Handling of query notices", async function (generateClient) {
-  const client = await generateClient();
+Deno.test(
+  "Handling of query notices",
+  withClient(async (client) => {
+    await client.queryArray(
+      "CREATE TEMP TABLE NOTICE_TEST (ABC INT);",
+    );
+    const { warnings } = await client.queryArray(
+      "CREATE TEMP TABLE IF NOT EXISTS NOTICE_TEST (ABC INT);",
+    );
 
-  await client.queryArray(
-    "CREATE TEMP TABLE NOTICE_TEST (ABC INT);",
-  );
-  const { warnings } = await client.queryArray(
-    "CREATE TEMP TABLE IF NOT EXISTS NOTICE_TEST (ABC INT);",
-  );
+    assert(warnings[0].message.includes("already exists"));
+  }),
+);
 
-  assert(warnings[0].message.includes("already exists"));
-});
-
-testClient(
+Deno.test(
   "Handling of messages between data fetching",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     await client.queryArray
       `CREATE OR REPLACE FUNCTION PG_TEMP.MESSAGE_BETWEEN_DATA(MESSAGE VARCHAR) RETURNS VARCHAR AS $$
 			BEGIN
@@ -488,130 +504,136 @@ testClient(
 
     assertEquals(result[2], { result: message_3 });
     assertObjectMatch(warnings[2], { message: message_3 });
-  },
+  }),
 );
 
-testClient("nativeType", async function (generateClient) {
-  const client = await generateClient();
+Deno.test(
+  "nativeType",
+  withClient(async (client) => {
+    const result = await client.queryArray<[Date]>
+      `SELECT '2019-02-10T10:30:40.005+04:30'::TIMESTAMPTZ`;
+    const row = result.rows[0];
 
-  const result = await client.queryArray<[Date]>
-    `SELECT '2019-02-10T10:30:40.005+04:30'::TIMESTAMPTZ`;
-  const row = result.rows[0];
+    const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
 
-  const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
+    assertEquals(row[0].toUTCString(), new Date(expectedDate).toUTCString());
+  }),
+);
 
-  assertEquals(row[0].toUTCString(), new Date(expectedDate).toUTCString());
-});
+Deno.test(
+  "Binary data is parsed correctly",
+  withClient(async (client) => {
+    const { rows: result_1 } = await client.queryArray
+      `SELECT E'foo\\\\000\\\\200\\\\\\\\\\\\377'::BYTEA`;
 
-testClient("Binary data is parsed correctly", async function (generateClient) {
-  const client = await generateClient();
+    const expectedBytes = new Uint8Array([102, 111, 111, 0, 128, 92, 255]);
 
-  const { rows: result_1 } = await client.queryArray
-    `SELECT E'foo\\\\000\\\\200\\\\\\\\\\\\377'::BYTEA`;
+    assertEquals(result_1[0][0], expectedBytes);
 
-  const expectedBytes = new Uint8Array([102, 111, 111, 0, 128, 92, 255]);
+    const { rows: result_2 } = await client.queryArray(
+      "SELECT $1::BYTEA",
+      [expectedBytes],
+    );
+    assertEquals(result_2[0][0], expectedBytes);
+  }),
+);
 
-  assertEquals(result_1[0][0], expectedBytes);
+Deno.test(
+  "Result object metadata",
+  withClient(async (client) => {
+    await client.queryArray`CREATE TEMP TABLE METADATA (VALUE INTEGER)`;
+    await client.queryArray
+      `INSERT INTO METADATA VALUES (100), (200), (300), (400), (500), (600)`;
 
-  const { rows: result_2 } = await client.queryArray(
-    "SELECT $1::BYTEA",
-    [expectedBytes],
-  );
-  assertEquals(result_2[0][0], expectedBytes);
-});
+    let result;
 
-testClient("Result object metadata", async function (generateClient) {
-  const client = await generateClient();
+    // simple select
+    result = await client.queryArray(
+      "SELECT * FROM METADATA WHERE VALUE = 100",
+    );
+    assertEquals(result.command, "SELECT");
+    assertEquals(result.rowCount, 1);
 
-  await client.queryArray`CREATE TEMP TABLE METADATA (VALUE INTEGER)`;
-  await client.queryArray
-    `INSERT INTO METADATA VALUES (100), (200), (300), (400), (500), (600)`;
+    // parameterized select
+    result = await client.queryArray(
+      "SELECT * FROM METADATA WHERE VALUE IN ($1, $2)",
+      [200, 300],
+    );
+    assertEquals(result.command, "SELECT");
+    assertEquals(result.rowCount, 2);
 
-  let result;
+    // simple delete
+    result = await client.queryArray(
+      "DELETE FROM METADATA WHERE VALUE IN (100, 200)",
+    );
+    assertEquals(result.command, "DELETE");
+    assertEquals(result.rowCount, 2);
 
-  // simple select
-  result = await client.queryArray("SELECT * FROM METADATA WHERE VALUE = 100");
-  assertEquals(result.command, "SELECT");
-  assertEquals(result.rowCount, 1);
+    // parameterized delete
+    result = await client.queryArray(
+      "DELETE FROM METADATA WHERE VALUE = $1",
+      [300],
+    );
+    assertEquals(result.command, "DELETE");
+    assertEquals(result.rowCount, 1);
 
-  // parameterized select
-  result = await client.queryArray(
-    "SELECT * FROM METADATA WHERE VALUE IN ($1, $2)",
-    [200, 300],
-  );
-  assertEquals(result.command, "SELECT");
-  assertEquals(result.rowCount, 2);
+    // simple insert
+    result = await client.queryArray("INSERT INTO METADATA VALUES (4), (5)");
+    assertEquals(result.command, "INSERT");
+    assertEquals(result.rowCount, 2);
 
-  // simple delete
-  result = await client.queryArray(
-    "DELETE FROM METADATA WHERE VALUE IN (100, 200)",
-  );
-  assertEquals(result.command, "DELETE");
-  assertEquals(result.rowCount, 2);
+    // parameterized insert
+    result = await client.queryArray("INSERT INTO METADATA VALUES ($1)", [3]);
+    assertEquals(result.command, "INSERT");
+    assertEquals(result.rowCount, 1);
 
-  // parameterized delete
-  result = await client.queryArray(
-    "DELETE FROM METADATA WHERE VALUE = $1",
-    [300],
-  );
-  assertEquals(result.command, "DELETE");
-  assertEquals(result.rowCount, 1);
+    // simple update
+    result = await client.queryArray(
+      "UPDATE METADATA SET VALUE = 500 WHERE VALUE IN (500, 600)",
+    );
+    assertEquals(result.command, "UPDATE");
+    assertEquals(result.rowCount, 2);
 
-  // simple insert
-  result = await client.queryArray("INSERT INTO METADATA VALUES (4), (5)");
-  assertEquals(result.command, "INSERT");
-  assertEquals(result.rowCount, 2);
+    // parameterized update
+    result = await client.queryArray(
+      "UPDATE METADATA SET VALUE = 400 WHERE VALUE = $1",
+      [400],
+    );
+    assertEquals(result.command, "UPDATE");
+    assertEquals(result.rowCount, 1);
+  }),
+);
 
-  // parameterized insert
-  result = await client.queryArray("INSERT INTO METADATA VALUES ($1)", [3]);
-  assertEquals(result.command, "INSERT");
-  assertEquals(result.rowCount, 1);
-
-  // simple update
-  result = await client.queryArray(
-    "UPDATE METADATA SET VALUE = 500 WHERE VALUE IN (500, 600)",
-  );
-  assertEquals(result.command, "UPDATE");
-  assertEquals(result.rowCount, 2);
-
-  // parameterized update
-  result = await client.queryArray(
-    "UPDATE METADATA SET VALUE = 400 WHERE VALUE = $1",
-    [400],
-  );
-  assertEquals(result.command, "UPDATE");
-  assertEquals(result.rowCount, 1);
-});
-
-testClient("Long column alias is truncated", async function (generateClient) {
-  const client = await generateClient();
-
-  const { rows: result, warnings } = await client.queryObject(`
+Deno.test(
+  "Long column alias is truncated",
+  withClient(async (client) => {
+    const { rows: result, warnings } = await client.queryObject(`
     SELECT 1 AS "very_very_very_very_very_very_very_very_very_very_very_long_name"
   `);
 
-  assertEquals(result, [
-    { "very_very_very_very_very_very_very_very_very_very_very_long_nam": 1 },
-  ]);
+    assertEquals(result, [
+      { "very_very_very_very_very_very_very_very_very_very_very_long_nam": 1 },
+    ]);
 
-  assert(warnings[0].message.includes("will be truncated"));
-});
+    assert(warnings[0].message.includes("will be truncated"));
+  }),
+);
 
-testClient("Query array with template string", async function (generateClient) {
-  const client = await generateClient();
+Deno.test(
+  "Query array with template string",
+  withClient(async (client) => {
+    const [value_1, value_2] = ["A", "B"];
 
-  const [value_1, value_2] = ["A", "B"];
+    const { rows } = await client.queryArray<[string, string]>
+      `SELECT ${value_1}, ${value_2}`;
 
-  const { rows } = await client.queryArray<[string, string]>
-    `SELECT ${value_1}, ${value_2}`;
+    assertEquals(rows[0], [value_1, value_2]);
+  }),
+);
 
-  assertEquals(rows[0], [value_1, value_2]);
-});
-
-testClient(
+Deno.test(
   "Object query field names aren't transformed when camelcase is disabled",
-  async function (generateClient) {
-    const client = await generateClient();
+  withClient(async (client) => {
     const record = {
       pos_x: "100",
       pos_y: "200",
@@ -625,13 +647,12 @@ testClient(
     });
 
     assertEquals(result[0], record);
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Object query field names are transformed when camelcase is enabled",
-  async function (generateClient) {
-    const client = await generateClient();
+  withClient(async (client) => {
     const record = {
       posX: "100",
       posY: "200",
@@ -645,28 +666,24 @@ testClient(
     });
 
     assertEquals(result[0], record);
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Object query result is mapped to explicit fields",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const result = await client.queryObject({
       text: "SELECT ARRAY[1, 2, 3], 'DATA'",
       fields: ["ID", "type"],
     });
 
     assertEquals(result.rows, [{ ID: [1, 2, 3], type: "DATA" }]);
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Object query explicit fields override camelcase",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const record = { field_1: "A", field_2: "B", field_3: "C" };
 
     const { rows: result } = await client.queryObject({
@@ -677,14 +694,12 @@ testClient(
     });
 
     assertEquals(result[0], record);
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Object query throws if explicit fields aren't unique",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     await assertRejects(
       () =>
         client.queryObject({
@@ -694,14 +709,12 @@ testClient(
       TypeError,
       "The fields provided for the query must be unique",
     );
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Object query throws if implicit fields aren't unique 1",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     await assertRejects(
       () => client.queryObject`SELECT 1 AS "a", 2 AS A`,
       Error,
@@ -717,14 +730,12 @@ testClient(
       Error,
       `Field names "fieldX" are duplicated in the result of the query`,
     );
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Object query doesn't throw when explicit fields only have one letter",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const { rows: result_1 } = await client.queryObject<{ a: number }>({
       text: "SELECT 1",
       fields: ["a"],
@@ -745,14 +756,12 @@ testClient(
       TypeError,
       "The fields provided for the query must contain only letters and underscores",
     );
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Object query throws if explicit fields aren't valid",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     await assertRejects(
       async () => {
         await client.queryObject({
@@ -785,14 +794,12 @@ testClient(
       TypeError,
       "The fields provided for the query must contain only letters and underscores",
     );
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Object query throws if result columns don't match explicit fields",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     await assertRejects(
       async () => {
         await client.queryObject({
@@ -803,14 +810,12 @@ testClient(
       RangeError,
       "The fields provided for the query don't match the ones returned as a result (1 expected, 2 received)",
     );
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Object query throws when multiple query results don't have the same number of rows",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async function (client) {
     await assertRejects(
       () =>
         client.queryObject<{ result: number }>({
@@ -820,62 +825,61 @@ testClient(
       RangeError,
       "The result fields returned by the database don't match the defined structure of the result",
     );
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Query object with template string",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const value = { x: "A", y: "B" };
 
     const { rows } = await client.queryObject<{ x: string; y: string }>
       `SELECT ${value.x} AS x, ${value.y} AS y`;
 
     assertEquals(rows[0], value);
-  },
+  }),
 );
 
-testClient("Transaction", async function (generateClient) {
-  const client = await generateClient();
+Deno.test(
+  "Transaction",
+  withClient(async (client) => {
+    const transaction_name = "x";
+    const transaction = client.createTransaction(transaction_name);
 
-  const transaction_name = "x";
-  const transaction = client.createTransaction(transaction_name);
+    await transaction.begin();
+    assertEquals(
+      client.session.current_transaction,
+      transaction_name,
+      "Client is locked out during transaction",
+    );
+    await transaction.queryArray`CREATE TEMP TABLE TEST (X INTEGER)`;
+    const savepoint = await transaction.savepoint("table_creation");
+    await transaction.queryArray`INSERT INTO TEST (X) VALUES (1)`;
+    const query_1 = await transaction.queryObject<{ x: number }>
+      `SELECT X FROM TEST`;
+    assertEquals(
+      query_1.rows[0].x,
+      1,
+      "Operation was not executed inside transaction",
+    );
+    await transaction.rollback(savepoint);
+    const query_2 = await transaction.queryObject<{ x: number }>
+      `SELECT X FROM TEST`;
+    assertEquals(
+      query_2.rowCount,
+      0,
+      "Rollback was not succesful inside transaction",
+    );
+    await transaction.commit();
+    assertEquals(
+      client.session.current_transaction,
+      null,
+      "Client was not released after transaction",
+    );
+  }),
+);
 
-  await transaction.begin();
-  assertEquals(
-    client.session.current_transaction,
-    transaction_name,
-    "Client is locked out during transaction",
-  );
-  await transaction.queryArray`CREATE TEMP TABLE TEST (X INTEGER)`;
-  const savepoint = await transaction.savepoint("table_creation");
-  await transaction.queryArray`INSERT INTO TEST (X) VALUES (1)`;
-  const query_1 = await transaction.queryObject<{ x: number }>
-    `SELECT X FROM TEST`;
-  assertEquals(
-    query_1.rows[0].x,
-    1,
-    "Operation was not executed inside transaction",
-  );
-  await transaction.rollback(savepoint);
-  const query_2 = await transaction.queryObject<{ x: number }>
-    `SELECT X FROM TEST`;
-  assertEquals(
-    query_2.rowCount,
-    0,
-    "Rollback was not succesful inside transaction",
-  );
-  await transaction.commit();
-  assertEquals(
-    client.session.current_transaction,
-    null,
-    "Client was not released after transaction",
-  );
-});
-
-testClient(
+withClientGenerator(
   "Transaction with repeatable read isolation level",
   async function (generateClient) {
     const client_1 = await generateClient();
@@ -926,7 +930,7 @@ testClient(
   },
 );
 
-testClient(
+withClientGenerator(
   "Transaction with serializable isolation level",
   async function (generateClient) {
     const client_1 = await generateClient();
@@ -969,26 +973,27 @@ testClient(
   },
 );
 
-testClient("Transaction read only", async function (generateClient) {
-  const client = await generateClient();
+Deno.test(
+  "Transaction read only",
+  withClient(async (client) => {
+    await client.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
+    await client.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
+    const transaction = client.createTransaction("transactionReadOnly", {
+      read_only: true,
+    });
+    await transaction.begin();
 
-  await client.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
-  await client.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
-  const transaction = client.createTransaction("transactionReadOnly", {
-    read_only: true,
-  });
-  await transaction.begin();
+    await assertRejects(
+      () => transaction.queryArray`DELETE FROM FOR_TRANSACTION_TEST`,
+      undefined,
+      "cannot execute DELETE in a read-only transaction",
+    );
 
-  await assertRejects(
-    () => transaction.queryArray`DELETE FROM FOR_TRANSACTION_TEST`,
-    undefined,
-    "cannot execute DELETE in a read-only transaction",
-  );
+    await client.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
+  }),
+);
 
-  await client.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
-});
-
-testClient("Transaction snapshot", async function (generateClient) {
+withClientGenerator("Transaction snapshot", async function (generateClient) {
   const client_1 = await generateClient();
   const client_2 = await generateClient();
 
@@ -1038,57 +1043,57 @@ testClient("Transaction snapshot", async function (generateClient) {
   await client_1.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
 });
 
-testClient("Transaction locks client", async function (generateClient) {
-  const client = await generateClient();
+Deno.test(
+  "Transaction locks client",
+  withClient(async (client) => {
+    const transaction = client.createTransaction("x");
 
-  const transaction = client.createTransaction("x");
+    await transaction.begin();
+    await transaction.queryArray`SELECT 1`;
+    await assertRejects(
+      () => client.queryArray`SELECT 1`,
+      undefined,
+      "This connection is currently locked",
+      "The connection is not being locked by the transaction",
+    );
+    await transaction.commit();
 
-  await transaction.begin();
-  await transaction.queryArray`SELECT 1`;
-  await assertRejects(
-    () => client.queryArray`SELECT 1`,
-    undefined,
-    "This connection is currently locked",
-    "The connection is not being locked by the transaction",
-  );
-  await transaction.commit();
+    await client.queryArray`SELECT 1`;
+    assertEquals(
+      client.session.current_transaction,
+      null,
+      "Client was not released after transaction",
+    );
+  }),
+);
 
-  await client.queryArray`SELECT 1`;
-  assertEquals(
-    client.session.current_transaction,
-    null,
-    "Client was not released after transaction",
-  );
-});
+Deno.test(
+  "Transaction commit chain",
+  withClient(async (client) => {
+    const name = "transactionCommitChain";
+    const transaction = client.createTransaction(name);
 
-testClient("Transaction commit chain", async function (generateClient) {
-  const client = await generateClient();
+    await transaction.begin();
 
-  const name = "transactionCommitChain";
-  const transaction = client.createTransaction(name);
+    await transaction.commit({ chain: true });
+    assertEquals(
+      client.session.current_transaction,
+      name,
+      "Client shouldn't have been released on chained commit",
+    );
 
-  await transaction.begin();
+    await transaction.commit();
+    assertEquals(
+      client.session.current_transaction,
+      null,
+      "Client was not released after transaction ended",
+    );
+  }),
+);
 
-  await transaction.commit({ chain: true });
-  assertEquals(
-    client.session.current_transaction,
-    name,
-    "Client shouldn't have been released on chained commit",
-  );
-
-  await transaction.commit();
-  assertEquals(
-    client.session.current_transaction,
-    null,
-    "Client was not released after transaction ended",
-  );
-});
-
-testClient(
+Deno.test(
   "Transaction lock is released on savepoint-less rollback",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const name = "transactionLockIsReleasedOnRollback";
     const transaction = client.createTransaction(name);
 
@@ -1119,32 +1124,31 @@ testClient(
       null,
       "Client was not released after rollback",
     );
-  },
+  }),
 );
 
-testClient("Transaction rollback validations", async function (generateClient) {
-  const client = await generateClient();
+Deno.test(
+  "Transaction rollback validations",
+  withClient(async (client) => {
+    const transaction = client.createTransaction(
+      "transactionRollbackValidations",
+    );
+    await transaction.begin();
 
-  const transaction = client.createTransaction(
-    "transactionRollbackValidations",
-  );
-  await transaction.begin();
+    await assertRejects(
+      // @ts-ignore This is made to check the two properties aren't passed at once
+      () => transaction.rollback({ savepoint: "unexistent", chain: true }),
+      undefined,
+      "The chain option can't be used alongside a savepoint on a rollback operation",
+    );
 
-  await assertRejects(
-    // @ts-ignore This is made to check the two properties aren't passed at once
-    () => transaction.rollback({ savepoint: "unexistent", chain: true }),
-    undefined,
-    "The chain option can't be used alongside a savepoint on a rollback operation",
-  );
+    await transaction.commit();
+  }),
+);
 
-  await transaction.commit();
-});
-
-testClient(
+Deno.test(
   "Transaction lock is released after unrecoverable error",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const name = "transactionLockIsReleasedOnUnrecoverableError";
     const transaction = client.createTransaction(name);
 
@@ -1163,67 +1167,66 @@ testClient(
       `The transaction "${name}" has been aborted due to \`PostgresError:`,
     );
     assertEquals(client.session.current_transaction, null);
-  },
+  }),
 );
 
-testClient("Transaction savepoints", async function (generateClient) {
-  const client = await generateClient();
+Deno.test(
+  "Transaction savepoints",
+  withClient(async (client) => {
+    const savepoint_name = "a1";
+    const transaction = client.createTransaction("x");
 
-  const savepoint_name = "a1";
-  const transaction = client.createTransaction("x");
+    await transaction.begin();
+    await transaction.queryArray`CREATE TEMP TABLE X (Y INT)`;
+    await transaction.queryArray`INSERT INTO X VALUES (1)`;
+    const { rows: query_1 } = await transaction.queryObject<{ y: number }>
+      `SELECT Y FROM X`;
+    assertEquals(query_1, [{ y: 1 }]);
 
-  await transaction.begin();
-  await transaction.queryArray`CREATE TEMP TABLE X (Y INT)`;
-  await transaction.queryArray`INSERT INTO X VALUES (1)`;
-  const { rows: query_1 } = await transaction.queryObject<{ y: number }>
-    `SELECT Y FROM X`;
-  assertEquals(query_1, [{ y: 1 }]);
+    const savepoint = await transaction.savepoint(savepoint_name);
 
-  const savepoint = await transaction.savepoint(savepoint_name);
+    await transaction.queryArray`DELETE FROM X`;
+    const { rowCount: query_2 } = await transaction.queryObject<{ y: number }>
+      `SELECT Y FROM X`;
+    assertEquals(query_2, 0);
 
-  await transaction.queryArray`DELETE FROM X`;
-  const { rowCount: query_2 } = await transaction.queryObject<{ y: number }>
-    `SELECT Y FROM X`;
-  assertEquals(query_2, 0);
+    await savepoint.update();
 
-  await savepoint.update();
+    await transaction.queryArray`INSERT INTO X VALUES (2)`;
+    const { rows: query_3 } = await transaction.queryObject<{ y: number }>
+      `SELECT Y FROM X`;
+    assertEquals(query_3, [{ y: 2 }]);
 
-  await transaction.queryArray`INSERT INTO X VALUES (2)`;
-  const { rows: query_3 } = await transaction.queryObject<{ y: number }>
-    `SELECT Y FROM X`;
-  assertEquals(query_3, [{ y: 2 }]);
+    await transaction.rollback(savepoint);
+    const { rowCount: query_4 } = await transaction.queryObject<{ y: number }>
+      `SELECT Y FROM X`;
+    assertEquals(query_4, 0);
 
-  await transaction.rollback(savepoint);
-  const { rowCount: query_4 } = await transaction.queryObject<{ y: number }>
-    `SELECT Y FROM X`;
-  assertEquals(query_4, 0);
+    assertEquals(
+      savepoint.instances,
+      2,
+      "An incorrect number of instances were created for a transaction savepoint",
+    );
+    await savepoint.release();
+    assertEquals(
+      savepoint.instances,
+      1,
+      "The instance for the savepoint was not released",
+    );
 
-  assertEquals(
-    savepoint.instances,
-    2,
-    "An incorrect number of instances were created for a transaction savepoint",
-  );
-  await savepoint.release();
-  assertEquals(
-    savepoint.instances,
-    1,
-    "The instance for the savepoint was not released",
-  );
+    // This checks that the savepoint can be called by name as well
+    await transaction.rollback(savepoint_name);
+    const { rows: query_5 } = await transaction.queryObject<{ y: number }>
+      `SELECT Y FROM X`;
+    assertEquals(query_5, [{ y: 1 }]);
 
-  // This checks that the savepoint can be called by name as well
-  await transaction.rollback(savepoint_name);
-  const { rows: query_5 } = await transaction.queryObject<{ y: number }>
-    `SELECT Y FROM X`;
-  assertEquals(query_5, [{ y: 1 }]);
+    await transaction.commit();
+  }),
+);
 
-  await transaction.commit();
-});
-
-testClient(
+Deno.test(
   "Transaction savepoint validations",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const transaction = client.createTransaction("x");
     await transaction.begin();
 
@@ -1279,14 +1282,12 @@ testClient(
     );
 
     await transaction.commit();
-  },
+  }),
 );
 
-testClient(
+Deno.test(
   "Transaction operations throw if transaction has not been initialized",
-  async function (generateClient) {
-    const client = await generateClient();
-
+  withClient(async (client) => {
     const transaction_x = client.createTransaction("x");
 
     const transaction_y = client.createTransaction("y");
@@ -1343,5 +1344,5 @@ testClient(
       undefined,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
-  },
+  }),
 );

@@ -1,7 +1,7 @@
 import { assertEquals, base64, date } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
 import { generateSimpleClientTest } from "./helpers.ts";
-import {
+import type {
   Box,
   Circle,
   Float4,
