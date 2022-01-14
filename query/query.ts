@@ -1,4 +1,4 @@
-import { encode, EncodedArg } from "./encode.ts";
+import { encodeArgument, EncodedArg } from "./encode.ts";
 import { Column, decode } from "./decode.ts";
 import { Notice } from "../connection/message.ts";
 
@@ -24,7 +24,7 @@ import { Notice } from "../connection/message.ts";
  * ]);
  * ```
  */
-export type QueryArguments = unknown[];
+export type QueryArguments = unknown[] | Record<string, unknown>;
 
 const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
 
@@ -67,6 +67,49 @@ export function templateStringToQuery<T extends ResultType>(
   return new Query(text, result_type, args);
 }
 
+function objectQueryToQueryArgs(
+  query: string,
+  args: Record<string, unknown>,
+): [string, unknown[]] {
+  args = normalizeObjectQueryArgs(args);
+
+  let counter = 0;
+  const clean_args: unknown[] = [];
+  const clean_query = query.replaceAll(/(?<=\$)\w+/g, (match) => {
+    match = match.toLowerCase();
+    if (match in args) {
+      clean_args.push(args[match]);
+    } else {
+      throw new Error(
+        `No value was provided for the query argument "${match}"`,
+      );
+    }
+
+    return String(++counter);
+  });
+
+  return [clean_query, clean_args];
+}
+
+/** This function lowercases all the keys of the object passed to it and checks for collission names */
+function normalizeObjectQueryArgs(
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  const normalized_args = Object.fromEntries(
+    Object.entries(args).map((
+      [key, value],
+    ) => [key.toLowerCase(), value]),
+  );
+
+  if (Object.keys(normalized_args).length !== Object.keys(args).length) {
+    throw new Error(
+      "The arguments provided for the query must be unique (insensitive)",
+    );
+  }
+
+  return normalized_args;
+}
+
 export interface QueryConfig {
   args?: Array<unknown>;
   encoder?: (arg: unknown) => EncodedArg;
@@ -76,9 +119,9 @@ export interface QueryConfig {
   text: string;
 }
 
-// TODO
-// Support multiple case options
 export interface QueryObjectConfig extends QueryConfig {
+  // TODO
+  // Support multiple case options
   /**
    * Enabling camelcase will transform any snake case field names coming from the database into camel case ones
    *
@@ -313,12 +356,19 @@ export class Query<T extends ResultType> {
 
     let config: QueryConfig;
     if (typeof config_or_text === "string") {
+      if (args && !Array.isArray(args)) {
+        [config_or_text, args] = objectQueryToQueryArgs(config_or_text, args);
+      }
+
       config = { text: config_or_text, args };
     } else {
-      const {
-        fields,
+      let {
+        args,
         camelcase,
-        ...query_config
+        encoder,
+        fields,
+        name,
+        text,
       } = config_or_text;
 
       // Check that the fields passed are valid and can be used to map
@@ -343,14 +393,20 @@ export class Query<T extends ResultType> {
       }
 
       this.camelcase = camelcase;
-      config = query_config;
+
+      if (args && !Array.isArray(args)) {
+        [text, args] = objectQueryToQueryArgs(text, args);
+      }
+
+      config = { text, args, encoder, name };
     }
+
     this.text = config.text;
     this.args = this.#prepareArgs(config);
   }
 
   #prepareArgs(config: QueryConfig): EncodedArg[] {
-    const encodingFn = config.encoder ? config.encoder : encode;
+    const encodingFn = config.encoder ?? encodeArgument;
     return (config.args || []).map(encodingFn);
   }
 }

@@ -1,4 +1,4 @@
-import type { Arguments, QueryClient } from "../client.ts";
+import type { QueryClient } from "../client.ts";
 import {
   Query,
   QueryArguments,
@@ -377,7 +377,7 @@ export class Transaction {
    */
   async queryArray<T extends Array<unknown>>(
     query: string,
-    args?: Arguments,
+    args?: QueryArguments,
   ): Promise<QueryArrayResult<T>>;
   async queryArray<T extends Array<unknown>>(
     config: QueryConfig,
@@ -394,13 +394,10 @@ export class Transaction {
 
     let query: Query<ResultType.ARRAY>;
     if (typeof query_template_or_config === "string") {
-      const transformed_args = args[0] as
-        | Arguments
-        | undefined as QueryArguments;
       query = new Query(
         query_template_or_config,
         ResultType.ARRAY,
-        transformed_args,
+        args as QueryArguments | undefined,
       );
     } else if (isTemplateString(query_template_or_config)) {
       query = templateStringToQuery(
@@ -489,7 +486,7 @@ export class Transaction {
    */
   async queryObject<T>(
     query: string,
-    args: Arguments,
+    args: QueryArguments,
   ): Promise<QueryObjectResult<T>>;
   async queryObject<T>(
     config: QueryObjectConfig,
@@ -511,13 +508,10 @@ export class Transaction {
 
     let query: Query<ResultType.OBJECT>;
     if (typeof query_template_or_config === "string") {
-      const transformed_args = args[0] as
-        | Arguments
-        | undefined as QueryArguments;
       query = new Query(
         query_template_or_config,
         ResultType.OBJECT,
-        transformed_args,
+        args[0] as QueryArguments | undefined,
       );
     } else if (isTemplateString(query_template_or_config)) {
       query = templateStringToQuery(

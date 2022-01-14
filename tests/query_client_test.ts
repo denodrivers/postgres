@@ -49,7 +49,7 @@ function testClient(
   Deno.test({ fn: poolWrapper, name: `Pool: ${name}` });
 }
 
-testClient("Simple query", async function (generateClient) {
+testClient("Array query", async function (generateClient) {
   const client = await generateClient();
 
   const result = await client.queryArray("SELECT UNNEST(ARRAY[1, 2])");
@@ -66,18 +66,88 @@ testClient("Object query", async function (generateClient) {
   assertEquals(result.rows, [{ id: [1, 2, 3], type: "DATA" }]);
 });
 
-testClient("Prepared statements", async function (generateClient) {
+testClient("Array arguments", async function (generateClient) {
   const client = await generateClient();
 
-  const result = await client.queryObject(
-    "SELECT ID FROM ( SELECT UNNEST(ARRAY[1, 2]) AS ID ) A WHERE ID < $1",
-    [2],
-  );
-  assertEquals(result.rows, [{ id: 1 }]);
+  {
+    const value = 1;
+    const result = await client.queryArray(
+      "SELECT $1",
+      [value],
+    );
+    assertEquals(result.rows, [[value]]);
+  }
+
+  {
+    const value = 2;
+    const result = await client.queryArray({
+      args: [value],
+      text: "SELECT $1",
+    });
+    assertEquals(result.rows, [[value]]);
+  }
+
+  {
+    const value = 3;
+    const result = await client.queryObject(
+      "SELECT $1 AS ID",
+      [value],
+    );
+    assertEquals(result.rows, [{ id: value }]);
+  }
+
+  {
+    const value = 4;
+    const result = await client.queryObject({
+      args: [value],
+      text: "SELECT $1 AS ID",
+    });
+    assertEquals(result.rows, [{ id: value }]);
+  }
+});
+
+testClient("Object arguments", async function (generateClient) {
+  const client = await generateClient();
+
+  {
+    const result = await client.queryArray(
+      "SELECT ID FROM ( SELECT UNNEST(ARRAY[1, 2]) AS ID ) A WHERE ID < $ID",
+      { id: 2 },
+    );
+    assertEquals(result.rows, [[1]]);
+  }
+
+  {
+    const result = await client.queryObject(
+      "SELECT ID FROM ( SELECT UNNEST(ARRAY[1, 2]) AS ID ) A WHERE ID < $ID",
+      { id: 2 },
+    );
+    assertEquals(result.rows, [{ id: 1 }]);
+  }
 });
 
 testClient(
-  "Simple query handles recovery after error state",
+  "Throws on duplicate object arguments",
+  async function (generateClient) {
+    const client = await generateClient();
+
+    const value = "some_value";
+    const { rows: res } = await client.queryArray(
+      "SELECT $value, $VaLue, $VALUE",
+      { value },
+    );
+    assertEquals(res, [[value, value, value]]);
+
+    await assertRejects(
+      () => client.queryArray("SELECT $A", { a: 1, A: 2 }),
+      Error,
+      "The arguments provided for the query must be unique (insensitive)",
+    );
+  },
+);
+
+testClient(
+  "Array query handles recovery after error state",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -100,7 +170,7 @@ testClient(
 );
 
 testClient(
-  "Simple query can handle multiple query failures at once",
+  "Array query can handle multiple query failures at once",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -123,7 +193,7 @@ testClient(
 );
 
 testClient(
-  "Simple query handles error during data processing",
+  "Array query handles error during data processing",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -138,7 +208,7 @@ testClient(
 );
 
 testClient(
-  "Simple query can return multiple queries",
+  "Array query can return multiple queries",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -152,7 +222,7 @@ testClient(
 );
 
 testClient(
-  "Simple query handles empty query",
+  "Array query handles empty query",
   async function (generateClient) {
     const client = await generateClient();
 
@@ -217,7 +287,7 @@ testClient(
 );
 
 testClient(
-  "Handles parameter status messages on simple query",
+  "Handles parameter status messages on array query",
   async (generateClient) => {
     const client = await generateClient();
 

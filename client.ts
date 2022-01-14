@@ -19,8 +19,6 @@ import {
 import { Transaction, TransactionOptions } from "./query/transaction.ts";
 import { isTemplateString } from "./utils/utils.ts";
 
-export type Arguments = QueryArguments;
-
 export interface Session {
   /**
    * This is the code for the transaction currently locking the connection.
@@ -284,7 +282,7 @@ export abstract class QueryClient {
    */
   queryArray<T extends Array<unknown>>(
     query: string,
-    args?: Arguments,
+    args?: QueryArguments,
   ): Promise<QueryArrayResult<T>>;
   queryArray<T extends Array<unknown>>(
     config: QueryConfig,
@@ -307,13 +305,10 @@ export abstract class QueryClient {
 
     let query: Query<ResultType.ARRAY>;
     if (typeof query_template_or_config === "string") {
-      const transformed_args = args[0] as
-        | Arguments
-        | undefined as QueryArguments;
       query = new Query(
         query_template_or_config,
         ResultType.ARRAY,
-        transformed_args,
+        args[0] as QueryArguments | undefined,
       );
     } else if (isTemplateString(query_template_or_config)) {
       query = templateStringToQuery(
@@ -389,7 +384,7 @@ export abstract class QueryClient {
    */
   queryObject<T>(
     query: string,
-    args?: Arguments,
+    args?: QueryArguments,
   ): Promise<QueryObjectResult<T>>;
   queryObject<T>(
     config: QueryObjectConfig,
@@ -405,7 +400,7 @@ export abstract class QueryClient {
       | string
       | QueryObjectConfig
       | TemplateStringsArray,
-    ...args: unknown[] | [Arguments | undefined]
+    ...args: unknown[] | [QueryArguments | undefined]
   ): Promise<QueryObjectResult<T>> {
     this.#assertOpenConnection();
 
@@ -417,13 +412,10 @@ export abstract class QueryClient {
 
     let query: Query<ResultType.OBJECT>;
     if (typeof query_template_or_config === "string") {
-      const transformed_arguments = args[0] as
-        | Arguments
-        | undefined as QueryArguments;
       query = new Query(
         query_template_or_config,
         ResultType.OBJECT,
-        transformed_arguments,
+        args[0] as QueryArguments | undefined,
       );
     } else if (isTemplateString(query_template_or_config)) {
       query = templateStringToQuery(
