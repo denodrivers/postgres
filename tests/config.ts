@@ -1,4 +1,5 @@
 import { ClientConfiguration } from "../connection/connection_params.ts";
+import config_file1 from "./config.json" assert { type: "json" };
 
 type TcpConfiguration = Omit<ClientConfiguration, "connection"> & {
   host_type: "tcp";
@@ -6,51 +7,6 @@ type TcpConfiguration = Omit<ClientConfiguration, "connection"> & {
 type SocketConfiguration = Omit<ClientConfiguration, "connection" | "tls"> & {
   host_type: "socket";
 };
-
-type ConfigFileConnection =
-  & Pick<
-    ClientConfiguration,
-    "applicationName" | "database" | "hostname" | "password" | "port"
-  >
-  & {
-    socket: string;
-  };
-
-type Clear = ConfigFileConnection & {
-  users: {
-    clear: string;
-    socket: string;
-  };
-};
-
-type Classic = ConfigFileConnection & {
-  users: {
-    main: string;
-    md5: string;
-    socket: string;
-    tls_only: string;
-  };
-};
-
-type Scram = ConfigFileConnection & {
-  users: {
-    scram: string;
-    socket: string;
-  };
-};
-
-interface EnvironmentConfig {
-  postgres_clear: Clear;
-  postgres_md5: Classic;
-  postgres_scram: Scram;
-}
-
-const config_file: {
-  ci: EnvironmentConfig;
-  local: EnvironmentConfig;
-} = JSON.parse(
-  await Deno.readTextFile(new URL("./config.json", import.meta.url)),
-);
 
 let DEV_MODE: string | undefined;
 try {
@@ -63,7 +19,7 @@ try {
   }
   throw e;
 }
-const config = DEV_MODE === "true" ? config_file.local : config_file.ci;
+const config = DEV_MODE === "true" ? config_file1.local : config_file1.ci;
 
 const enabled_tls = {
   caCertificates: [
