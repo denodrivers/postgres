@@ -348,7 +348,7 @@ consistency with other PostgreSQL clients out there (see
 https://www.postgresql.org/docs/14/libpq-envars.html)
 
 ```ts
-// PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env --unstable database.js
+// PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env database.js
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 
 const client = new Client();

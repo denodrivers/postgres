@@ -1,6 +1,5 @@
 /// <reference no-default-lib="true" />
 /// <reference lib="deno.worker" />
-/// <reference lib="deno.unstable" />
 
 const server = Deno.listen({ port: 8080 });
 

@@ -270,18 +270,9 @@ export class Connection {
     connection: Deno.Conn,
     options: { hostname: string; caCerts: string[] },
   ) {
-    // TODO
-    // Remove unstable check on 1.17.0
-    if ("startTls" in Deno) {
-      // @ts-ignore This API should be available on unstable
-      this.#conn = await Deno.startTls(connection, options);
-      this.#bufWriter = new BufWriter(this.#conn);
-      this.#bufReader = new BufReader(this.#conn);
-    } else {
-      throw new Error(
-        "You need to execute Deno with the `--unstable` argument in order to stablish a TLS connection",
-      );
-    }
+    this.#conn = await Deno.startTls(connection, options);
+    this.#bufWriter = new BufWriter(this.#conn);
+    this.#bufReader = new BufReader(this.#conn);
   }
 
   #resetConnectionMetadata() {
