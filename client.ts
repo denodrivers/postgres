@@ -9,9 +9,9 @@ import {
   Query,
   QueryArguments,
   QueryArrayResult,
-  QueryConfig,
-  QueryObjectConfig,
+  QueryObjectOptions,
   QueryObjectResult,
+  QueryOptions,
   QueryResult,
   ResultType,
   templateStringToQuery,
@@ -285,14 +285,14 @@ export abstract class QueryClient {
     args?: QueryArguments,
   ): Promise<QueryArrayResult<T>>;
   queryArray<T extends Array<unknown>>(
-    config: QueryConfig,
+    config: QueryOptions,
   ): Promise<QueryArrayResult<T>>;
   queryArray<T extends Array<unknown>>(
     strings: TemplateStringsArray,
     ...args: unknown[]
   ): Promise<QueryArrayResult<T>>;
   queryArray<T extends Array<unknown> = Array<unknown>>(
-    query_template_or_config: TemplateStringsArray | string | QueryConfig,
+    query_template_or_config: TemplateStringsArray | string | QueryOptions,
     ...args: unknown[] | [QueryArguments | undefined]
   ): Promise<QueryArrayResult<T>> {
     this.#assertOpenConnection();
@@ -387,7 +387,7 @@ export abstract class QueryClient {
     args?: QueryArguments,
   ): Promise<QueryObjectResult<T>>;
   queryObject<T>(
-    config: QueryObjectConfig,
+    config: QueryObjectOptions,
   ): Promise<QueryObjectResult<T>>;
   queryObject<T>(
     query: TemplateStringsArray,
@@ -398,7 +398,7 @@ export abstract class QueryClient {
   >(
     query_template_or_config:
       | string
-      | QueryObjectConfig
+      | QueryObjectOptions
       | TemplateStringsArray,
     ...args: unknown[] | [QueryArguments | undefined]
   ): Promise<QueryObjectResult<T>> {
@@ -425,7 +425,7 @@ export abstract class QueryClient {
       );
     } else {
       query = new Query(
-        query_template_or_config as QueryObjectConfig,
+        query_template_or_config as QueryObjectOptions,
         ResultType.OBJECT,
       );
     }

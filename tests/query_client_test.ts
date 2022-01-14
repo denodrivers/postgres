@@ -110,19 +110,39 @@ testClient("Object arguments", async function (generateClient) {
   const client = await generateClient();
 
   {
+    const value = "1";
     const result = await client.queryArray(
-      "SELECT ID FROM ( SELECT UNNEST(ARRAY[1, 2]) AS ID ) A WHERE ID < $ID",
-      { id: 2 },
+      "SELECT $id",
+      { id: value },
     );
-    assertEquals(result.rows, [[1]]);
+    assertEquals(result.rows, [[value]]);
   }
 
   {
+    const value = "2";
+    const result = await client.queryArray({
+      args: { id: value },
+      text: "SELECT $ID",
+    });
+    assertEquals(result.rows, [[value]]);
+  }
+
+  {
+    const value = "3";
     const result = await client.queryObject(
-      "SELECT ID FROM ( SELECT UNNEST(ARRAY[1, 2]) AS ID ) A WHERE ID < $ID",
-      { id: 2 },
+      "SELECT $id as ID",
+      { id: value },
     );
-    assertEquals(result.rows, [{ id: 1 }]);
+    assertEquals(result.rows, [{ id: value }]);
+  }
+
+  {
+    const value = "4";
+    const result = await client.queryObject({
+      args: { id: value },
+      text: "SELECT $ID AS ID",
+    });
+    assertEquals(result.rows, [{ id: value }]);
   }
 });
 

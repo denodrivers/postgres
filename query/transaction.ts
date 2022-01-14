@@ -3,9 +3,9 @@ import {
   Query,
   QueryArguments,
   QueryArrayResult,
-  QueryConfig,
-  QueryObjectConfig,
+  QueryObjectOptions,
   QueryObjectResult,
+  QueryOptions,
   QueryResult,
   ResultType,
   templateStringToQuery,
@@ -380,14 +380,14 @@ export class Transaction {
     args?: QueryArguments,
   ): Promise<QueryArrayResult<T>>;
   async queryArray<T extends Array<unknown>>(
-    config: QueryConfig,
+    config: QueryOptions,
   ): Promise<QueryArrayResult<T>>;
   async queryArray<T extends Array<unknown>>(
     strings: TemplateStringsArray,
     ...args: unknown[]
   ): Promise<QueryArrayResult<T>>;
   async queryArray<T extends Array<unknown> = Array<unknown>>(
-    query_template_or_config: TemplateStringsArray | string | QueryConfig,
+    query_template_or_config: TemplateStringsArray | string | QueryOptions,
     ...args: unknown[] | [QueryArguments | undefined]
   ): Promise<QueryArrayResult<T>> {
     this.#assertTransactionOpen();
@@ -489,7 +489,7 @@ export class Transaction {
     args?: QueryArguments,
   ): Promise<QueryObjectResult<T>>;
   async queryObject<T>(
-    config: QueryObjectConfig,
+    config: QueryObjectOptions,
   ): Promise<QueryObjectResult<T>>;
   async queryObject<T>(
     query: TemplateStringsArray,
@@ -500,7 +500,7 @@ export class Transaction {
   >(
     query_template_or_config:
       | string
-      | QueryObjectConfig
+      | QueryObjectOptions
       | TemplateStringsArray,
     ...args: unknown[] | [QueryArguments | undefined]
   ): Promise<QueryObjectResult<T>> {
@@ -521,7 +521,7 @@ export class Transaction {
       );
     } else {
       query = new Query(
-        query_template_or_config as QueryObjectConfig,
+        query_template_or_config as QueryObjectOptions,
         ResultType.OBJECT,
       );
     }

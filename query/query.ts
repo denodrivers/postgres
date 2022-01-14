@@ -110,8 +110,8 @@ function normalizeObjectQueryArgs(
   return normalized_args;
 }
 
-export interface QueryConfig {
-  args?: Array<unknown>;
+export interface QueryOptions {
+  args?: QueryArguments;
   encoder?: (arg: unknown) => EncodedArg;
   name?: string;
   // TODO
@@ -119,7 +119,7 @@ export interface QueryConfig {
   text: string;
 }
 
-export interface QueryObjectConfig extends QueryConfig {
+export interface QueryObjectOptions extends QueryOptions {
   // TODO
   // Support multiple case options
   /**
@@ -345,28 +345,28 @@ export class Query<T extends ResultType> {
   // TODO
   // Document that this text is the one sent to the database, not the original one
   public text: string;
-  constructor(config: QueryObjectConfig, result_type: T);
+  constructor(config: QueryObjectOptions, result_type: T);
   constructor(text: string, result_type: T, args?: QueryArguments);
   constructor(
-    config_or_text: string | QueryObjectConfig,
+    config_or_text: string | QueryObjectOptions,
     result_type: T,
-    args?: QueryArguments,
+    args: QueryArguments = [],
   ) {
     this.result_type = result_type;
-
-    let config: QueryConfig;
     if (typeof config_or_text === "string") {
-      if (args && !Array.isArray(args)) {
+      if (!Array.isArray(args)) {
         [config_or_text, args] = objectQueryToQueryArgs(config_or_text, args);
       }
 
-      config = { text: config_or_text, args };
+      this.text = config_or_text;
+      this.args = args.map(encodeArgument);
     } else {
       let {
-        args,
+        args = [],
         camelcase,
-        encoder,
+        encoder = encodeArgument,
         fields,
+        // deno-lint-ignore no-unused-vars
         name,
         text,
       } = config_or_text;
@@ -394,19 +394,12 @@ export class Query<T extends ResultType> {
 
       this.camelcase = camelcase;
 
-      if (args && !Array.isArray(args)) {
+      if (!Array.isArray(args)) {
         [text, args] = objectQueryToQueryArgs(text, args);
       }
 
-      config = { text, args, encoder, name };
+      this.args = args.map(encoder);
+      this.text = text;
     }
-
-    this.text = config.text;
-    this.args = this.#prepareArgs(config);
-  }
-
-  #prepareArgs(config: QueryConfig): EncodedArg[] {
-    const encodingFn = config.encoder ?? encodeArgument;
-    return (config.args || []).map(encodingFn);
   }
 }
