@@ -22,7 +22,7 @@ Deno.test(
         const client = await POOL.connect();
         const query = await client.queryArray(
           "SELECT pg_sleep(0.1) is null, $1::text as id",
-          i,
+          [i],
         );
         client.release();
         return query;
@@ -68,7 +68,7 @@ Deno.test(
           const client = await POOL.connect();
           const query = await client.queryArray(
             "SELECT pg_sleep(0.1) is null, $1::text as id",
-            i,
+            [i],
           );
           client.release();
           return query;

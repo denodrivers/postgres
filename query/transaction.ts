@@ -1,4 +1,4 @@
-import type { QueryClient } from "../client.ts";
+import type { Arguments, QueryClient } from "../client.ts";
 import {
   Query,
   QueryArguments,
@@ -377,24 +377,31 @@ export class Transaction {
    */
   async queryArray<T extends Array<unknown>>(
     query: string,
-    ...args: QueryArguments
+    args?: Arguments,
   ): Promise<QueryArrayResult<T>>;
   async queryArray<T extends Array<unknown>>(
     config: QueryConfig,
   ): Promise<QueryArrayResult<T>>;
   async queryArray<T extends Array<unknown>>(
     strings: TemplateStringsArray,
-    ...args: QueryArguments
+    ...args: unknown[]
   ): Promise<QueryArrayResult<T>>;
   async queryArray<T extends Array<unknown> = Array<unknown>>(
     query_template_or_config: TemplateStringsArray | string | QueryConfig,
-    ...args: QueryArguments
+    ...args: unknown[] | [QueryArguments | undefined]
   ): Promise<QueryArrayResult<T>> {
     this.#assertTransactionOpen();
 
     let query: Query<ResultType.ARRAY>;
     if (typeof query_template_or_config === "string") {
-      query = new Query(query_template_or_config, ResultType.ARRAY, ...args);
+      const transformed_args = args[0] as
+        | Arguments
+        | undefined as QueryArguments;
+      query = new Query(
+        query_template_or_config,
+        ResultType.ARRAY,
+        transformed_args,
+      );
     } else if (isTemplateString(query_template_or_config)) {
       query = templateStringToQuery(
         query_template_or_config,
@@ -482,14 +489,14 @@ export class Transaction {
    */
   async queryObject<T>(
     query: string,
-    ...args: QueryArguments
+    args: Arguments,
   ): Promise<QueryObjectResult<T>>;
   async queryObject<T>(
     config: QueryObjectConfig,
   ): Promise<QueryObjectResult<T>>;
   async queryObject<T>(
     query: TemplateStringsArray,
-    ...args: QueryArguments
+    ...args: unknown[]
   ): Promise<QueryObjectResult<T>>;
   async queryObject<
     T = Record<string, unknown>,
@@ -498,13 +505,20 @@ export class Transaction {
       | string
       | QueryObjectConfig
       | TemplateStringsArray,
-    ...args: QueryArguments
+    ...args: unknown[] | [QueryArguments | undefined]
   ): Promise<QueryObjectResult<T>> {
     this.#assertTransactionOpen();
 
     let query: Query<ResultType.OBJECT>;
     if (typeof query_template_or_config === "string") {
-      query = new Query(query_template_or_config, ResultType.OBJECT, ...args);
+      const transformed_args = args[0] as
+        | Arguments
+        | undefined as QueryArguments;
+      query = new Query(
+        query_template_or_config,
+        ResultType.OBJECT,
+        transformed_args,
+      );
     } else if (isTemplateString(query_template_or_config)) {
       query = templateStringToQuery(
         query_template_or_config,

@@ -71,7 +71,7 @@ testClient("Prepared statements", async function (generateClient) {
 
   const result = await client.queryObject(
     "SELECT ID FROM ( SELECT UNNEST(ARRAY[1, 2]) AS ID ) A WHERE ID < $1",
-    2,
+    [2],
   );
   assertEquals(result.rows, [{ id: 1 }]);
 });
@@ -86,7 +86,7 @@ testClient(
     await assertRejects(() =>
       client.queryArray(
         "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
-        "TEXT",
+        ["TEXT"],
       )
     );
 
@@ -171,7 +171,7 @@ testClient(
     await assertRejects(() =>
       client.queryArray(
         "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
-        "TEXT",
+        ["TEXT"],
       ), PostgresError);
 
     const result = "handled";
@@ -210,8 +210,7 @@ testClient(
 
     const { rows: result_1 } = await client.queryArray(
       `SELECT ARRAY[$1, $2]`,
-      item_1,
-      item_2,
+      [item_1, item_2],
     );
     assertEquals(result_1[0], [[item_1, item_2]]);
   },
@@ -252,7 +251,9 @@ testClient(
 
     await assertRejects(
       () =>
-        client.queryArray("SELECT * FROM PG_TEMP.CHANGE_TIMEZONE($1)", result),
+        client.queryArray("SELECT * FROM PG_TEMP.CHANGE_TIMEZONE($1)", [
+          result,
+        ]),
       PostgresError,
       "control reached end of function without RETURN",
     );
@@ -424,7 +425,7 @@ testClient("Binary data is parsed correctly", async function (generateClient) {
 
   const { rows: result_2 } = await client.queryArray(
     "SELECT $1::BYTEA",
-    expectedBytes,
+    [expectedBytes],
   );
   assertEquals(result_2[0][0], expectedBytes);
 });
@@ -446,8 +447,7 @@ testClient("Result object metadata", async function (generateClient) {
   // parameterized select
   result = await client.queryArray(
     "SELECT * FROM METADATA WHERE VALUE IN ($1, $2)",
-    200,
-    300,
+    [200, 300],
   );
   assertEquals(result.command, "SELECT");
   assertEquals(result.rowCount, 2);
@@ -462,7 +462,7 @@ testClient("Result object metadata", async function (generateClient) {
   // parameterized delete
   result = await client.queryArray(
     "DELETE FROM METADATA WHERE VALUE = $1",
-    300,
+    [300],
   );
   assertEquals(result.command, "DELETE");
   assertEquals(result.rowCount, 1);
@@ -473,7 +473,7 @@ testClient("Result object metadata", async function (generateClient) {
   assertEquals(result.rowCount, 2);
 
   // parameterized insert
-  result = await client.queryArray("INSERT INTO METADATA VALUES ($1)", 3);
+  result = await client.queryArray("INSERT INTO METADATA VALUES ($1)", [3]);
   assertEquals(result.command, "INSERT");
   assertEquals(result.rowCount, 1);
 
@@ -487,7 +487,7 @@ testClient("Result object metadata", async function (generateClient) {
   // parameterized update
   result = await client.queryArray(
     "UPDATE METADATA SET VALUE = 400 WHERE VALUE = $1",
-    400,
+    [400],
   );
   assertEquals(result.command, "UPDATE");
   assertEquals(result.rowCount, 1);

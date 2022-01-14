@@ -2,6 +2,30 @@ import { encode, EncodedArg } from "./encode.ts";
 import { Column, decode } from "./decode.ts";
 import { Notice } from "../connection/message.ts";
 
+// TODO
+// Limit the type of parameters that can be passed
+// to a query
+/**
+ * https://www.postgresql.org/docs/14/sql-prepare.html
+ *
+ * This arguments will be appended to the prepared statement passed
+ * as query
+ *
+ * They will take the position according to the order in which they were provided
+ *
+ * ```ts
+ * import { Client } from "../client.ts";
+ *
+ * const my_client = new Client();
+ *
+ * await my_client.queryArray("SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2", [
+ *   10, // $1
+ *   20, // $2
+ * ]);
+ * ```
+ */
+export type QueryArguments = unknown[];
+
 const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
 
 type CommandType = (
@@ -33,14 +57,14 @@ export class RowDescription {
  */
 export function templateStringToQuery<T extends ResultType>(
   template: TemplateStringsArray,
-  args: QueryArguments,
+  args: unknown[],
   result_type: T,
 ): Query<T> {
   const text = template.reduce((curr, next, index) => {
     return `${curr}$${index}${next}`;
   });
 
-  return new Query(text, result_type, ...args);
+  return new Query(text, result_type, args);
 }
 
 export interface QueryConfig {
@@ -74,32 +98,6 @@ export interface QueryObjectConfig extends QueryConfig {
    */
   fields?: string[];
 }
-
-// TODO
-// Limit the type of parameters that can be passed
-// to a query
-/**
- * https://www.postgresql.org/docs/14/sql-prepare.html
- *
- * This arguments will be appended to the prepared statement passed
- * as query
- *
- * They will take the position according to the order in which they were provided
- *
- * ```ts
- * import { Client } from "../client.ts";
- *
- * const my_client = new Client();
- *
- * await my_client.queryArray(
- *   "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
- *   10, // $1
- *   20, // $2
- * );
- * ```
- */
-// deno-lint-ignore no-explicit-any
-export type QueryArguments = any[];
 
 export class QueryResult {
   public command!: CommandType;
@@ -301,11 +299,11 @@ export class Query<T extends ResultType> {
   public result_type: ResultType;
   public text: string;
   constructor(config: QueryObjectConfig, result_type: T);
-  constructor(text: string, result_type: T, ...args: unknown[]);
+  constructor(text: string, result_type: T, args?: QueryArguments);
   constructor(
     config_or_text: string | QueryObjectConfig,
     result_type: T,
-    ...args: unknown[]
+    args?: QueryArguments,
   ) {
     this.result_type = result_type;
 
