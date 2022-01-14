@@ -52,9 +52,18 @@ const config_file: {
   await Deno.readTextFile(new URL("./config.json", import.meta.url)),
 );
 
-const config = Deno.env.get("DENO_POSTGRES_DEVELOPMENT") === "true"
-  ? config_file.local
-  : config_file.ci;
+let DEV_MODE: string | undefined;
+try {
+  DEV_MODE = Deno.env.get("DENO_POSTGRES_DEVELOPMENT");
+} catch (e) {
+  if (e instanceof Deno.errors.PermissionDenied) {
+    throw new Error(
+      "You need to provide ENV access in order to run the test suite",
+    );
+  }
+  throw e;
+}
+const config = DEV_MODE === "true" ? config_file.local : config_file.ci;
 
 const enabled_tls = {
   caCertificates: [
