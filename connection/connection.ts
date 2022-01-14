@@ -32,7 +32,7 @@ import { getSocketName, readUInt32BE } from "../utils/utils.ts";
 import { PacketWriter } from "./packet.ts";
 import {
   Message,
-  Notice,
+  type Notice,
   parseBackendKeyMessage,
   parseCommandCompleteMessage,
   parseNoticeMessage,
@@ -40,13 +40,13 @@ import {
   parseRowDescriptionMessage,
 } from "./message.ts";
 import {
-  Query,
+  type Query,
   QueryArrayResult,
   QueryObjectResult,
-  QueryResult,
+  type QueryResult,
   ResultType,
 } from "../query/query.ts";
-import { ClientConfiguration } from "./connection_params.ts";
+import { type ClientConfiguration } from "./connection_params.ts";
 import * as scram from "./scram.ts";
 import {
   ConnectionError,

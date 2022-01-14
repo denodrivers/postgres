@@ -7,8 +7,11 @@ export {
 } from "https://deno.land/std@0.121.0/io/buffer.ts";
 export { copy } from "https://deno.land/std@0.121.0/bytes/mod.ts";
 export { crypto } from "https://deno.land/std@0.121.0/crypto/mod.ts";
-export { deferred, delay } from "https://deno.land/std@0.121.0/async/mod.ts";
-export type { Deferred } from "https://deno.land/std@0.121.0/async/mod.ts";
+export {
+  type Deferred,
+  deferred,
+  delay,
+} from "https://deno.land/std@0.121.0/async/mod.ts";
 export { bold, yellow } from "https://deno.land/std@0.121.0/fmt/colors.ts";
 export {
   fromFileUrl,

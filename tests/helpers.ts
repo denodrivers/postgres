@@ -1,6 +1,6 @@
 import { Client } from "../client.ts";
 import { Pool } from "../pool.ts";
-import type { ClientOptions } from "../connection/connection_params.ts";
+import { type ClientOptions } from "../connection/connection_params.ts";
 
 export function generateSimpleClientTest(
   client_options: ClientOptions,
