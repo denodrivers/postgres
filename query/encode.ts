@@ -60,7 +60,8 @@ function encodeArray(array: Array<unknown>): string {
     } else if (Array.isArray(element)) {
       encodedArray += encodeArray(element);
     } else if (element instanceof Uint8Array) {
-      // TODO: it should be encoded as bytea?
+      // TODO
+      // Should it be encoded as bytea?
       throw new Error("Can't encode array of buffers.");
     } else {
       const encodedElement = encodeArgument(element);
