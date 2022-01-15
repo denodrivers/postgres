@@ -23,7 +23,7 @@ services:
   postgres_clear:
     # Clear authentication was removed after Postgres 9
     image: postgres:9
-    hostname: postgres
+    hostname: postgres_clear
     environment:
       <<: *database-env
     volumes:
@@ -35,7 +35,7 @@ services:
 
   postgres_md5:
     image: postgres:14
-    hostname: postgres
+    hostname: postgres_md5
     environment:
       <<: *database-env
     volumes:
