@@ -1,6 +1,6 @@
-import { encodeArgument, EncodedArg } from "./encode.ts";
-import { Column, decode } from "./decode.ts";
-import { Notice } from "../connection/message.ts";
+import { encodeArgument, type EncodedArg } from "./encode.ts";
+import { type Column, decode } from "./decode.ts";
+import { type Notice } from "../connection/message.ts";
 
 // TODO
 // Limit the type of parameters that can be passed

@@ -1,12 +1,12 @@
-import type { QueryClient } from "../client.ts";
+import { type QueryClient } from "../client.ts";
 import {
   Query,
-  QueryArguments,
-  QueryArrayResult,
-  QueryObjectOptions,
-  QueryObjectResult,
-  QueryOptions,
-  QueryResult,
+  type QueryArguments,
+  type QueryArrayResult,
+  type QueryObjectOptions,
+  type QueryObjectResult,
+  type QueryOptions,
+  type QueryResult,
   ResultType,
   templateStringToQuery,
 } from "./query.ts";

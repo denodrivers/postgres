@@ -177,10 +177,9 @@ function parseOptionsFromUri(connString: string): ClientOptions {
       user: uri.user || uri.params.user,
     };
   } catch (e) {
-    // TODO
-    // Use error cause
     throw new ConnectionParamsError(
-      `Could not parse the connection string due to ${e}`,
+      `Could not parse the connection string`,
+      e,
     );
   }
 
@@ -296,10 +295,9 @@ export function createParams(
         host = socket;
       }
     } catch (e) {
-      // TODO
-      // Add error cause
       throw new ConnectionParamsError(
-        `Could not parse host "${socket}" due to "${e}"`,
+        `Could not parse host "${socket}"`,
+        e,
       );
     }
   } else {

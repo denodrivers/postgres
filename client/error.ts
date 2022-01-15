@@ -1,4 +1,4 @@
-import type { Notice } from "../connection/message.ts";
+import { type Notice } from "../connection/message.ts";
 
 export class ConnectionError extends Error {
   constructor(message?: string) {
@@ -8,8 +8,8 @@ export class ConnectionError extends Error {
 }
 
 export class ConnectionParamsError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, cause?: Error) {
+    super(message, { cause });
     this.name = "ConnectionParamsError";
   }
 }
@@ -24,15 +24,14 @@ export class PostgresError extends Error {
   }
 }
 
-// TODO
-// Use error cause once it's added to JavaScript
 export class TransactionError extends Error {
   constructor(
     transaction_name: string,
-    public cause: PostgresError,
+    cause: PostgresError,
   ) {
     super(
-      `The transaction "${transaction_name}" has been aborted due to \`${cause}\`. Check the "cause" property to get more details`,
+      `The transaction "${transaction_name}" has been aborted`,
+      { cause },
     );
     this.name = "TransactionError";
   }

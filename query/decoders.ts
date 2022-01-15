@@ -1,6 +1,6 @@
 import { date } from "../deps.ts";
 import { parseArray } from "./array_parser.ts";
-import {
+import type {
   Box,
   Circle,
   Float8,

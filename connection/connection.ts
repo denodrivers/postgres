@@ -32,7 +32,7 @@ import { getSocketName, readUInt32BE } from "../utils/utils.ts";
 import { PacketWriter } from "./packet.ts";
 import {
   Message,
-  Notice,
+  type Notice,
   parseBackendKeyMessage,
   parseCommandCompleteMessage,
   parseNoticeMessage,
@@ -40,13 +40,13 @@ import {
   parseRowDescriptionMessage,
 } from "./message.ts";
 import {
-  Query,
+  type Query,
   QueryArrayResult,
   QueryObjectResult,
-  QueryResult,
+  type QueryResult,
   ResultType,
 } from "../query/query.ts";
-import { ClientConfiguration } from "./connection_params.ts";
+import { type ClientConfiguration } from "./connection_params.ts";
 import * as scram from "./scram.ts";
 import {
   ConnectionError,
@@ -270,18 +270,9 @@ export class Connection {
     connection: Deno.Conn,
     options: { hostname: string; caCerts: string[] },
   ) {
-    // TODO
-    // Remove unstable check on 1.17.0
-    if ("startTls" in Deno) {
-      // @ts-ignore This API should be available on unstable
-      this.#conn = await Deno.startTls(connection, options);
-      this.#bufWriter = new BufWriter(this.#conn);
-      this.#bufReader = new BufReader(this.#conn);
-    } else {
-      throw new Error(
-        "You need to execute Deno with the `--unstable` argument in order to stablish a TLS connection",
-      );
-    }
+    this.#conn = await Deno.startTls(connection, options);
+    this.#bufWriter = new BufWriter(this.#conn);
+    this.#bufReader = new BufReader(this.#conn);
   }
 
   #resetConnectionMetadata() {

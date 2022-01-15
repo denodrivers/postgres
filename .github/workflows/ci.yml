@@ -12,13 +12,13 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: 1.16.0
+          deno-version: 1.17.3
       
       - name: Format
         run: deno fmt --check
       
       - name: Lint
-        run: deno lint --config=deno.json
+        run: deno lint
 
       - name: Documentation tests
         run: deno test --doc client.ts mod.ts pool.ts client/ connection/ query/ utils/

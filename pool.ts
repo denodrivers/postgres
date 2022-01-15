@@ -1,8 +1,8 @@
 import { PoolClient } from "./client.ts";
 import {
-  ClientConfiguration,
-  ClientOptions,
-  ConnectionString,
+  type ClientConfiguration,
+  type ClientOptions,
+  type ConnectionString,
   createParams,
 } from "./connection/connection_params.ts";
 import { DeferredAccessStack } from "./utils/deferred.ts";

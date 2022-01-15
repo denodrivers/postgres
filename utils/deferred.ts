@@ -1,4 +1,4 @@
-import { Deferred, deferred } from "../deps.ts";
+import { type Deferred, deferred } from "../deps.ts";
 
 export class DeferredStack<T> {
   #array: Array<T>;

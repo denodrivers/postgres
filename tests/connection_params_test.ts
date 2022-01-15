@@ -1,7 +1,6 @@
 import { assertEquals, assertThrows, fromFileUrl } from "./test_deps.ts";
 import { createParams } from "../connection/connection_params.ts";
 import { ConnectionParamsError } from "../client/error.ts";
-import { has_env_access } from "./constants.ts";
 
 /**
  * This function is ment to be used as a container for env based tests.
@@ -36,27 +35,6 @@ const withEnv = (env: {
   PGPORT ? Deno.env.set("PGPORT", PGPORT) : Deno.env.delete("PGPORT");
   PGUSER ? Deno.env.set("PGUSER", PGUSER) : Deno.env.delete("PGUSER");
 };
-
-// TODO
-// Replace with test permission options to remove the need for function override
-/**
- * This function will override getting env variables to simulate having no env permissions
- */
-function withNotAllowedEnv(fn: () => void) {
-  return () => {
-    const getEnv = Deno.env.get;
-
-    Deno.env.get = (_key: string) => {
-      throw new Deno.errors.PermissionDenied("");
-    };
-
-    try {
-      fn();
-    } finally {
-      Deno.env.get = getEnv;
-    }
-  };
-}
 
 Deno.test("Parses connection string", function () {
   const p = createParams(
@@ -199,48 +177,40 @@ Deno.test("Throws on invalid tls options", function () {
   );
 });
 
-Deno.test({
-  name: "Parses env connection options",
-  ignore: !has_env_access,
-  fn() {
-    withEnv({
-      database: "deno_postgres",
-      host: "some_host",
-      port: "10101",
-      user: "some_user",
-    }, () => {
-      const p = createParams();
-      assertEquals(p.database, "deno_postgres");
-      assertEquals(p.hostname, "some_host");
-      assertEquals(p.port, 10101);
-      assertEquals(p.user, "some_user");
-    });
-  },
+Deno.test("Parses env connection options", function () {
+  withEnv({
+    database: "deno_postgres",
+    host: "some_host",
+    port: "10101",
+    user: "some_user",
+  }, () => {
+    const p = createParams();
+    assertEquals(p.database, "deno_postgres");
+    assertEquals(p.hostname, "some_host");
+    assertEquals(p.port, 10101);
+    assertEquals(p.user, "some_user");
+  });
+});
+
+Deno.test("Throws on env connection options with invalid port", function () {
+  const port = "abc";
+  withEnv({
+    database: "deno_postgres",
+    host: "some_host",
+    port,
+    user: "some_user",
+  }, () => {
+    assertThrows(
+      () => createParams(),
+      ConnectionParamsError,
+      `"${port}" is not a valid port number`,
+    );
+  });
 });
 
 Deno.test({
-  name: "Throws on env connection options with invalid port",
-  ignore: !has_env_access,
-  fn() {
-    const port = "abc";
-    withEnv({
-      database: "deno_postgres",
-      host: "some_host",
-      port,
-      user: "some_user",
-    }, () => {
-      assertThrows(
-        () => createParams(),
-        ConnectionParamsError,
-        `"${port}" is not a valid port number`,
-      );
-    });
-  },
-});
-
-Deno.test(
-  "Parses mixed connection options and env connection options",
-  withNotAllowedEnv(function () {
+  name: "Parses mixed connection options and env connection options",
+  fn: () => {
     const p = createParams({
       database: "deno_postgres",
       host_type: "tcp",
@@ -251,12 +221,15 @@ Deno.test(
     assertEquals(p.user, "deno_postgres");
     assertEquals(p.hostname, "127.0.0.1");
     assertEquals(p.port, 5432);
-  }),
-);
+  },
+  permissions: {
+    env: false,
+  },
+});
 
-Deno.test(
-  "Throws if it can't obtain necessary parameters from config or env",
-  withNotAllowedEnv(function () {
+Deno.test({
+  name: "Throws if it can't obtain necessary parameters from config or env",
+  fn: () => {
     assertThrows(
       () => createParams(),
       ConnectionParamsError,
@@ -268,48 +241,53 @@ Deno.test(
       ConnectionParamsError,
       "Missing connection parameters: database",
     );
-  }),
-);
-
-Deno.test("Uses default connection options", function () {
-  const database = "deno_postgres";
-  const user = "deno_postgres";
-
-  const p = createParams({
-    database,
-    host_type: "tcp",
-    user,
-  });
-
-  assertEquals(p.database, database);
-  assertEquals(p.user, user);
-  assertEquals(
-    p.hostname,
-    has_env_access ? (Deno.env.get("PGHOST") ?? "127.0.0.1") : "127.0.0.1",
-  );
-  assertEquals(p.port, 5432);
-  assertEquals(
-    p.password,
-    has_env_access ? Deno.env.get("PGPASSWORD") : undefined,
-  );
+  },
+  permissions: {
+    env: false,
+  },
 });
 
-Deno.test("Throws when required options are not passed", function () {
-  if (has_env_access) {
-    if (!(Deno.env.get("PGUSER") && Deno.env.get("PGDATABASE"))) {
-      assertThrows(
-        () => createParams(),
-        ConnectionParamsError,
-        "Missing connection parameters:",
-      );
-    }
-  } else {
+Deno.test({
+  name: "Uses default connection options",
+  fn: () => {
+    const database = "deno_postgres";
+    const user = "deno_postgres";
+
+    const p = createParams({
+      database,
+      host_type: "tcp",
+      user,
+    });
+
+    assertEquals(p.database, database);
+    assertEquals(p.user, user);
+    assertEquals(
+      p.hostname,
+      "127.0.0.1",
+    );
+    assertEquals(p.port, 5432);
+    assertEquals(
+      p.password,
+      undefined,
+    );
+  },
+  permissions: {
+    env: false,
+  },
+});
+
+Deno.test({
+  name: "Throws when required options are not passed",
+  fn: () => {
     assertThrows(
       () => createParams(),
       ConnectionParamsError,
-      "Missing connection parameters: database, user",
+      "Missing connection parameters:",
     );
-  }
+  },
+  permissions: {
+    env: false,
+  },
 });
 
 Deno.test("Determines host type", () => {
@@ -392,7 +370,21 @@ Deno.test("Throws when host is a URL and host type is socket", () => {
         host_type: "socket",
         user: "some_user",
       }),
-    ConnectionParamsError,
-    "The provided host is not a file path",
+    (e: unknown) => {
+      if (!(e instanceof ConnectionParamsError)) {
+        throw new Error(`Unexpected error: ${e}`);
+      }
+
+      const expected_message = "The provided host is not a file path";
+
+      if (
+        typeof e?.cause?.message !== "string" ||
+        !e.cause.message.includes(expected_message)
+      ) {
+        throw new Error(
+          `Expected error message to include "${expected_message}"`,
+        );
+      }
+    },
   );
 });

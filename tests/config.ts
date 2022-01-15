@@ -1,4 +1,5 @@
 import { ClientConfiguration } from "../connection/connection_params.ts";
+import config_file1 from "./config.json" assert { type: "json" };
 
 type TcpConfiguration = Omit<ClientConfiguration, "connection"> & {
   host_type: "tcp";
@@ -7,54 +8,18 @@ type SocketConfiguration = Omit<ClientConfiguration, "connection" | "tls"> & {
   host_type: "socket";
 };
 
-type ConfigFileConnection =
-  & Pick<
-    ClientConfiguration,
-    "applicationName" | "database" | "hostname" | "password" | "port"
-  >
-  & {
-    socket: string;
-  };
-
-type Clear = ConfigFileConnection & {
-  users: {
-    clear: string;
-    socket: string;
-  };
-};
-
-type Classic = ConfigFileConnection & {
-  users: {
-    main: string;
-    md5: string;
-    socket: string;
-    tls_only: string;
-  };
-};
-
-type Scram = ConfigFileConnection & {
-  users: {
-    scram: string;
-    socket: string;
-  };
-};
-
-interface EnvironmentConfig {
-  postgres_clear: Clear;
-  postgres_md5: Classic;
-  postgres_scram: Scram;
+let DEV_MODE: string | undefined;
+try {
+  DEV_MODE = Deno.env.get("DENO_POSTGRES_DEVELOPMENT");
+} catch (e) {
+  if (e instanceof Deno.errors.PermissionDenied) {
+    throw new Error(
+      "You need to provide ENV access in order to run the test suite",
+    );
+  }
+  throw e;
 }
-
-const config_file: {
-  ci: EnvironmentConfig;
-  local: EnvironmentConfig;
-} = JSON.parse(
-  await Deno.readTextFile(new URL("./config.json", import.meta.url)),
-);
-
-const config = Deno.env.get("DENO_POSTGRES_DEVELOPMENT") === "true"
-  ? config_file.local
-  : config_file.ci;
+const config = DEV_MODE === "true" ? config_file1.local : config_file1.ci;
 
 const enabled_tls = {
   caCertificates: [

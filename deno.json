@@ -1,9 +1,0 @@
-{
-  "lint": {
-    "rules": {
-      "exclude": [
-        "camelcase"
-      ]
-    }
-  }
-}

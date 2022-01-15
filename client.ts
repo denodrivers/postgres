@@ -1,22 +1,22 @@
 import { Connection } from "./connection/connection.ts";
 import {
-  ClientConfiguration,
-  ClientOptions,
-  ConnectionString,
+  type ClientConfiguration,
+  type ClientOptions,
+  type ConnectionString,
   createParams,
 } from "./connection/connection_params.ts";
 import {
   Query,
-  QueryArguments,
-  QueryArrayResult,
-  QueryObjectOptions,
-  QueryObjectResult,
-  QueryOptions,
-  QueryResult,
+  type QueryArguments,
+  type QueryArrayResult,
+  type QueryObjectOptions,
+  type QueryObjectResult,
+  type QueryOptions,
+  type QueryResult,
   ResultType,
   templateStringToQuery,
 } from "./query/query.ts";
-import { Transaction, TransactionOptions } from "./query/transaction.ts";
+import { Transaction, type TransactionOptions } from "./query/transaction.ts";
 import { isTemplateString } from "./utils/utils.ts";
 
 export interface Session {
