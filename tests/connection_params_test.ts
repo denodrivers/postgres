@@ -370,7 +370,21 @@ Deno.test("Throws when host is a URL and host type is socket", () => {
         host_type: "socket",
         user: "some_user",
       }),
-    ConnectionParamsError,
-    "The provided host is not a file path",
+    (e: unknown) => {
+      if (!(e instanceof ConnectionParamsError)) {
+        throw new Error(`Unexpected error: ${e}`);
+      }
+
+      const expected_message = "The provided host is not a file path";
+
+      if (
+        typeof e?.cause?.message !== "string" ||
+        !e.cause.message.includes(expected_message)
+      ) {
+        throw new Error(
+          `Expected error message to include "${expected_message}"`,
+        );
+      }
+    },
   );
 });

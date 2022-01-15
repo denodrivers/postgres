@@ -1,4 +1,10 @@
-import { Client, ConnectionError, Pool, PostgresError } from "../mod.ts";
+import {
+  Client,
+  ConnectionError,
+  Pool,
+  PostgresError,
+  TransactionError,
+} from "../mod.ts";
 import {
   assert,
   assertEquals,
@@ -962,7 +968,7 @@ Deno.test(
 
     await assertRejects(
       () => transaction_rr.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 3`,
-      undefined,
+      TransactionError,
       undefined,
       "A serializable transaction should throw if the data read in the transaction has been modified externally",
     );
@@ -991,8 +997,9 @@ Deno.test(
 
     await assertRejects(
       () => transaction.queryArray`DELETE FROM FOR_TRANSACTION_TEST`,
+      TransactionError,
       undefined,
-      "cannot execute DELETE in a read-only transaction",
+      "DELETE shouldn't be able to be used in a read-only transaction",
     );
 
     await client.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
@@ -1055,14 +1062,15 @@ Deno.test(
 Deno.test(
   "Transaction locks client",
   withClient(async (client) => {
-    const transaction = client.createTransaction("x");
+    const name = "x";
+    const transaction = client.createTransaction(name);
 
     await transaction.begin();
     await transaction.queryArray`SELECT 1`;
     await assertRejects(
       () => client.queryArray`SELECT 1`,
-      undefined,
-      "This connection is currently locked",
+      Error,
+      `This connection is currently locked by the "${name}" transaction`,
       "The connection is not being locked by the transaction",
     );
     await transaction.commit();
@@ -1147,7 +1155,7 @@ Deno.test(
     await assertRejects(
       // @ts-ignore This is made to check the two properties aren't passed at once
       () => transaction.rollback({ savepoint: "unexistent", chain: true }),
-      undefined,
+      Error,
       "The chain option can't be used alongside a savepoint on a rollback operation",
     );
 
@@ -1164,16 +1172,16 @@ Deno.test(
     await transaction.begin();
     await assertRejects(
       () => transaction.queryArray`SELECT []`,
-      undefined,
-      `The transaction "${name}" has been aborted due to \`PostgresError:`,
+      TransactionError,
+      `The transaction "${name}" has been aborted`,
     );
     assertEquals(client.session.current_transaction, null);
 
     await transaction.begin();
     await assertRejects(
       () => transaction.queryObject`SELECT []`,
-      undefined,
-      `The transaction "${name}" has been aborted due to \`PostgresError:`,
+      TransactionError,
+      `The transaction "${name}" has been aborted`,
     );
     assertEquals(client.session.current_transaction, null);
   }),
@@ -1241,7 +1249,7 @@ Deno.test(
 
     await assertRejects(
       () => transaction.savepoint("1"),
-      undefined,
+      Error,
       "The savepoint name can't begin with a number",
     );
 
@@ -1250,13 +1258,13 @@ Deno.test(
         transaction.savepoint(
           "this_savepoint_is_going_to_be_longer_than_sixty_three_characters",
         ),
-      undefined,
+      Error,
       "The savepoint name can't be longer than 63 characters",
     );
 
     await assertRejects(
       () => transaction.savepoint("+"),
-      undefined,
+      Error,
       "The savepoint name can only contain alphanumeric characters",
     );
 
@@ -1274,19 +1282,19 @@ Deno.test(
 
     await assertRejects(
       () => savepoint.release(),
-      undefined,
+      Error,
       "This savepoint has no instances to release",
     );
 
     await assertRejects(
       () => transaction.rollback(savepoint),
-      undefined,
+      Error,
       `There are no savepoints of "abc1" left to rollback to`,
     );
 
     await assertRejects(
       () => transaction.rollback("UNEXISTENT"),
-      undefined,
+      Error,
       `There is no "unexistent" savepoint registered in this transaction`,
     );
 
@@ -1305,7 +1313,7 @@ Deno.test(
 
     await assertRejects(
       () => transaction_y.begin(),
-      undefined,
+      Error,
       `This client already has an ongoing transaction "x"`,
     );
 
@@ -1313,44 +1321,44 @@ Deno.test(
     await transaction_y.begin();
     await assertRejects(
       () => transaction_y.begin(),
-      undefined,
+      Error,
       "This transaction is already open",
     );
 
     await transaction_y.commit();
     await assertRejects(
       () => transaction_y.commit(),
-      undefined,
+      Error,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
     await assertRejects(
       () => transaction_y.commit(),
-      undefined,
+      Error,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
     await assertRejects(
       () => transaction_y.queryArray`SELECT 1`,
-      undefined,
+      Error,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
     await assertRejects(
       () => transaction_y.queryObject`SELECT 1`,
-      undefined,
+      Error,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
     await assertRejects(
       () => transaction_y.rollback(),
-      undefined,
+      Error,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
     await assertRejects(
       () => transaction_y.savepoint("SOME"),
-      undefined,
+      Error,
       `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
   }),
