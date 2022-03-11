@@ -17,7 +17,7 @@ import { fromFileUrl, isAbsolute } from "../deps.ts";
  * - sslmode
  * - user
  */
-export type ConnectionString = string;
+export type ConnectionString = `postgres://${string}`;
 
 /**
  * This function retrieves the connection options from the environmental variables
