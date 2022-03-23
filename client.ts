@@ -451,7 +451,7 @@ export abstract class QueryClient {
  * await client.end();
  * ```
  *
- * A client will execute all their queries in a sequencial fashion,
+ * A client will execute all their queries in a sequential fashion,
  * for concurrency capabilities check out connection pools
  *
  * ```ts
