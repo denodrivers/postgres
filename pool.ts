@@ -44,7 +44,7 @@ import { DeferredAccessStack } from "./utils/deferred.ts";
  * // Connection is created here, will be available from now on
  * const client_1 = await pool.connect();
  * await client_1.queryArray`SELECT 1`;
- * await client_1.release();
+ * client_1.release();
  *
  * // Same connection as before, will be reused instead of starting a new one
  * const client_2 = await pool.connect();
@@ -53,8 +53,8 @@ import { DeferredAccessStack } from "./utils/deferred.ts";
  * // New connection, since previous one is still in use
  * // There will be two open connections available from now on
  * const client_3 = await pool.connect();
- * await client_2.release();
- * await client_3.release();
+ * client_2.release();
+ * client_3.release();
  * ```
  */
 export class Pool {
@@ -157,7 +157,7 @@ export class Pool {
    * await pool.end();
    * const client = await pool.connect();
    * await client.queryArray`SELECT 1`; // Works!
-   * await client.release();
+   * client.release();
    * ```
    */
   async end(): Promise<void> {
