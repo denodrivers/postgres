@@ -1245,7 +1245,7 @@ const transaction = client.createTransaction(
 await transaction.savepoint("undo");
 await transaction.queryArray`TRUNCATE TABLE DONT_DELETE_ME`; // Oops, wrong table
 await transaction.rollback("undo"); // Truncate is rolled back, transaction continues
-await transaction.end();
+// Ongoing transaction operations here
 ```
 
 If we intended to rollback all changes but still continue in the current
@@ -1258,5 +1258,6 @@ await transaction.queryArray`INSERT INTO DONT_DELETE_ME VALUES (1)`;
 await transaction.queryArray`TRUNCATE TABLE DONT_DELETE_ME`;
 await transaction.rollback({ chain: true }); // All changes get undone
 await transaction.queryArray`INSERT INTO DONT_DELETE_ME VALUES (2)`; // Still inside the transaction
-await transaction.end();
+await transaction.commit();
+// Transaction ends, client gets unlocked
 ```
