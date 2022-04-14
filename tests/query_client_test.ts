@@ -892,6 +892,32 @@ Deno.test(
 );
 
 Deno.test(
+  "Transaction implement queryArray and queryObject correctly",
+  withClient(async (client) => {
+    const transaction = client.createTransaction("test");
+
+    await transaction.begin();
+
+    const data = 1;
+    {
+      const { rows: result } = await transaction.queryArray
+        `SELECT ${data}::INTEGER`;
+      assertEquals(result[0], [data]);
+    }
+    {
+      const { rows: result } = await transaction.queryObject({
+        text: "SELECT $1::INTEGER",
+        args: [data],
+        fields: ["data"],
+      });
+      assertEquals(result[0], { data });
+    }
+
+    await transaction.commit();
+  }),
+);
+
+Deno.test(
   "Transaction with repeatable read isolation level",
   withClientGenerator(async (generateClient) => {
     const client_1 = await generateClient();

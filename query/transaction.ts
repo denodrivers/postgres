@@ -397,7 +397,7 @@ export class Transaction {
       query = new Query(
         query_template_or_config,
         ResultType.ARRAY,
-        args as QueryArguments | undefined,
+        args[0] as QueryArguments | undefined,
       );
     } else if (isTemplateString(query_template_or_config)) {
       query = templateStringToQuery(
