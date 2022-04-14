@@ -894,8 +894,7 @@ Deno.test(
 Deno.test(
   "Transaction implement queryArray and queryObject correctly",
   withClient(async (client) => {
-    const transaction_name = "x";
-    const transaction = client.createTransaction(transaction_name);
+    const transaction = client.createTransaction("test");
 
     await transaction.begin();
 
