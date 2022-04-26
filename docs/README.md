@@ -593,7 +593,7 @@ arguments object
 
 Even thought the previous call is already pretty simple, it can be simplified
 even further by the use of template strings, offering all the benefits of
-prepared statements with a nice and clear syntaxis for your queries
+prepared statements with a nice and clear syntax for your queries
 
 ```ts
 {
