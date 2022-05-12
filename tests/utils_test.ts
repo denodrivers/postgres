@@ -1,6 +1,6 @@
 import { assertEquals, assertThrows } from "./test_deps.ts";
 import { parseConnectionUri, Uri } from "../utils/utils.ts";
-import { DeferredAccessStack } from "../utils/deferred.ts";
+import { DeferredAccessStack, DeferredStack } from "../utils/deferred.ts";
 
 class LazilyInitializedObject {
   #initialized = false;
@@ -205,6 +205,48 @@ Deno.test("Defaults to connection string literal if decoding fails", async (cont
       );
     }
   });
+});
+
+Deno.test("DeferredStack", async () => {
+  const stack = new DeferredStack<undefined>(
+    10,
+    [],
+    () => new Promise((r) => r(undefined)),
+  );
+
+  assertEquals(stack.size, 0);
+  assertEquals(stack.available, 0);
+
+  const item = await stack.pop();
+  assertEquals(stack.size, 1);
+  assertEquals(stack.available, 0);
+
+  stack.push(item);
+  assertEquals(stack.size, 1);
+  assertEquals(stack.available, 1);
+});
+
+Deno.test("An empty DeferredStack awaits until an object is back in the stack", async () => {
+  const stack = new DeferredStack<undefined>(
+    1,
+    [],
+    () => new Promise((r) => r(undefined)),
+  );
+
+  const a = await stack.pop();
+  let fulfilled = false;
+  const b = stack.pop()
+    .then((e) => {
+      fulfilled = true;
+      return e;
+    });
+
+  await new Promise((r) => setTimeout(r, 100));
+  assertEquals(fulfilled, false);
+
+  stack.push(a);
+  assertEquals(a, await b);
+  assertEquals(fulfilled, true);
 });
 
 Deno.test("DeferredAccessStack", async () => {
