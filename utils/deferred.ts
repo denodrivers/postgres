@@ -1,7 +1,7 @@
 import { type Deferred, deferred } from "../deps.ts";
 
 export class DeferredStack<T> {
-  #array: Array<T>;
+  #elements: Array<T>;
   #creator?: () => Promise<T>;
   #max_size: number;
   #queue: Array<Deferred<T>>;
@@ -12,35 +12,35 @@ export class DeferredStack<T> {
     ls?: Iterable<T>,
     creator?: () => Promise<T>,
   ) {
-    this.#array = ls ? [...ls] : [];
+    this.#elements = ls ? [...ls] : [];
     this.#creator = creator;
     this.#max_size = max || 10;
     this.#queue = [];
-    this.#size = this.#array.length;
+    this.#size = this.#elements.length;
   }
 
   get available(): number {
-    return this.#array.length;
+    return this.#elements.length;
   }
 
   async pop(): Promise<T> {
-    if (this.#array.length > 0) {
-      return this.#array.pop()!;
+    if (this.#elements.length > 0) {
+      return this.#elements.pop()!;
     } else if (this.#size < this.#max_size && this.#creator) {
       this.#size++;
       return await this.#creator();
     }
     const d = deferred<T>();
     this.#queue.push(d);
-    await d;
-    return this.#array.pop()!;
+    return await d;
   }
 
   push(value: T): void {
-    this.#array.push(value);
     if (this.#queue.length > 0) {
       const d = this.#queue.shift()!;
-      d.resolve();
+      d.resolve(value);
+    } else {
+      this.#elements.push(value);
     }
   }
 
@@ -62,7 +62,7 @@ export class DeferredAccessStack<T> {
   #elements: Array<T>;
   #initializeElement: (element: T) => Promise<void>;
   #checkElementInitialization: (element: T) => Promise<boolean> | boolean;
-  #queue: Array<Deferred<undefined>>;
+  #queue: Array<Deferred<T>>;
   #size: number;
 
   get available(): number {
@@ -112,10 +112,9 @@ export class DeferredAccessStack<T> {
     } else {
       // If there are not elements left in the stack, it will await the call until
       // at least one is restored and then return it
-      const d = deferred<undefined>();
+      const d = deferred<T>();
       this.#queue.push(d);
-      await d;
-      element = this.#elements.pop()!;
+      element = await d;
     }
 
     if (!await this.#checkElementInitialization(element)) {
@@ -125,12 +124,13 @@ export class DeferredAccessStack<T> {
   }
 
   push(value: T): void {
-    this.#elements.push(value);
     // If an element has been requested while the stack was empty, indicate
     // that an element has been restored
     if (this.#queue.length > 0) {
       const d = this.#queue.shift()!;
-      d.resolve();
+      d.resolve(value);
+    } else {
+      this.#elements.push(value);
     }
   }
 }

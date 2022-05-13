@@ -125,3 +125,18 @@ Deno.test(
     true,
   ),
 );
+
+Deno.test(
+  "Concurrent connect-then-release cycles do not throw",
+  testPool(async (POOL) => {
+    async function connectThenRelease() {
+      let client = await POOL.connect();
+      client.release();
+      client = await POOL.connect();
+      client.release();
+    }
+    await Promise.all(
+      Array.from({ length: POOL.size + 1 }, connectThenRelease),
+    );
+  }),
+);
