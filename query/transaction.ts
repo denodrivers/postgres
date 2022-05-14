@@ -240,6 +240,9 @@ export class Transaction {
     this.#updateClientLock(this.name);
   }
 
+  /** Should not commit the same transaction twice. */
+  #committed = false;
+
   /**
    * The commit method will make permanent all changes made to the database in the
    * current transaction and end the current transaction
@@ -277,13 +280,16 @@ export class Transaction {
 
     const chain = options?.chain ?? false;
 
-    try {
-      await this.queryArray(`COMMIT ${chain ? "AND CHAIN" : ""}`);
-    } catch (e) {
-      if (e instanceof PostgresError) {
-        throw new TransactionError(this.name, e);
-      } else {
-        throw e;
+    if (!this.#committed) {
+      this.#committed = true;
+      try {
+        await this.queryArray(`COMMIT ${chain ? "AND CHAIN" : ""}`);
+      } catch (e) {
+        if (e instanceof PostgresError) {
+          throw new TransactionError(this.name, e);
+        } else {
+          throw e;
+        }
       }
     }
 
