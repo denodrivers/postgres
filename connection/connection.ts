@@ -196,21 +196,29 @@ export class Connection {
     }
   }
 
+  /** https://www.postgresql.org/docs/14/protocol-flow.html#id-1.10.5.7.3 */
   async #sendStartupMessage(): Promise<Message> {
     const writer = this.#packetWriter;
     writer.clear();
+
     // protocol version - 3.0, written as
     writer.addInt16(3).addInt16(0);
-    const connParams = this.#connection_params;
+    // explicitly set utf-8 encoding
+    writer.addCString("client_encoding").addCString("'utf-8'");
+
     // TODO: recognize other parameters
-    writer.addCString("user").addCString(connParams.user);
-    writer.addCString("database").addCString(connParams.database);
+    writer.addCString("user").addCString(this.#connection_params.user);
+    writer.addCString("database").addCString(this.#connection_params.database);
     writer.addCString("application_name").addCString(
-      connParams.applicationName,
+      this.#connection_params.applicationName,
+    );
+    // The database expects options in the --key=value
+    writer.addCString("options").addCString(
+      Object.entries(this.#connection_params.options).map(([key, value]) =>
+        `--${key}=${value}`
+      ).join(" "),
     );
 
-    // eplicitly set utf-8 encoding
-    writer.addCString("client_encoding").addCString("'utf-8'");
     // terminator after all parameters were writter
     writer.addCString("");
 

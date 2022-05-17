@@ -84,6 +84,7 @@ export interface ClientOptions {
   database?: string;
   hostname?: string;
   host_type?: "tcp" | "socket";
+  options?: Record<string, string>;
   password?: string;
   port?: string | number;
   tls?: Partial<TLSOptions>;
@@ -96,6 +97,7 @@ export interface ClientConfiguration {
   database: string;
   hostname: string;
   host_type: "tcp" | "socket";
+  options: Record<string, string>;
   password?: string;
   port: number;
   tls: TLSOptions;
@@ -240,6 +242,7 @@ const DEFAULT_OPTIONS:
     host: "127.0.0.1",
     socket: "/tmp",
     host_type: "socket",
+    options: {},
     port: 5432,
     tls: {
       enabled: true,
@@ -344,6 +347,7 @@ export function createParams(
     database: params.database ?? pgEnv.database,
     hostname: host,
     host_type,
+    options: params.options ?? {},
     password: params.password ?? pgEnv.password,
     port,
     tls: {

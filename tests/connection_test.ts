@@ -654,3 +654,48 @@ Deno.test("Doesn't attempt reconnection when attempts are set to zero", async fu
     await client.end();
   }
 });
+
+Deno.test("Options are passed to the database on connection", async () => {
+  // Test for both cases cause we don't know what the default value of geqo is gonna be
+  {
+    const client = new Client({
+      ...getMainConfiguration(),
+      options: {
+        geqo: "off",
+      },
+    });
+
+    await client.connect();
+
+    try {
+      const { rows: result } = await client.queryObject<{ setting: string }>
+        `SELECT SETTING FROM PG_SETTINGS WHERE NAME = 'geqo'`;
+
+      assertEquals(result.length, 1);
+      assertEquals(result[0].setting, "off");
+    } finally {
+      await client.end();
+    }
+  }
+
+  {
+    const client = new Client({
+      ...getMainConfiguration(),
+      options: {
+        geqo: "on",
+      },
+    });
+
+    await client.connect();
+
+    try {
+      const { rows: result } = await client.queryObject<{ setting: string }>
+        `SELECT SETTING FROM PG_SETTINGS WHERE NAME = 'geqo'`;
+
+      assertEquals(result.length, 1);
+      assertEquals(result[0].setting, "on");
+    } finally {
+      await client.end();
+    }
+  }
+});
