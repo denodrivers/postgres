@@ -52,6 +52,9 @@ config = {
   hostname: "localhost",
   host_type: "tcp",
   password: "password",
+  options: {
+    "max_index_keys": "32",
+  },
   port: 5432,
   user: "user",
   tls: {
@@ -108,6 +111,9 @@ of search parameters such as the following:
 - host: If host is not specified in the url, this will be taken instead
 - password: If password is not specified in the url, this will be taken instead
 - port: If port is not specified in the url, this will be taken instead
+- options: This parameter can be used by other database engines usable through
+  the Postgres protocol (such as Cockroachdb for example) to send additional
+  values for connection (ej: options=--cluster=your_cluster_name)
 - sslmode: Allows you to specify the tls configuration for your client, the
   allowed values are the following:
   - disable: Skip TLS connection altogether
