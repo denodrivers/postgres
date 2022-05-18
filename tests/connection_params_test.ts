@@ -504,3 +504,32 @@ Deno.test("Throws when host is a URL and host type is socket", () => {
     },
   );
 });
+
+Deno.test("Escapes spaces on option values", () => {
+  const value = "space here";
+
+  const p = createParams({
+    database: "some_db",
+    user: "some_user",
+    options: {
+      "key": value,
+    },
+  });
+
+  assertEquals(value.replaceAll(" ", "\\ "), p.options.key);
+});
+
+Deno.test("Throws on invalid option keys", () => {
+  assertThrows(
+    () =>
+      createParams({
+        database: "some_db",
+        user: "some_user",
+        options: {
+          "asd a": "a",
+        },
+      }),
+    Error,
+    'The "asd a" key in the options argument is invalid',
+  );
+});

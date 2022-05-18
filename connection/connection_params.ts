@@ -373,6 +373,14 @@ export function createParams(
     options = {};
   }
 
+  for (const key in options) {
+    if (!/^\w+$/.test(key)) {
+      throw new Error(`The "${key}" key in the options argument is invalid`);
+    }
+
+    options[key] = options[key].replaceAll(" ", "\\ ");
+  }
+
   let port: number;
   if (params.port) {
     port = Number(params.port);
