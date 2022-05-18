@@ -154,6 +154,7 @@ interface PostgresUri {
   dbname?: string;
   driver: string;
   host?: string;
+  options?: string;
   password?: string;
   port?: string;
   sslmode?: TLSModes;
@@ -169,6 +170,7 @@ function parseOptionsFromUri(connString: string): ClientOptions {
       dbname: uri.path || uri.params.dbname,
       driver: uri.driver,
       host: uri.host || uri.params.host,
+      options: uri.params.options,
       password: uri.password || uri.params.password,
       port: uri.port || uri.params.port,
       // Compatibility with JDBC, not standard
@@ -195,6 +197,49 @@ function parseOptionsFromUri(connString: string): ClientOptions {
   const host_type = postgres_uri.host
     ? (isAbsolute(postgres_uri.host) ? "socket" : "tcp")
     : "socket";
+
+  const options: Record<string, string> = {};
+  if (postgres_uri.options) {
+    const args = postgres_uri.options.split(" ");
+
+    const transformed_args = [];
+    for (let x = 0; x < args.length; x++) {
+      if (/^-\w/.test(args[x])) {
+        if (args[x] === "-c") {
+          if (args[x + 1] === undefined) {
+            throw new Error(
+              `No provided value for "${args[x]}" in options parameter`,
+            );
+          }
+
+          // Skip next iteration
+          transformed_args.push(args[x + 1]);
+          x++;
+        } else {
+          throw new Error(
+            `Argument "${args[x]}" is not supported in options parameter`,
+          );
+        }
+      } else if (/^--\w/.test(args[x])) {
+        transformed_args.push(args[x].slice(2));
+      } else {
+        throw new Error(
+          `Value "${args[x]}" is not a valid options argument`,
+        );
+      }
+    }
+
+    for (const x of transformed_args) {
+      if (!/.+=.+/.test(x)) {
+        throw new Error(`Value "${x}" is not a valid options argument`);
+      }
+
+      const key = x.slice(0, x.indexOf("="));
+      const value = x.slice(x.indexOf("=") + 1);
+
+      options[key] = value;
+    }
+  }
 
   let tls: TLSOptions | undefined;
   switch (postgres_uri.sslmode) {
@@ -225,6 +270,7 @@ function parseOptionsFromUri(connString: string): ClientOptions {
     database: postgres_uri.dbname,
     hostname: postgres_uri.host,
     host_type,
+    options,
     password: postgres_uri.password,
     port: postgres_uri.port,
     tls,

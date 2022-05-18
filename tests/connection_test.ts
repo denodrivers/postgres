@@ -661,7 +661,7 @@ Deno.test("Options are passed to the database on connection", async () => {
     const client = new Client({
       ...getMainConfiguration(),
       options: {
-        geqo: "off",
+        "geqo": "off",
       },
     });
 

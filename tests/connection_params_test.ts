@@ -114,6 +114,91 @@ Deno.test("Parses connection string with sslmode required", function () {
   assertEquals(p.tls.enforce, true);
 });
 
+Deno.test("Parses connection string with options", () => {
+  {
+    const params = {
+      x: "1",
+      y: "2",
+    };
+
+    const params_as_args = Object.entries(params).map(([key, value]) =>
+      `--${key}=${value}`
+    ).join(" ");
+
+    const p = createParams(
+      `postgres://some_user@some_host:10101/deno_postgres?options=${
+        encodeURIComponent(params_as_args)
+      }`,
+    );
+
+    assertEquals(p.options, params);
+  }
+
+  // Test arguments provided with the -c flag
+  {
+    const params = {
+      x: "1",
+      y: "2",
+    };
+
+    const params_as_args = Object.entries(params).map(([key, value]) =>
+      `-c ${key}=${value}`
+    ).join(" ");
+
+    const p = createParams(
+      `postgres://some_user@some_host:10101/deno_postgres?options=${
+        encodeURIComponent(params_as_args)
+      }`,
+    );
+
+    assertEquals(p.options, params);
+  }
+});
+
+Deno.test("Throws on connection string with invalid options", () => {
+  assertThrows(
+    () =>
+      createParams(
+        `postgres://some_user@some_host:10101/deno_postgres?options=z`,
+      ),
+    Error,
+    `Value "z" is not a valid options argument`,
+  );
+
+  assertThrows(
+    () =>
+      createParams(
+        `postgres://some_user@some_host:10101/deno_postgres?options=${
+          encodeURIComponent("-c")
+        }`,
+      ),
+    Error,
+    `No provided value for "-c" in options parameter`,
+  );
+
+  assertThrows(
+    () =>
+      createParams(
+        `postgres://some_user@some_host:10101/deno_postgres?options=${
+          encodeURIComponent("-c a")
+        }`,
+      ),
+    Error,
+    `Value "a" is not a valid options argument`,
+  );
+
+  assertThrows(
+    () =>
+      createParams(
+        `postgres://some_user@some_host:10101/deno_postgres?options=${
+          encodeURIComponent("-b a=1")
+        }`,
+      ),
+    Error,
+    `Argument "-b" is not supported in options parameter`,
+  );
+});
+
 Deno.test("Throws on connection string with invalid driver", function () {
   assertThrows(
     () =>
