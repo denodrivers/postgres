@@ -12,6 +12,7 @@ import { fromFileUrl, isAbsolute } from "../deps.ts";
  * - application_name
  * - dbname
  * - host
+ * - options
  * - password
  * - port
  * - sslmode
@@ -27,12 +28,13 @@ export type ConnectionString = string;
  */
 function getPgEnv(): ClientOptions {
   return {
+    applicationName: Deno.env.get("PGAPPNAME"),
     database: Deno.env.get("PGDATABASE"),
     hostname: Deno.env.get("PGHOST"),
+    options: Deno.env.get("PGOPTIONS"),
+    password: Deno.env.get("PGPASSWORD"),
     port: Deno.env.get("PGPORT"),
     user: Deno.env.get("PGUSER"),
-    password: Deno.env.get("PGPASSWORD"),
-    applicationName: Deno.env.get("PGAPPNAME"),
   };
 }
 
@@ -84,7 +86,7 @@ export interface ClientOptions {
   database?: string;
   hostname?: string;
   host_type?: "tcp" | "socket";
-  options?: Record<string, string>;
+  options?: string | Record<string, string>;
   password?: string;
   port?: string | number;
   tls?: Partial<TLSOptions>;
@@ -161,10 +163,54 @@ interface PostgresUri {
   user?: string;
 }
 
-function parseOptionsFromUri(connString: string): ClientOptions {
+function parseOptionsArgument(options: string): Record<string, string> {
+  const args = options.split(" ");
+
+  const transformed_args = [];
+  for (let x = 0; x < args.length; x++) {
+    if (/^-\w/.test(args[x])) {
+      if (args[x] === "-c") {
+        if (args[x + 1] === undefined) {
+          throw new Error(
+            `No provided value for "${args[x]}" in options parameter`,
+          );
+        }
+
+        // Skip next iteration
+        transformed_args.push(args[x + 1]);
+        x++;
+      } else {
+        throw new Error(
+          `Argument "${args[x]}" is not supported in options parameter`,
+        );
+      }
+    } else if (/^--\w/.test(args[x])) {
+      transformed_args.push(args[x].slice(2));
+    } else {
+      throw new Error(
+        `Value "${args[x]}" is not a valid options argument`,
+      );
+    }
+  }
+
+  return transformed_args.reduce((options, x) => {
+    if (!/.+=.+/.test(x)) {
+      throw new Error(`Value "${x}" is not a valid options argument`);
+    }
+
+    const key = x.slice(0, x.indexOf("="));
+    const value = x.slice(x.indexOf("=") + 1);
+
+    options[key] = value;
+
+    return options;
+  }, {} as Record<string, string>);
+}
+
+function parseOptionsFromUri(connection_string: string): ClientOptions {
   let postgres_uri: PostgresUri;
   try {
-    const uri = parseConnectionUri(connString);
+    const uri = parseConnectionUri(connection_string);
     postgres_uri = {
       application_name: uri.params.application_name,
       dbname: uri.path || uri.params.dbname,
@@ -198,48 +244,9 @@ function parseOptionsFromUri(connString: string): ClientOptions {
     ? (isAbsolute(postgres_uri.host) ? "socket" : "tcp")
     : "socket";
 
-  const options: Record<string, string> = {};
-  if (postgres_uri.options) {
-    const args = postgres_uri.options.split(" ");
-
-    const transformed_args = [];
-    for (let x = 0; x < args.length; x++) {
-      if (/^-\w/.test(args[x])) {
-        if (args[x] === "-c") {
-          if (args[x + 1] === undefined) {
-            throw new Error(
-              `No provided value for "${args[x]}" in options parameter`,
-            );
-          }
-
-          // Skip next iteration
-          transformed_args.push(args[x + 1]);
-          x++;
-        } else {
-          throw new Error(
-            `Argument "${args[x]}" is not supported in options parameter`,
-          );
-        }
-      } else if (/^--\w/.test(args[x])) {
-        transformed_args.push(args[x].slice(2));
-      } else {
-        throw new Error(
-          `Value "${args[x]}" is not a valid options argument`,
-        );
-      }
-    }
-
-    for (const x of transformed_args) {
-      if (!/.+=.+/.test(x)) {
-        throw new Error(`Value "${x}" is not a valid options argument`);
-      }
-
-      const key = x.slice(0, x.indexOf("="));
-      const value = x.slice(x.indexOf("=") + 1);
-
-      options[key] = value;
-    }
-  }
+  const options = postgres_uri.options
+    ? parseOptionsArgument(postgres_uri.options)
+    : {};
 
   let tls: TLSOptions | undefined;
   switch (postgres_uri.sslmode) {
@@ -353,6 +360,19 @@ export function createParams(
     host = provided_host ?? DEFAULT_OPTIONS.host;
   }
 
+  const provided_options = params.options ?? pgEnv.options;
+
+  let options: Record<string, string>;
+  if (provided_options) {
+    if (typeof provided_options === "string") {
+      options = parseOptionsArgument(provided_options);
+    } else {
+      options = provided_options;
+    }
+  } else {
+    options = {};
+  }
+
   let port: number;
   if (params.port) {
     port = Number(params.port);
@@ -393,7 +413,7 @@ export function createParams(
     database: params.database ?? pgEnv.database,
     hostname: host,
     host_type,
-    options: params.options ?? {},
+    options,
     password: params.password ?? pgEnv.password,
     port,
     tls: {
