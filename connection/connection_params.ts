@@ -50,7 +50,13 @@ export interface ConnectionOptions {
   attempts: number;
 }
 
-type TLSModes = "disable" | "prefer" | "require";
+/** https://www.postgresql.org/docs/14/libpq-ssl.html#LIBPQ-SSL-PROTECTION */
+type TLSModes =
+  | "disable"
+  | "prefer"
+  | "require"
+  | "verify-ca"
+  | "verify-full";
 
 // TODO
 // Refactor enabled and enforce into one single option for 1.0
@@ -261,13 +267,15 @@ function parseOptionsFromUri(connection_string: string): ClientOptions {
       tls = { enabled: true, enforce: false, caCertificates: [] };
       break;
     }
-    case "require": {
+    case "require":
+    case "verify-ca":
+    case "verify-full": {
       tls = { enabled: true, enforce: true, caCertificates: [] };
       break;
     }
     default: {
       throw new ConnectionParamsError(
-        `Supplied DSN has invalid sslmode '${postgres_uri.sslmode}'. Only 'disable', 'require', and 'prefer' are supported`,
+        `Supplied DSN has invalid sslmode '${postgres_uri.sslmode}'`,
       );
     }
   }
