@@ -242,10 +242,10 @@ Deno.test("Throws on connection string with invalid ssl mode", function () {
   assertThrows(
     () =>
       createParams(
-        "postgres://some_user@some_host:10101/deno_postgres?sslmode=verify-full",
+        "postgres://some_user@some_host:10101/deno_postgres?sslmode=invalid",
       ),
     ConnectionParamsError,
-    "Supplied DSN has invalid sslmode 'verify-full'. Only 'disable', 'require', and 'prefer' are supported",
+    "Supplied DSN has invalid sslmode 'invalid'",
   );
 });
 

@@ -116,11 +116,14 @@ of search parameters such as the following:
   values for connection (ej: options=--cluster=your_cluster_name)
 - sslmode: Allows you to specify the tls configuration for your client, the
   allowed values are the following:
-  - disable: Skip TLS connection altogether
-  - prefer: Attempt to stablish a TLS connection, default to unencrypted if the
-    negotiation fails
+
+  - verify-full: Same behaviour as `require`
+  - verify-ca: Same behaviour as `require`
   - require: Attempt to stablish a TLS connection, abort the connection if the
     negotiation fails
+  - prefer: Attempt to stablish a TLS connection, default to unencrypted if the
+    negotiation fails
+  - disable: Skip TLS connection altogether
 - user: If user is not specified in the url, this will be taken instead
 
 #### Password encoding
