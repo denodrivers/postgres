@@ -78,6 +78,8 @@ the database name and your user, the rest of them have sensible defaults to save
 up time when configuring your connection, such as the following:
 
 - connection.attempts: "1"
+- connection.interval: Exponential backoff increasing the time by 500 ms on
+  every reconnection
 - hostname: If host_type is set to TCP, it will be "127.0.0.1". Otherwise, it
   will default to the "/tmp" folder to look for a socket connection
 - host_type: "socket", unless a host is manually specified
@@ -195,11 +197,31 @@ try {
 }
 ```
 
-Your initial connection will also be affected by this setting, in a slightly
+Your initial connection will also be affected by this setting in a slightly
 different manner than already active errored connections. If you fail to connect
 to your database in the first attempt, the client will keep trying to connect as
 many times as requested, meaning that if your attempt configuration is three,
 your total first-connection-attempts will ammount to four.
+
+Additionally you can set an interval before each reconnection by using the
+`interval` parameter. This can be either a plane number or a function where the
+developer receives the previous interval and returns the new one, making it easy
+to implement exponential backoff (Note: the initial interval for this function
+is always gonna be zero)
+
+```ts
+// Eg: A client that increases the reconnection time by multiplying the previous interval by 2
+const client = new Client({
+  connection: {
+    attempts: 0,
+    interval: (prev_interval) => {
+      // Initial interval is always gonna be zero
+      if (prev_interval === 0) return 2;
+      return prev_interval * 2;
+    },
+  },
+});
+```
 
 ### Unix socket connection
 
