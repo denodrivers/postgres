@@ -48,6 +48,14 @@ export interface ConnectionOptions {
    * default: `1`
    */
   attempts: number;
+  /**
+   * The time to wait before attempting each reconnection (in milliseconds)
+   *
+   * You can provide a fixed number or a function to call each time the
+   * connection is attempted. By default, the interval will be a function
+   * with an exponential backoff increasing by 500 milliseconds
+   */
+  interval: number | ((previous_interval: number) => number);
 }
 
 /** https://www.postgresql.org/docs/14/libpq-ssl.html#LIBPQ-SSL-PROTECTION */
@@ -299,6 +307,7 @@ const DEFAULT_OPTIONS:
     applicationName: "deno_postgres",
     connection: {
       attempts: 1,
+      interval: (previous_interval) => previous_interval + 500,
     },
     host: "127.0.0.1",
     socket: "/tmp",
@@ -425,6 +434,8 @@ export function createParams(
     connection: {
       attempts: params?.connection?.attempts ??
         DEFAULT_OPTIONS.connection.attempts,
+      interval: params?.connection?.interval ??
+        DEFAULT_OPTIONS.connection.interval,
     },
     database: params.database ?? pgEnv.database,
     hostname: host,
