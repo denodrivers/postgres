@@ -26,7 +26,14 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { bold, BufReader, BufWriter, joinPath, yellow } from "../deps.ts";
+import {
+  bold,
+  BufReader,
+  BufWriter,
+  delay,
+  joinPath,
+  yellow,
+} from "../deps.ts";
 import { DeferredStack } from "../utils/deferred.ts";
 import { getSocketName, readUInt32BE } from "../utils/utils.ts";
 import { PacketWriter } from "./packet.ts";
@@ -461,10 +468,23 @@ export class Connection {
         error = e;
       }
     } else {
-      // If the reconnection attempts are set to zero the client won't attempt to
-      // reconnect, but it won't error either, this "no reconnections" behavior
-      // should be handled wherever the reconnection is requested
+      let interval =
+        typeof this.#connection_params.connection.interval === "number"
+          ? this.#connection_params.connection.interval
+          : 0;
       while (reconnection_attempts < max_reconnections) {
+        // Don't wait for the interval on the first connection
+        if (reconnection_attempts > 0) {
+          if (
+            typeof this.#connection_params.connection.interval === "function"
+          ) {
+            interval = this.#connection_params.connection.interval(interval);
+          }
+
+          if (interval > 0) {
+            await delay(interval);
+          }
+        }
         try {
           await this.#startup();
           break;
