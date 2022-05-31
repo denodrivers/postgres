@@ -233,16 +233,16 @@ export abstract class QueryClient {
     this.#terminated = true;
   }
 
-  #executeQuery<T extends Array<unknown>>(
+  async #executeQuery<T extends Array<unknown>>(
     _query: Query<ResultType.ARRAY>,
   ): Promise<QueryArrayResult<T>>;
-  #executeQuery<T>(
+  async #executeQuery<T>(
     _query: Query<ResultType.OBJECT>,
   ): Promise<QueryObjectResult<T>>;
-  #executeQuery(
+  async #executeQuery(
     query: Query<ResultType>,
   ): Promise<QueryResult> {
-    return this.#connection.query(query);
+    return await this.#connection.query(query);
   }
 
   /**
@@ -280,18 +280,18 @@ export abstract class QueryClient {
    * const {rows} = await my_client.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
    * ```
    */
-  queryArray<T extends Array<unknown>>(
+  async queryArray<T extends Array<unknown>>(
     query: string,
     args?: QueryArguments,
   ): Promise<QueryArrayResult<T>>;
-  queryArray<T extends Array<unknown>>(
+  async queryArray<T extends Array<unknown>>(
     config: QueryOptions,
   ): Promise<QueryArrayResult<T>>;
-  queryArray<T extends Array<unknown>>(
+  async queryArray<T extends Array<unknown>>(
     strings: TemplateStringsArray,
     ...args: unknown[]
   ): Promise<QueryArrayResult<T>>;
-  queryArray<T extends Array<unknown> = Array<unknown>>(
+  async queryArray<T extends Array<unknown> = Array<unknown>>(
     query_template_or_config: TemplateStringsArray | string | QueryOptions,
     ...args: unknown[] | [QueryArguments | undefined]
   ): Promise<QueryArrayResult<T>> {
@@ -320,7 +320,7 @@ export abstract class QueryClient {
       query = new Query(query_template_or_config, ResultType.ARRAY);
     }
 
-    return this.#executeQuery(query);
+    return await this.#executeQuery(query);
   }
 
   /**
@@ -382,18 +382,18 @@ export abstract class QueryClient {
    * const { rows } = await my_client.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
    * ```
    */
-  queryObject<T>(
+  async queryObject<T>(
     query: string,
     args?: QueryArguments,
   ): Promise<QueryObjectResult<T>>;
-  queryObject<T>(
+  async queryObject<T>(
     config: QueryObjectOptions,
   ): Promise<QueryObjectResult<T>>;
-  queryObject<T>(
+  async queryObject<T>(
     query: TemplateStringsArray,
     ...args: unknown[]
   ): Promise<QueryObjectResult<T>>;
-  queryObject<
+  async queryObject<
     T = Record<string, unknown>,
   >(
     query_template_or_config:
@@ -430,7 +430,7 @@ export abstract class QueryClient {
       );
     }
 
-    return this.#executeQuery<T>(query);
+    return await this.#executeQuery<T>(query);
   }
 
   protected resetSessionMetadata() {
