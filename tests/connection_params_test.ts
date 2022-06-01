@@ -222,7 +222,7 @@ Deno.test("Throws on connection string with invalid driver", function () {
       createParams(
         "somedriver://some_user@some_host:10101/deno_postgres",
       ),
-    undefined,
+    Error,
     "Supplied DSN has invalid driver: somedriver.",
   );
 });

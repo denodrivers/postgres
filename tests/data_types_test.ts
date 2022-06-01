@@ -767,12 +767,12 @@ Deno.test(
       new Date().toISOString().slice(0, -1),
     ];
 
-    const result = await client.queryArray<[[Timestamp, Timestamp]]>(
+    const { rows: result } = await client.queryArray<[[Date, Date]]>(
       "SELECT ARRAY[$1::TIMESTAMP, $2]",
       timestamps,
     );
 
-    assertEquals(result.rows[0][0], timestamps.map((x) => new Date(x)));
+    assertEquals(result[0][0], timestamps.map((x) => new Date(x)));
   }),
 );
 
@@ -943,13 +943,13 @@ Deno.test(
     await client.queryArray(`SET SESSION TIMEZONE TO '${timezone}'`);
     const dates = ["2020-01-01", date.format(new Date(), "yyyy-MM-dd")];
 
-    const result = await client.queryArray<[Timestamp, Timestamp]>(
+    const { rows: result } = await client.queryArray<[[Date, Date]]>(
       "SELECT ARRAY[$1::DATE, $2]",
       dates,
     );
 
     assertEquals(
-      result.rows[0][0],
+      result[0][0],
       dates.map((d) => date.parse(d, "yyyy-MM-dd")),
     );
   }),

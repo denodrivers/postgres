@@ -276,7 +276,7 @@ Deno.test("Exposes session PID", async () => {
   await client.connect();
 
   try {
-    const { rows } = await client.queryObject<{ pid: string }>(
+    const { rows } = await client.queryObject<{ pid: number }>(
       "SELECT PG_BACKEND_PID() AS PID",
     );
     assertEquals(client.session.pid, rows[0].pid);
@@ -544,7 +544,7 @@ Deno.test("Attempts reconnection on disconnection", async function () {
     );
     assertEquals(client.connected, false);
 
-    const { rows: result_1 } = await client.queryObject<{ pid: string }>({
+    const { rows: result_1 } = await client.queryObject<{ pid: number }>({
       text: "SELECT PG_BACKEND_PID() AS PID",
       fields: ["pid"],
     });
