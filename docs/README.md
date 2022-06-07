@@ -3,7 +3,7 @@
 ![Build Status](https://img.shields.io/github/workflow/status/denodrivers/postgres/ci?label=Build&logo=github&style=flat-square)
 [![Discord server](https://img.shields.io/discord/768918486575480863?color=blue&label=Ask%20for%20help%20here&logo=discord&style=flat-square)](https://discord.gg/HEdTCvZUSf)
 ![Manual](https://img.shields.io/github/v/release/denodrivers/postgres?color=orange&label=Manual&logo=deno&style=flat-square)
-[![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://doc.deno.land/https/deno.land/x/postgres@v0.16.0/mod.ts)
+[![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://doc.deno.land/https/deno.land/x/postgres@v0.16.1/mod.ts)
 ![License](https://img.shields.io/github/license/denodrivers/postgres?color=yellowgreen&label=License&style=flat-square)
 
 `deno-postgres` is a lightweight PostgreSQL driver for Deno focused on user
@@ -11,7 +11,7 @@ experience. It provides abstractions for most common operations such as typed
 queries, prepared statements, connection pools and transactions.
 
 ```ts
-import { Client } from "https://deno.land/x/postgres@v0.16.0/mod.ts";
+import { Client } from "https://deno.land/x/postgres@v0.16.1/mod.ts";
 
 const client = new Client({
   user: "user",
@@ -38,7 +38,7 @@ All `deno-postgres` clients provide the following options to authenticate and
 manage your connections
 
 ```ts
-import { Client } from "https://deno.land/x/postgres@v0.16.0/mod.ts";
+import { Client } from "https://deno.land/x/postgres@v0.16.1/mod.ts";
 
 let config;
 
