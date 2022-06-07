@@ -219,12 +219,14 @@ export class Connection {
     writer.addCString("application_name").addCString(
       this.#connection_params.applicationName,
     );
-    // The database expects options in the --key=value
-    writer.addCString("options").addCString(
-      Object.entries(this.#connection_params.options).map(([key, value]) =>
-        `--${key}=${value}`
-      ).join(" "),
-    );
+
+    const connection_options = Object.entries(this.#connection_params.options);
+    if (connection_options.length > 0) {
+      // The database expects options in the --key=value
+      writer.addCString("options").addCString(
+        connection_options.map(([key, value]) => `--${key}=${value}`).join(" "),
+      );
+    }
 
     // terminator after all parameters were writter
     writer.addCString("");
