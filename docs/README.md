@@ -337,7 +337,7 @@ TLS encrypted connections.
 
 #### About invalid and custom TLS certificates
 
-There is a miriad of factors you have to take into account when using a
+There is a myriad of factors you have to take into account when using a
 certificate to encrypt your connection that, if not taken care of, can render
 your certificate invalid.
 
