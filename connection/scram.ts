@@ -110,7 +110,7 @@ async function deriveKeySignatures(
       salt,
     },
     pbkdf2_password,
-    { name: "HMAC", hash: "SHA-256" },
+    { name: "HMAC", hash: "SHA-256", length: 256 },
     false,
     ["sign"],
   );
