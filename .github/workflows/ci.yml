@@ -12,7 +12,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: 1.17.3
+          deno-version: 1.26.2
       
       - name: Format
         run: deno fmt --check
@@ -45,7 +45,7 @@ jobs:
       - name: Report no typechecking tests status
         id: no_typecheck_status
         if: steps.no_typecheck.outcome == 'success'
-        run: echo "::set-output name=status::success"
+        run: echo "name=status::success" >> $GITHUB_OUTPUT
     outputs:
       no_typecheck: ${{ steps.no_typecheck.outputs.stdout }}
       no_typecheck_status: ${{ steps.no_typecheck_status.outputs.status }}
