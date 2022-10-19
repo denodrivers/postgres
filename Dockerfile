@@ -1,4 +1,4 @@
-FROM denoland/deno:alpine-1.26.1
+FROM denoland/deno:alpine-1.26.2
 WORKDIR /app
 
 # Install wait utility
