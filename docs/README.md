@@ -628,16 +628,16 @@ prepared statements with a nice and clear syntax for your queries
 
 ```ts
 {
-  const result = await client.queryArray
-    `SELECT ID, NAME FROM PEOPLE WHERE AGE > ${10} AND AGE < ${20}`;
+  const result = await client
+    .queryArray`SELECT ID, NAME FROM PEOPLE WHERE AGE > ${10} AND AGE < ${20}`;
   console.log(result.rows);
 }
 
 {
   const min = 10;
   const max = 20;
-  const result = await client.queryObject
-    `SELECT ID, NAME FROM PEOPLE WHERE AGE > ${min} AND AGE < ${max}`;
+  const result = await client
+    .queryObject`SELECT ID, NAME FROM PEOPLE WHERE AGE > ${min} AND AGE < ${max}`;
   console.log(result.rows);
 }
 ```
@@ -686,8 +686,8 @@ await client.queryArray`UPDATE TABLE X SET Y = 0 WHERE Z = ${my_id}`;
 // Invalid attempt to replace an specifier
 const my_table = "IMPORTANT_TABLE";
 const my_other_id = 41;
-await client.queryArray
-  `DELETE FROM ${my_table} WHERE MY_COLUMN = ${my_other_id};`;
+await client
+  .queryArray`DELETE FROM ${my_table} WHERE MY_COLUMN = ${my_other_id};`;
 ```
 
 ### Specifying result type
@@ -706,8 +706,9 @@ intellisense
 }
 
 {
-  const array_result = await client.queryArray<[number, string]>
-    `SELECT ID, NAME FROM PEOPLE WHERE ID = ${17}`;
+  const array_result = await client.queryArray<
+    [number, string]
+  >`SELECT ID, NAME FROM PEOPLE WHERE ID = ${17}`;
   // [number, string]
   const person = array_result.rows[0];
 }
@@ -721,8 +722,9 @@ intellisense
 }
 
 {
-  const object_result = await client.queryObject<{ id: number; name: string }>
-    `SELECT ID, NAME FROM PEOPLE WHERE ID = ${17}`;
+  const object_result = await client.queryObject<
+    { id: number; name: string }
+  >`SELECT ID, NAME FROM PEOPLE WHERE ID = ${17}`;
   // {id: number, name: string}
   const person = object_result.rows[0];
 }
@@ -1037,8 +1039,8 @@ const transaction = client_1.createTransaction("transaction_1");
 
 await transaction.begin();
 
-await transaction.queryArray
-  `CREATE TABLE TEST_RESULTS (USER_ID INTEGER, GRADE NUMERIC(10,2))`;
+await transaction
+  .queryArray`CREATE TABLE TEST_RESULTS (USER_ID INTEGER, GRADE NUMERIC(10,2))`;
 await transaction.queryArray`CREATE TABLE GRADUATED_STUDENTS (USER_ID INTEGER)`;
 
 // This operation takes several minutes
@@ -1087,16 +1089,18 @@ following levels of transaction isolation:
   await transaction.begin();
   // This locks the current value of IMPORTANT_TABLE
   // Up to this point, all other external changes will be included
-  const { rows: query_1 } = await transaction.queryObject<{ password: string }>
-    `SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
+  const { rows: query_1 } = await transaction.queryObject<
+    { password: string }
+  >`SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
   const password_1 = rows[0].password;
 
   // Concurrent operation executed by a different user in a different part of the code
-  await client_2.queryArray
-    `UPDATE IMPORTANT_TABLE SET PASSWORD = 'something_else' WHERE ID = ${the_same_id}`;
+  await client_2
+    .queryArray`UPDATE IMPORTANT_TABLE SET PASSWORD = 'something_else' WHERE ID = ${the_same_id}`;
 
-  const { rows: query_2 } = await transaction.queryObject<{ password: string }>
-    `SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
+  const { rows: query_2 } = await transaction.queryObject<
+    { password: string }
+  >`SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
   const password_2 = rows[0].password;
 
   // Database state is not updated while the transaction is ongoing
@@ -1124,18 +1128,19 @@ following levels of transaction isolation:
   await transaction.begin();
   // This locks the current value of IMPORTANT_TABLE
   // Up to this point, all other external changes will be included
-  await transaction.queryObject<{ password: string }>
-    `SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
+  await transaction.queryObject<
+    { password: string }
+  >`SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
 
   // Concurrent operation executed by a different user in a different part of the code
-  await client_2.queryArray
-    `UPDATE IMPORTANT_TABLE SET PASSWORD = 'something_else' WHERE ID = ${the_same_id}`;
+  await client_2
+    .queryArray`UPDATE IMPORTANT_TABLE SET PASSWORD = 'something_else' WHERE ID = ${the_same_id}`;
 
   // This statement will throw
   // Target was modified outside of the transaction
   // User may not be aware of the changes
-  await transaction.queryArray
-    `UPDATE IMPORTANT_TABLE SET PASSWORD = 'shiny_new_password' WHERE ID = ${the_same_id}`;
+  await transaction
+    .queryArray`UPDATE IMPORTANT_TABLE SET PASSWORD = 'shiny_new_password' WHERE ID = ${the_same_id}`;
 
   // Transaction is aborted, no need to end it
 

@@ -370,9 +370,6 @@ Deno.test("Closes connection on bad TLS availability verification", async functi
     new URL("./workers/postgres_server.ts", import.meta.url).href,
     {
       type: "module",
-      deno: {
-        namespace: true,
-      },
     },
   );
 
@@ -437,9 +434,6 @@ async function mockReconnection(attempts: number) {
     new URL("./workers/postgres_server.ts", import.meta.url).href,
     {
       type: "module",
-      deno: {
-        namespace: true,
-      },
     },
   );
 
@@ -668,8 +662,9 @@ Deno.test("Options are passed to the database on connection", async () => {
     await client.connect();
 
     try {
-      const { rows: result } = await client.queryObject<{ setting: string }>
-        `SELECT SETTING FROM PG_SETTINGS WHERE NAME = 'geqo'`;
+      const { rows: result } = await client.queryObject<
+        { setting: string }
+      >`SELECT SETTING FROM PG_SETTINGS WHERE NAME = 'geqo'`;
 
       assertEquals(result.length, 1);
       assertEquals(result[0].setting, "off");
@@ -689,8 +684,9 @@ Deno.test("Options are passed to the database on connection", async () => {
     await client.connect();
 
     try {
-      const { rows: result } = await client.queryObject<{ setting: string }>
-        `SELECT SETTING FROM PG_SETTINGS WHERE NAME = 'geqo'`;
+      const { rows: result } = await client.queryObject<
+        { setting: string }
+      >`SELECT SETTING FROM PG_SETTINGS WHERE NAME = 'geqo'`;
 
       assertEquals(result.length, 1);
       assertEquals(result[0].setting, "on");

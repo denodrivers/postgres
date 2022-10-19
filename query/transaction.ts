@@ -336,8 +336,9 @@ export class Transaction {
   async getSnapshot(): Promise<string> {
     this.#assertTransactionOpen();
 
-    const { rows } = await this.queryObject<{ snapshot: string }>
-      `SELECT PG_EXPORT_SNAPSHOT() AS SNAPSHOT;`;
+    const { rows } = await this.queryObject<
+      { snapshot: string }
+    >`SELECT PG_EXPORT_SNAPSHOT() AS SNAPSHOT;`;
     return rows[0].snapshot;
   }
 

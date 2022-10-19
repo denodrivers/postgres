@@ -28,15 +28,14 @@ export type QueryArguments = unknown[] | Record<string, unknown>;
 
 const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
 
-type CommandType = (
+type CommandType =
   | "INSERT"
   | "DELETE"
   | "UPDATE"
   | "SELECT"
   | "MOVE"
   | "FETCH"
-  | "COPY"
-);
+  | "COPY";
 
 export enum ResultType {
   ARRAY,

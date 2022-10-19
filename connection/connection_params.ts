@@ -360,7 +360,7 @@ export function createParams(
         if (parsed_host.protocol === "file:") {
           host = fromFileUrl(parsed_host);
         } else {
-          throw new ConnectionParamsError(
+          throw new Error(
             "The provided host is not a file path",
           );
         }
