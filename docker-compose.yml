@@ -63,7 +63,7 @@ services:
     build: .
     # Name the image to be reused in no_check_tests
     image: postgres/tests
-    command: sh -c "/wait && deno test --unstable -A --parallel"
+    command: sh -c "/wait && deno test --unstable -A --parallel --check"
     depends_on:
       - postgres_clear
       - postgres_md5
@@ -74,7 +74,7 @@ services:
 
   no_check_tests:
     image: postgres/tests
-    command: sh -c "/wait && deno test --unstable -A --jobs --no-check"
+    command: sh -c "/wait && deno test --unstable -A --parallel --no-check"
     depends_on:
       - tests
     environment:
