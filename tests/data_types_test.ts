@@ -1174,8 +1174,8 @@ Deno.test(
 Deno.test(
   "json",
   testClient(async (client) => {
-    const result = await client.queryArray
-      `SELECT JSON_BUILD_OBJECT( 'X', '1' )`;
+    const result = await client
+      .queryArray`SELECT JSON_BUILD_OBJECT( 'X', '1' )`;
 
     assertEquals(result.rows[0], [{ X: "1" }]);
   }),

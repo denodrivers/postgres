@@ -478,7 +478,7 @@ Deno.test("Throws when TLS options and socket type are specified", () => {
 });
 
 Deno.test("Throws when host is a URL and host type is socket", () => {
-  assertThrows(
+  const error = assertThrows(
     () =>
       createParams({
         database: "some_db",
@@ -486,23 +486,25 @@ Deno.test("Throws when host is a URL and host type is socket", () => {
         host_type: "socket",
         user: "some_user",
       }),
-    (e: unknown) => {
-      if (!(e instanceof ConnectionParamsError)) {
-        throw new Error(`Unexpected error: ${e}`);
-      }
-
-      const expected_message = "The provided host is not a file path";
-
-      if (
-        typeof e?.cause?.message !== "string" ||
-        !e.cause.message.includes(expected_message)
-      ) {
-        throw new Error(
-          `Expected error message to include "${expected_message}"`,
-        );
-      }
-    },
   );
+
+  if (!(error instanceof ConnectionParamsError)) {
+    throw new Error(`Unexpected error: ${error}`);
+  }
+
+  if (!(error.cause instanceof Error)) {
+    throw new Error(`Expected cause for error`);
+  }
+
+  const expected_message = "The provided host is not a file path";
+  if (
+    typeof error.cause.message !== "string" ||
+    !error.cause.message.includes(expected_message)
+  ) {
+    throw new Error(
+      `Expected error cause to include "${expected_message}"`,
+    );
+  }
 });
 
 Deno.test("Escapes spaces on option values", () => {
