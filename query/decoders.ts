@@ -40,7 +40,7 @@ export function decodeBooleanArray(value: string) {
 }
 
 export function decodeBox(value: string): Box {
-  const [a, b] = value.match(/\(.*?\)/g) || [];
+  const [a, b] = value.match(/\(.*?\)/g) ?? ['', ''];
 
   return {
     a: decodePoint(a),
@@ -221,7 +221,7 @@ export function decodeLineArray(value: string) {
 export function decodeLineSegment(value: string): LineSegment {
   const [a, b] = value
     .substring(1, value.length - 1)
-    .match(/\(.*?\)/g) || [];
+    .match(/\(.*?\)/g) ?? ['', ''];
 
   return {
     a: decodePoint(a),
