@@ -7,4 +7,5 @@ export {
   assertRejects,
   assertThrows,
 } from "https://deno.land/std@0.180.0/testing/asserts.ts";
-export * as streams from "https://deno.land/std@0.180.0/streams/conversion.ts";
+export { format as formatDate } from "https://deno.land/std@0.180.0/datetime/format.ts";
+export { copy as copyStream } from "https://deno.land/std@0.180.0/streams/copy.ts";

@@ -1,4 +1,4 @@
-import { date } from "../deps.ts";
+import { parseDate } from "../deps.ts";
 import { parseArray } from "./array_parser.ts";
 import type {
   Box,
@@ -127,7 +127,7 @@ export function decodeDate(dateStr: string): Date | number {
     return Number(-Infinity);
   }
 
-  return date.parse(dateStr, "yyyy-MM-dd");
+  return parseDate(dateStr, "yyyy-MM-dd");
 }
 
 export function decodeDateArray(value: string) {

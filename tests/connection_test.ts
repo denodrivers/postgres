@@ -1,9 +1,9 @@
 import {
   assertEquals,
   assertRejects,
+  copyStream,
   deferred,
   joinPath,
-  streams,
 } from "./test_deps.ts";
 import {
   getClearConfiguration,
@@ -38,8 +38,8 @@ function createProxy(
         aborted = true;
       });
       await Promise.all([
-        streams.copy(conn, outbound),
-        streams.copy(outbound, conn),
+        copyStream(conn, outbound),
+        copyStream(outbound, conn),
       ]).catch(() => {});
 
       if (!aborted) {
