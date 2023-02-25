@@ -8,8 +8,8 @@ export { crypto } from "https://deno.land/std@0.180.0/crypto/crypto.ts";
 export {
   type Deferred,
   deferred,
-  delay,
-} from "https://deno.land/std@0.180.0/async/mod.ts";
+} from "https://deno.land/std@0.180.0/async/deferred.ts";
+export { delay } from "https://deno.land/std@0.180.0/async/delay.ts";
 export { bold, yellow } from "https://deno.land/std@0.180.0/fmt/colors.ts";
 export {
   fromFileUrl,
