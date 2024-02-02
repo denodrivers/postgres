@@ -281,9 +281,11 @@ export class Transaction {
     const chain = options?.chain ?? false;
 
     if (!this.#committed) {
-      this.#committed = true;
       try {
         await this.queryArray(`COMMIT ${chain ? "AND CHAIN" : ""}`);
+        if (!chain) {
+          this.#committed = true;
+        }
       } catch (e) {
         if (e instanceof PostgresError) {
           throw new TransactionError(this.name, e);
