@@ -12,7 +12,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: 1.26.2
+          deno-version: v1.x
       
       - name: Format
         run: deno fmt --check
@@ -37,7 +37,7 @@ jobs:
 
       - name: Run tests without typechecking
         id: no_typecheck
-        uses: mathiasvr/command-output@v1
+        uses: mathiasvr/command-output@v2
         with:
           run: docker-compose run no_check_tests
         continue-on-error: true
@@ -56,7 +56,7 @@ jobs:
     steps:
       - name: Set no-typecheck fail comment
         if: ${{ needs.test.outputs.no_typecheck_status != 'success' && github.event_name == 'push' }}
-        uses: peter-evans/commit-comment@v1
+        uses: peter-evans/commit-comment@v3
         with:
           body: |
             # No typecheck tests failure
