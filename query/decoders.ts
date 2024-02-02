@@ -23,7 +23,7 @@ const HEX = 16;
 const HEX_PREFIX_REGEX = /^\\x/;
 const TIMEZONE_RE = /([Z+-])(\d{2})?:?(\d{2})?:?(\d{2})?/;
 
-export function decodeBigint(value: string): BigInt {
+export function decodeBigint(value: string): bigint {
   return BigInt(value);
 }
 
@@ -43,7 +43,7 @@ export function decodeBox(value: string): Box {
   const [a, b] = value.match(/\(.*?\)/g) || [];
 
   return {
-    a: decodePoint(a),
+    a: decodePoint(a || ""),
     b: decodePoint(b),
   };
 }
@@ -224,7 +224,7 @@ export function decodeLineSegment(value: string): LineSegment {
     .match(/\(.*?\)/g) || [];
 
   return {
-    a: decodePoint(a),
+    a: decodePoint(a || ""),
     b: decodePoint(b),
   };
 }

@@ -70,7 +70,7 @@ export type Polygon = Point[];
 /**
  * https://www.postgresql.org/docs/14/datatype-oid.html
  */
-export type TID = [BigInt, BigInt];
+export type TID = [bigint, bigint];
 
 /**
  * Additional to containing normal dates, they can contain 'Infinity'
