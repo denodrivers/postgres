@@ -10,7 +10,7 @@ need to modify the configuration.
 From within the project directory, run:
 
 ```
-deno test --allow-read --allow-net
+deno test --allow-read --allow-net --allow-env
 ```
 
 ## Docker Configuration

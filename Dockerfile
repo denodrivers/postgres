@@ -1,9 +1,9 @@
-FROM denoland/deno:alpine-1.26.2
+FROM denoland/deno:alpine-1.40.3
 WORKDIR /app
 
 # Install wait utility
 USER root
-ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.8.0/wait /wait
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.12.1/wait /wait
 RUN chmod +x /wait
 
 USER deno
