@@ -37,7 +37,7 @@ jobs:
 
       - name: Run tests without typechecking
         id: no_typecheck
-        uses: mathiasvr/command-output@v2
+        uses: mathiasvr/command-output@v2.0.0
         with:
           run: docker-compose run no_check_tests
         continue-on-error: true
