@@ -1,5 +1,5 @@
 import { ClientConfiguration } from "../connection/connection_params.ts";
-import config_file1 from "./config.json" assert { type: "json" };
+import config_file1 from "./config.json" with { type: "json" };
 
 type TcpConfiguration = Omit<ClientConfiguration, "connection"> & {
   host_type: "tcp";
