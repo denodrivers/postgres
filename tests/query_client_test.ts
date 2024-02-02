@@ -10,6 +10,7 @@ import {
   assertEquals,
   assertObjectMatch,
   assertRejects,
+  assertThrows,
 } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
 import { PoolClient, QueryClient } from "../client.ts";
@@ -852,6 +853,18 @@ Deno.test(
     >`SELECT ${value.x} AS x, ${value.y} AS y`;
 
     assertEquals(rows[0], value);
+  }),
+);
+
+Deno.test(
+  "Transaction parameter validation",
+  withClient((client) => {
+    assertThrows(
+      // deno-lint-ignore ban-ts-comment
+      // @ts-expect-error
+      () => client.createTransaction(),
+      "Transaction name must be a non-empty string",
+    );
   }),
 );
 
