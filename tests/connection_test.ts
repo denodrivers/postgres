@@ -2,7 +2,6 @@ import {
   assertEquals,
   assertRejects,
   copyStream,
-  deferred,
   joinPath,
 } from "./test_deps.ts";
 import {
@@ -374,15 +373,15 @@ Deno.test("Closes connection on bad TLS availability verification", async functi
   );
 
   // Await for server initialization
-  const initialized = deferred();
+  const initialized = Promise.withResolvers();
   server.onmessage = ({ data }) => {
     if (data !== "initialized") {
       initialized.reject(`Unexpected message "${data}" received from worker`);
     }
-    initialized.resolve();
+    initialized.resolve(null);
   };
   server.postMessage("initialize");
-  await initialized;
+  await initialized.promise;
 
   const client = new Client({
     database: "none",
@@ -413,17 +412,17 @@ Deno.test("Closes connection on bad TLS availability verification", async functi
     await client.end();
   }
 
-  const closed = deferred();
+  const closed = Promise.withResolvers();
   server.onmessage = ({ data }) => {
     if (data !== "closed") {
       closed.reject(
         `Unexpected message "${data}" received from worker`,
       );
     }
-    closed.resolve();
+    closed.resolve(null);
   };
   server.postMessage("close");
-  await closed;
+  await closed.promise;
   server.terminate();
 
   assertEquals(bad_tls_availability_message, true);
@@ -438,15 +437,15 @@ async function mockReconnection(attempts: number) {
   );
 
   // Await for server initialization
-  const initialized = deferred();
+  const initialized = Promise.withResolvers();
   server.onmessage = ({ data }) => {
     if (data !== "initialized") {
       initialized.reject(`Unexpected message "${data}" received from worker`);
     }
-    initialized.resolve();
+    initialized.resolve(null);
   };
   server.postMessage("initialize");
-  await initialized;
+  await initialized.promise;
 
   const client = new Client({
     connection: {
@@ -483,17 +482,17 @@ async function mockReconnection(attempts: number) {
     await client.end();
   }
 
-  const closed = deferred();
+  const closed = Promise.withResolvers();
   server.onmessage = ({ data }) => {
     if (data !== "closed") {
       closed.reject(
         `Unexpected message "${data}" received from worker`,
       );
     }
-    closed.resolve();
+    closed.resolve(null);
   };
   server.postMessage("close");
-  await closed;
+  await closed.promise;
   server.terminate();
 
   // If reconnections are set to zero, it will attempt to connect at least once, but won't
