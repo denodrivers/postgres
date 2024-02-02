@@ -197,6 +197,10 @@ export abstract class QueryClient {
    * https://www.postgresql.org/docs/14/sql-set-transaction.html
    */
   createTransaction(name: string, options?: TransactionOptions): Transaction {
+    if (!name) {
+      throw new Error("Transaction name must be a non-empty string");
+    }
+
     this.#assertOpenConnection();
 
     return new Transaction(
