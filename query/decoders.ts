@@ -43,7 +43,7 @@ export function decodeBox(value: string): Box {
   const [a, b] = value.match(/\(.*?\)/g) || [];
 
   return {
-    a: decodePoint(a || ''),
+    a: decodePoint(a || ""),
     b: decodePoint(b),
   };
 }
@@ -224,7 +224,7 @@ export function decodeLineSegment(value: string): LineSegment {
     .match(/\(.*?\)/g) || [];
 
   return {
-    a: decodePoint(a || ''),
+    a: decodePoint(a || ""),
     b: decodePoint(b),
   };
 }
