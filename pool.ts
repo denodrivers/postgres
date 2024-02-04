@@ -183,21 +183,18 @@ export class Pool {
    */
   async #initialize() {
     const initialized = this.#lazy ? 0 : this.#size;
-    const clients = Array.from(
-      { length: this.#size },
-      async (_e, index) => {
-        const client: PoolClient = new PoolClient(
-          this.#connection_params,
-          () => this.#available_connections!.push(client),
-        );
+    const clients = Array.from({ length: this.#size }, async (_e, index) => {
+      const client: PoolClient = new PoolClient(
+        this.#connection_params,
+        () => this.#available_connections!.push(client),
+      );
 
-        if (index < initialized) {
-          await client.connect();
-        }
+      if (index < initialized) {
+        await client.connect();
+      }
 
-        return client;
-      },
-    );
+      return client;
+    });
 
     this.#available_connections = new DeferredAccessStack(
       await Promise.all(clients),
@@ -206,7 +203,8 @@ export class Pool {
     );
 
     this.#ended = false;
-  } /**
+  }
+  /**
    * This will return the number of initialized clients in the pool
    */
 

@@ -128,9 +128,7 @@ async function deriveKeySignatures(
 
 /** Escapes "=" and "," in a string. */
 function escape(str: string): string {
-  return str
-    .replace(/=/g, "=3D")
-    .replace(/,/g, "=2C");
+  return str.replace(/=/g, "=3D").replace(/,/g, "=2C");
 }
 
 function generateRandomNonce(size: number): string {
@@ -227,6 +225,8 @@ export class Client {
       } catch {
         throw new Error(Reason.BadSalt);
       }
+
+      if (!salt) throw new Error(Reason.BadSalt);
 
       const iterCount = parseInt(attrs.i) | 0;
       if (iterCount <= 0) {

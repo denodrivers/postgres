@@ -59,12 +59,7 @@ export interface ConnectionOptions {
 }
 
 /** https://www.postgresql.org/docs/14/libpq-ssl.html#LIBPQ-SSL-PROTECTION */
-type TLSModes =
-  | "disable"
-  | "prefer"
-  | "require"
-  | "verify-ca"
-  | "verify-full";
+type TLSModes = "disable" | "prefer" | "require" | "verify-ca" | "verify-full";
 
 // TODO
 // Refactor enabled and enforce into one single option for 1.0
@@ -121,11 +116,7 @@ export interface ClientConfiguration {
 }
 
 function formatMissingParams(missingParams: string[]) {
-  return `Missing connection parameters: ${
-    missingParams.join(
-      ", ",
-    )
-  }`;
+  return `Missing connection parameters: ${missingParams.join(", ")}`;
 }
 
 /**
@@ -201,24 +192,25 @@ function parseOptionsArgument(options: string): Record<string, string> {
     } else if (/^--\w/.test(args[x])) {
       transformed_args.push(args[x].slice(2));
     } else {
-      throw new Error(
-        `Value "${args[x]}" is not a valid options argument`,
-      );
+      throw new Error(`Value "${args[x]}" is not a valid options argument`);
     }
   }
 
-  return transformed_args.reduce((options, x) => {
-    if (!/.+=.+/.test(x)) {
-      throw new Error(`Value "${x}" is not a valid options argument`);
-    }
+  return transformed_args.reduce(
+    (options, x) => {
+      if (!/.+=.+/.test(x)) {
+        throw new Error(`Value "${x}" is not a valid options argument`);
+      }
 
-    const key = x.slice(0, x.indexOf("="));
-    const value = x.slice(x.indexOf("=") + 1);
+      const key = x.slice(0, x.indexOf("="));
+      const value = x.slice(x.indexOf("=") + 1);
 
-    options[key] = value;
+      options[key] = value;
 
-    return options;
-  }, {} as Record<string, string>);
+      return options;
+    },
+    {} as Record<string, string>,
+  );
 }
 
 function parseOptionsFromUri(connection_string: string): ClientOptions {
@@ -237,14 +229,11 @@ function parseOptionsFromUri(connection_string: string): ClientOptions {
       // Treat as sslmode=require
       sslmode: uri.params.ssl === "true"
         ? "require"
-        : uri.params.sslmode as TLSModes,
+        : (uri.params.sslmode as TLSModes),
       user: uri.user || uri.params.user,
     };
   } catch (e) {
-    throw new ConnectionParamsError(
-      `Could not parse the connection string`,
-      e,
-    );
+    throw new ConnectionParamsError("Could not parse the connection string", e);
   }
 
   if (!["postgres", "postgresql"].includes(postgres_uri.driver)) {
@@ -255,7 +244,7 @@ function parseOptionsFromUri(connection_string: string): ClientOptions {
 
   // No host by default means socket connection
   const host_type = postgres_uri.host
-    ? (isAbsolute(postgres_uri.host) ? "socket" : "tcp")
+    ? isAbsolute(postgres_uri.host) ? "socket" : "tcp"
     : "socket";
 
   const options = postgres_uri.options
@@ -302,7 +291,10 @@ function parseOptionsFromUri(connection_string: string): ClientOptions {
 }
 
 const DEFAULT_OPTIONS:
-  & Omit<ClientConfiguration, "database" | "user" | "hostname">
+  & Omit<
+    ClientConfiguration,
+    "database" | "user" | "hostname"
+  >
   & { host: string; socket: string } = {
     applicationName: "deno_postgres",
     connection: {
@@ -360,18 +352,13 @@ export function createParams(
         if (parsed_host.protocol === "file:") {
           host = fromFileUrl(parsed_host);
         } else {
-          throw new Error(
-            "The provided host is not a file path",
-          );
+          throw new Error("The provided host is not a file path");
         }
       } else {
         host = socket;
       }
     } catch (e) {
-      throw new ConnectionParamsError(
-        `Could not parse host "${socket}"`,
-        e,
-      );
+      throw new ConnectionParamsError(`Could not parse host "${socket}"`, e);
     }
   } else {
     host = provided_host ?? DEFAULT_OPTIONS.host;
@@ -414,7 +401,7 @@ export function createParams(
 
   if (host_type === "socket" && params?.tls) {
     throw new ConnectionParamsError(
-      `No TLS options are allowed when host type is set to "socket"`,
+      'No TLS options are allowed when host type is set to "socket"',
     );
   }
   const tls_enabled = !!(params?.tls?.enabled ?? DEFAULT_OPTIONS.tls.enabled);
@@ -429,7 +416,8 @@ export function createParams(
   // TODO
   // Perhaps username should be taken from the PC user as a default?
   const connection_options = {
-    applicationName: params.applicationName ?? pgEnv.applicationName ??
+    applicationName: params.applicationName ??
+      pgEnv.applicationName ??
       DEFAULT_OPTIONS.applicationName,
     connection: {
       attempts: params?.connection?.attempts ??

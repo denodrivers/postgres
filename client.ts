@@ -67,9 +67,7 @@ export abstract class QueryClient {
 
   #assertOpenConnection() {
     if (this.#terminated) {
-      throw new Error(
-        "Connection to the database has been terminated",
-      );
+      throw new Error("Connection to the database has been terminated");
     }
   }
 
@@ -243,9 +241,7 @@ export abstract class QueryClient {
   async #executeQuery<T>(
     _query: Query<ResultType.OBJECT>,
   ): Promise<QueryObjectResult<T>>;
-  async #executeQuery(
-    query: Query<ResultType>,
-  ): Promise<QueryResult> {
+  async #executeQuery(query: Query<ResultType>): Promise<QueryResult> {
     return await this.#connection.query(query);
   }
 
@@ -397,9 +393,7 @@ export abstract class QueryClient {
     query: TemplateStringsArray,
     ...args: unknown[]
   ): Promise<QueryObjectResult<T>>;
-  async queryObject<
-    T = Record<string, unknown>,
-  >(
+  async queryObject<T = Record<string, unknown>>(
     query_template_or_config:
       | string
       | QueryObjectOptions

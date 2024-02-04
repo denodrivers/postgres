@@ -25,14 +25,8 @@ export class PostgresError extends Error {
 }
 
 export class TransactionError extends Error {
-  constructor(
-    transaction_name: string,
-    cause: PostgresError,
-  ) {
-    super(
-      `The transaction "${transaction_name}" has been aborted`,
-      { cause },
-    );
+  constructor(transaction_name: string, cause: PostgresError) {
+    super(`The transaction "${transaction_name}" has been aborted`, { cause });
     this.name = "TransactionError";
   }
 }

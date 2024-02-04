@@ -7,11 +7,7 @@ export class DeferredStack<T> {
   #queue: Array<Deferred<T>>;
   #size: number;
 
-  constructor(
-    max?: number,
-    ls?: Iterable<T>,
-    creator?: () => Promise<T>,
-  ) {
+  constructor(max?: number, ls?: Iterable<T>, creator?: () => Promise<T>) {
     this.#elements = ls ? [...ls] : [];
     this.#creator = creator;
     this.#max_size = max || 10;
@@ -100,9 +96,7 @@ export class DeferredAccessStack<T> {
       this.#elements.map((e) => this.#checkElementInitialization(e)),
     );
 
-    return initialized
-      .filter((initialized) => initialized === true)
-      .length;
+    return initialized.filter((initialized) => initialized === true).length;
   }
 
   async pop(): Promise<T> {
@@ -117,7 +111,7 @@ export class DeferredAccessStack<T> {
       element = await d;
     }
 
-    if (!await this.#checkElementInitialization(element)) {
+    if (!(await this.#checkElementInitialization(element))) {
       await this.#initializeElement(element);
     }
     return element;
