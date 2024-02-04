@@ -28,22 +28,34 @@ export function decodeBigint(value: string): bigint {
 }
 
 export function decodeBigintArray(value: string) {
-  return parseArray(value, (x) => BigInt(x));
+  return parseArray(value, decodeBigint);
 }
 
 export function decodeBoolean(value: string): boolean {
-  return value[0] === "t";
+  const v = value.toLowerCase();
+  return v === "t" ||
+    v === "true" ||
+    v === "y" ||
+    v === "yes" ||
+    v === "on" ||
+    v === "1";
 }
 
 export function decodeBooleanArray(value: string) {
-  return parseArray(value, (x) => x[0] === "t");
+  return parseArray(value, decodeBoolean);
 }
 
 export function decodeBox(value: string): Box {
   const [a, b] = value.match(/\(.*?\)/g) || [];
 
+  if (!a || !b) {
+    throw new Error(
+      `Invalid Box value: "${!a ? a : b}"`,
+    );
+  }
+
   return {
-    a: decodePoint(a || ""),
+    a: decodePoint(a),
     b: decodePoint(b),
   };
 }
@@ -60,7 +72,7 @@ export function decodeBytea(byteaStr: string): Uint8Array {
   }
 }
 
-export function decodeByteaArray(value: string): unknown[] {
+export function decodeByteaArray(value: string) {
   return parseArray(value, decodeBytea);
 }
 
@@ -104,9 +116,9 @@ function decodeByteaHex(byteaStr: string): Uint8Array {
 }
 
 export function decodeCircle(value: string): Circle {
-  const [point, radius] = value.substring(1, value.length - 1).split(
-    /,(?![^(]*\))/,
-  ) as [string, Float8];
+  const [point, radius] = value
+    .substring(1, value.length - 1)
+    .split(/,(?![^(]*\))/) as [string, Float8];
 
   return {
     point: decodePoint(point),
@@ -186,10 +198,16 @@ export function decodeInt(value: string): number {
   return parseInt(value, 10);
 }
 
-// deno-lint-ignore no-explicit-any
-export function decodeIntArray(value: string): any {
-  if (!value) return null;
+export function decodeIntArray(value: string) {
   return parseArray(value, decodeInt);
+}
+
+export function decodeFloat(value: string): number {
+  return parseFloat(value);
+}
+
+export function decodeFloatArray(value: string) {
+  return parseArray(value, decodeFloat);
 }
 
 export function decodeJson(value: string): unknown {
@@ -223,8 +241,14 @@ export function decodeLineSegment(value: string): LineSegment {
     .substring(1, value.length - 1)
     .match(/\(.*?\)/g) || [];
 
+  if (!a || !b) {
+    throw new Error(
+      `Invalid LineSegment value: "${!a ? a : b}"`,
+    );
+  }
+
   return {
-    a: decodePoint(a || ""),
+    a: decodePoint(a),
     b: decodePoint(b),
   };
 }
