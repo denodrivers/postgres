@@ -1,5 +1,9 @@
 import { Oid } from "./oid.ts";
 import {
+  bold,
+  yellow,
+} from "../deps.ts";
+import {
   decodeBigint,
   decodeBigintArray,
   decodeBoolean,
@@ -196,6 +200,12 @@ function decodeText(value: Uint8Array, typeOid: number) {
         return strValue;
     }
   } catch (_e) {
+    console.error(
+      bold(yellow(`Error decoding type Oid ${typeOid} value`)) +
+      _e.message +
+        "\n" +
+        bold("Defaulting to null."),
+    );
     // If an error occurred during decoding, return null
     return null;
   }
