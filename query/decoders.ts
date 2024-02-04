@@ -33,12 +33,14 @@ export function decodeBigintArray(value: string) {
 
 export function decodeBoolean(value: string): boolean {
   const v = value.toLowerCase();
-  return v === "t" ||
+  return (
+    v === "t" ||
     v === "true" ||
     v === "y" ||
     v === "yes" ||
     v === "on" ||
-    v === "1";
+    v === "1"
+  );
 }
 
 export function decodeBooleanArray(value: string) {
@@ -46,18 +48,24 @@ export function decodeBooleanArray(value: string) {
 }
 
 export function decodeBox(value: string): Box {
-  const [a, b] = value.match(/\(.*?\)/g) || [];
+  const points = value.match(/\(.*?\)/g) || [];
 
-  if (!a || !b) {
+  if (points.length !== 2) {
     throw new Error(
-      `Invalid Box value: "${!a ? a : b}"`,
+      `Invalid Box: "${value}". Box must have only 2 point, ${points.length} given.`,
     );
   }
 
-  return {
-    a: decodePoint(a),
-    b: decodePoint(b),
-  };
+  const [a, b] = points;
+
+  try {
+    return {
+      a: decodePoint(a),
+      b: decodePoint(b),
+    };
+  } catch (e) {
+    throw new Error(`Invalid Box: "${value}" : ${e.message}`);
+  }
 }
 
 export function decodeBoxArray(value: string) {
@@ -120,10 +128,20 @@ export function decodeCircle(value: string): Circle {
     .substring(1, value.length - 1)
     .split(/,(?![^(]*\))/) as [string, Float8];
 
-  return {
-    point: decodePoint(point),
-    radius: radius,
-  };
+  if (Number.isNaN(parseFloat(radius))) {
+    throw new Error(
+      `Invalid Circle: "${value}". Circle radius "${radius}" must be a valid number.`,
+    );
+  }
+
+  try {
+    return {
+      point: decodePoint(point),
+      radius: radius,
+    };
+  } catch (e) {
+    throw new Error(`Invalid Circle: "${value}" : ${e.message}`);
+  }
 }
 
 export function decodeCircleArray(value: string) {
@@ -219,11 +237,27 @@ export function decodeJsonArray(value: string): unknown[] {
 }
 
 export function decodeLine(value: string): Line {
-  const [a, b, c] = value.substring(1, value.length - 1).split(",") as [
+  const equationConsts = value.substring(1, value.length - 1).split(",") as [
     Float8,
     Float8,
     Float8,
   ];
+
+  if (equationConsts.length !== 3) {
+    throw new Error(
+      `Invalid Line: "${value}". Line in linear equation format must have 3 constants, ${equationConsts.length} given.`,
+    );
+  }
+
+  equationConsts.forEach((c) => {
+    if (Number.isNaN(parseFloat(c))) {
+      throw new Error(
+        `Invalid Line: "${value}". Line constant "${c}" must be a valid number.`,
+      );
+    }
+  });
+
+  const [a, b, c] = equationConsts;
 
   return {
     a: a,
@@ -237,20 +271,24 @@ export function decodeLineArray(value: string) {
 }
 
 export function decodeLineSegment(value: string): LineSegment {
-  const [a, b] = value
-    .substring(1, value.length - 1)
-    .match(/\(.*?\)/g) || [];
+  const points = value.substring(1, value.length - 1).match(/\(.*?\)/g) || [];
 
-  if (!a || !b) {
+  if (points.length !== 2) {
     throw new Error(
-      `Invalid LineSegment value: "${!a ? a : b}"`,
+      `Invalid Line Segment: "${value}". Line segments must have only 2 point, ${points.length} given.`,
     );
   }
 
-  return {
-    a: decodePoint(a),
-    b: decodePoint(b),
-  };
+  const [a, b] = points;
+
+  try {
+    return {
+      a: decodePoint(a),
+      b: decodePoint(b),
+    };
+  } catch (e) {
+    throw new Error(`Invalid Line Segment: "${value}" : ${e.message}`);
+  }
 }
 
 export function decodeLineSegmentArray(value: string) {
@@ -262,7 +300,13 @@ export function decodePath(value: string): Path {
   // since encapsulated commas are separators for the point coordinates
   const points = value.substring(1, value.length - 1).split(/,(?![^(]*\))/);
 
-  return points.map(decodePoint);
+  return points.map((point) => {
+    try {
+      return decodePoint(point);
+    } catch (e) {
+      throw new Error(`Invalid Path: "${value}" : ${e.message}`);
+    }
+  });
 }
 
 export function decodePathArray(value: string) {
@@ -270,14 +314,23 @@ export function decodePathArray(value: string) {
 }
 
 export function decodePoint(value: string): Point {
-  const [x, y] = value.substring(1, value.length - 1).split(",") as [
-    Float8,
-    Float8,
-  ];
+  const coordinates = value
+    .substring(1, value.length - 1)
+    .split(",") as Float8[];
+
+  if (coordinates.length !== 2) {
+    throw new Error(
+      `Invalid Point: "${value}". Points must have only 2 coordinates, ${coordinates.length} given.`,
+    );
+  }
+
+  const [x, y] = coordinates;
 
   if (Number.isNaN(parseFloat(x)) || Number.isNaN(parseFloat(y))) {
     throw new Error(
-      `Invalid point value: "${Number.isNaN(parseFloat(x)) ? x : y}"`,
+      `Invalid Point: "${value}". Coordinate "${
+        Number.isNaN(parseFloat(x)) ? x : y
+      }" must be a valid number.`,
     );
   }
 
@@ -292,7 +345,11 @@ export function decodePointArray(value: string) {
 }
 
 export function decodePolygon(value: string): Polygon {
-  return decodePath(value);
+  try {
+    return decodePath(value);
+  } catch (e) {
+    throw new Error(`Invalid Polygon: "${value}" : ${e.message}`);
+  }
 }
 
 export function decodePolygonArray(value: string) {
