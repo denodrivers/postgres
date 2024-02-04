@@ -1,8 +1,5 @@
 import { Oid } from "./oid.ts";
-import {
-  bold,
-  yellow,
-} from "../deps.ts";
+import { bold, yellow } from "../deps.ts";
 import {
   decodeBigint,
   decodeBigintArray,
@@ -202,7 +199,7 @@ function decodeText(value: Uint8Array, typeOid: number) {
   } catch (_e) {
     console.error(
       bold(yellow(`Error decoding type Oid ${typeOid} value`)) +
-      _e.message +
+        _e.message +
         "\n" +
         bold("Defaulting to null."),
     );
