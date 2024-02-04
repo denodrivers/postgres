@@ -137,7 +137,7 @@ a local testing environment, as shown in the following steps:
    use the local testing settings specified in `tests/config.json`, instead of
    the CI settings
 3. Run the tests manually by using the command\
-   `deno test --unstable -A`
+   `deno test -A`
 
 ## Deno compatibility
 
