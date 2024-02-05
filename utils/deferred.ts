@@ -1,4 +1,4 @@
-import { type Deferred, deferred } from "../deps.ts";
+export type Deferred<T> = ReturnType<typeof Promise.withResolvers<T>>;
 
 export class DeferredStack<T> {
   #elements: Array<T>;
@@ -30,9 +30,9 @@ export class DeferredStack<T> {
       this.#size++;
       return await this.#creator();
     }
-    const d = deferred<T>();
+    const d = Promise.withResolvers<T>();
     this.#queue.push(d);
-    return await d;
+    return await d.promise;
   }
 
   push(value: T): void {
@@ -112,9 +112,9 @@ export class DeferredAccessStack<T> {
     } else {
       // If there are not elements left in the stack, it will await the call until
       // at least one is restored and then return it
-      const d = deferred<T>();
+      const d = Promise.withResolvers<T>();
       this.#queue.push(d);
-      element = await d;
+      element = await d.promise;
     }
 
     if (!await this.#checkElementInitialization(element)) {
