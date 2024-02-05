@@ -4,7 +4,7 @@ import { generateSimpleClientTest } from "./helpers.ts";
 import type {
   Box,
   Circle,
-  Float4,
+  // Float4,
   Float8,
   Line,
   LineSegment,
@@ -856,22 +856,22 @@ Deno.test(
 Deno.test(
   "float4",
   testClient(async (client) => {
-    const result = await client.queryArray<[Float4, Float4]>(
+    const result = await client.queryArray<[number, number]>(
       "SELECT '1'::FLOAT4, '17.89'::FLOAT4",
     );
 
-    assertEquals(result.rows[0], ["1", "17.89"]);
+    assertEquals(result.rows[0], [1, 17.89]);
   }),
 );
 
 Deno.test(
   "float4 array",
   testClient(async (client) => {
-    const result = await client.queryArray<[[Float4, Float4]]>(
+    const result = await client.queryArray<[[number, number]]>(
       "SELECT ARRAY['12.25'::FLOAT4, '4789']",
     );
 
-    assertEquals(result.rows[0][0], ["12.25", "4789"]);
+    assertEquals(result.rows[0][0], [12.25, 4789]);
   }),
 );
 

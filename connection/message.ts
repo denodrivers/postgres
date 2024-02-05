@@ -34,9 +34,10 @@ export interface Notice {
   routine?: string;
 }
 
-export function parseBackendKeyMessage(
-  message: Message,
-): { pid: number; secret_key: number } {
+export function parseBackendKeyMessage(message: Message): {
+  pid: number;
+  secret_key: number;
+} {
   return {
     pid: message.reader.readInt32(),
     secret_key: message.reader.readInt32(),

@@ -156,7 +156,7 @@ export class Transaction {
   #assertTransactionOpen() {
     if (this.#client.session.current_transaction !== this.name) {
       throw new Error(
-        `This transaction has not been started yet, make sure to use the "begin" method to do so`,
+        'This transaction has not been started yet, make sure to use the "begin" method to do so',
       );
     }
   }
@@ -183,9 +183,7 @@ export class Transaction {
   async begin() {
     if (this.#client.session.current_transaction !== null) {
       if (this.#client.session.current_transaction === this.name) {
-        throw new Error(
-          "This transaction is already open",
-        );
+        throw new Error("This transaction is already open");
       }
 
       throw new Error(
@@ -338,9 +336,9 @@ export class Transaction {
   async getSnapshot(): Promise<string> {
     this.#assertTransactionOpen();
 
-    const { rows } = await this.queryObject<
-      { snapshot: string }
-    >`SELECT PG_EXPORT_SNAPSHOT() AS SNAPSHOT;`;
+    const { rows } = await this.queryObject<{
+      snapshot: string;
+    }>`SELECT PG_EXPORT_SNAPSHOT() AS SNAPSHOT;`;
     return rows[0].snapshot;
   }
 
@@ -419,7 +417,7 @@ export class Transaction {
     }
 
     try {
-      return await this.#executeQuery(query) as QueryArrayResult<T>;
+      return (await this.#executeQuery(query)) as QueryArrayResult<T>;
     } catch (e) {
       if (e instanceof PostgresError) {
         await this.commit();
@@ -504,9 +502,7 @@ export class Transaction {
     query: TemplateStringsArray,
     ...args: unknown[]
   ): Promise<QueryObjectResult<T>>;
-  async queryObject<
-    T = Record<string, unknown>,
-  >(
+  async queryObject<T = Record<string, unknown>>(
     query_template_or_config:
       | string
       | QueryObjectOptions
@@ -536,7 +532,7 @@ export class Transaction {
     }
 
     try {
-      return await this.#executeQuery(query) as QueryObjectResult<T>;
+      return (await this.#executeQuery(query)) as QueryObjectResult<T>;
     } catch (e) {
       if (e instanceof PostgresError) {
         await this.commit();
@@ -614,9 +610,13 @@ export class Transaction {
   async rollback(options?: { savepoint?: string | Savepoint }): Promise<void>;
   async rollback(options?: { chain?: boolean }): Promise<void>;
   async rollback(
-    savepoint_or_options?: string | Savepoint | {
-      savepoint?: string | Savepoint;
-    } | { chain?: boolean },
+    savepoint_or_options?:
+      | string
+      | Savepoint
+      | {
+        savepoint?: string | Savepoint;
+      }
+      | { chain?: boolean },
   ): Promise<void> {
     this.#assertTransactionOpen();
 
@@ -627,8 +627,9 @@ export class Transaction {
     ) {
       savepoint_option = savepoint_or_options;
     } else {
-      savepoint_option =
-        (savepoint_or_options as { savepoint?: string | Savepoint })?.savepoint;
+      savepoint_option = (
+        savepoint_or_options as { savepoint?: string | Savepoint }
+      )?.savepoint;
     }
 
     let savepoint_name: string | undefined;
@@ -652,8 +653,8 @@ export class Transaction {
 
     // If a savepoint is provided, rollback to that savepoint, continue the transaction
     if (typeof savepoint_option !== "undefined") {
-      const ts_savepoint = this.#savepoints.find(({ name }) =>
-        name === savepoint_name
+      const ts_savepoint = this.#savepoints.find(
+        ({ name }) => name === savepoint_name,
       );
       if (!ts_savepoint) {
         throw new Error(

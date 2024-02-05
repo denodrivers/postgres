@@ -34,13 +34,13 @@ class ArrayParser<T> {
     const character = this.source[this.position++];
     if (character === "\\") {
       return {
-        value: this.source[this.position++],
         escaped: true,
+        value: this.source[this.position++],
       };
     }
     return {
-      value: character,
       escaped: false,
+      value: character,
     };
   }
 
