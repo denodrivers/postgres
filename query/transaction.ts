@@ -30,7 +30,7 @@ export class Savepoint {
     this.#update_callback = update_callback;
   }
 
-  get instances() {
+  get instances(): number {
     return this.#instance_count;
   }
 
@@ -142,11 +142,11 @@ export class Transaction {
     this.#updateClientLock = update_client_lock_callback;
   }
 
-  get isolation_level() {
+  get isolation_level(): IsolationLevel {
     return this.#isolation_level;
   }
 
-  get savepoints() {
+  get savepoints(): Savepoint[] {
     return this.#savepoints;
   }
 

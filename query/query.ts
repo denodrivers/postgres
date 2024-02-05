@@ -151,7 +151,7 @@ export class QueryResult {
   #row_description?: RowDescription;
   public warnings: Notice[] = [];
 
-  get rowDescription() {
+  get rowDescription(): RowDescription | undefined {
     return this.#row_description;
   }
 
