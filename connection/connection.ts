@@ -128,17 +128,17 @@ export class Connection {
   #tls?: boolean;
   #transport?: "tcp" | "socket";
 
-  get pid() {
+  get pid(): number | undefined {
     return this.#pid;
   }
 
   /** Indicates if the connection is carried over TLS */
-  get tls() {
+  get tls(): boolean | undefined {
     return this.#tls;
   }
 
   /** Indicates the connection protocol used */
-  get transport() {
+  get transport(): "tcp" | "socket" | undefined {
     return this.#transport;
   }
 
