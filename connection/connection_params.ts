@@ -116,9 +116,12 @@ export type ClientOptions = {
 };
 
 /** The configuration options required to set up a Client instance */
-export type ClientConfiguration = Required<Omit<ClientOptions, "password">> & {
-  password?: string;
-};
+export type ClientConfiguration =
+  & Required<Omit<ClientOptions, "password" | "port">>
+  & {
+    password?: string;
+    port: number;
+  };
 
 function formatMissingParams(missingParams: string[]) {
   return `Missing connection parameters: ${missingParams.join(", ")}`;
