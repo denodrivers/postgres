@@ -21,7 +21,7 @@ import { fromFileUrl, isAbsolute } from "../deps.ts";
 export type ConnectionString = string;
 
 /**
- * This function retrieves the connection options from the environmental variables
+ * Retrieves the connection options from the environmental variables
  * as they are, without any extra parsing
  *
  * It will throw if no env permission was provided on startup
@@ -38,6 +38,7 @@ function getPgEnv(): ClientOptions {
   };
 }
 
+/** Additional granular database connection options */
 export interface ConnectionOptions {
   /**
    * By default, any client will only attempt to stablish
@@ -61,9 +62,10 @@ export interface ConnectionOptions {
 /** https://www.postgresql.org/docs/14/libpq-ssl.html#LIBPQ-SSL-PROTECTION */
 type TLSModes = "disable" | "prefer" | "require" | "verify-ca" | "verify-full";
 
-// TODO
-// Refactor enabled and enforce into one single option for 1.0
+/** The Transport Layer Security (TLS) protocol options to be used by the database connection */
 export interface TLSOptions {
+  // TODO
+  // Refactor enabled and enforce into one single option for 1.0
   /**
    * If TLS support is enabled or not. If the server requires TLS,
    * the connection will fail.
@@ -72,7 +74,7 @@ export interface TLSOptions {
    */
   enabled: boolean;
   /**
-   * This will force the connection to run over TLS
+   * Forces the connection to run over TLS
    * If the server doesn't support TLS, the connection will fail
    *
    * Default: `false`
@@ -89,38 +91,41 @@ export interface TLSOptions {
   caCertificates: string[];
 }
 
-export interface ClientOptions {
+/** The Client database connection options */
+export type ClientOptions = {
+  /** Name of the  application connecing to the database */
   applicationName?: string;
+  /** Additional connection options */
   connection?: Partial<ConnectionOptions>;
+  /** The database name */
   database?: string;
+  /** The name of the host */
   hostname?: string;
+  /** The type of host connection */
   host_type?: "tcp" | "socket";
+  /** Additional client options */
   options?: string | Record<string, string>;
+  /** The database user password */
   password?: string;
+  /** The database port used by the connection */
   port?: string | number;
+  /**  */
   tls?: Partial<TLSOptions>;
+  /** The database user */
   user?: string;
-}
+};
 
-export interface ClientConfiguration {
-  applicationName: string;
-  connection: ConnectionOptions;
-  database: string;
-  hostname: string;
-  host_type: "tcp" | "socket";
-  options: Record<string, string>;
+/** The configuration options required to set up a Client instance */
+export type ClientConfiguration = Required<Omit<ClientOptions, "password">> & {
   password?: string;
-  port: number;
-  tls: TLSOptions;
-  user: string;
-}
+};
 
 function formatMissingParams(missingParams: string[]) {
   return `Missing connection parameters: ${missingParams.join(", ")}`;
 }
 
 /**
- * This validates the options passed are defined and have a value other than null
+ * Validates the options passed are defined and have a value other than null
  * or empty string, it throws a connection error otherwise
  *
  * @param has_env_access This parameter will change the error message if set to true,
@@ -196,21 +201,18 @@ function parseOptionsArgument(options: string): Record<string, string> {
     }
   }
 
-  return transformed_args.reduce(
-    (options, x) => {
-      if (!/.+=.+/.test(x)) {
-        throw new Error(`Value "${x}" is not a valid options argument`);
-      }
+  return transformed_args.reduce((options, x) => {
+    if (!/.+=.+/.test(x)) {
+      throw new Error(`Value "${x}" is not a valid options argument`);
+    }
 
-      const key = x.slice(0, x.indexOf("="));
-      const value = x.slice(x.indexOf("=") + 1);
+    const key = x.slice(0, x.indexOf("="));
+    const value = x.slice(x.indexOf("=") + 1);
 
-      options[key] = value;
+    options[key] = value;
 
-      return options;
-    },
-    {} as Record<string, string>,
-  );
+    return options;
+  }, {} as Record<string, string>);
 }
 
 function parseOptionsFromUri(connection_string: string): ClientOptions {
@@ -391,7 +393,7 @@ export function createParams(
   } else if (pgEnv.port) {
     port = Number(pgEnv.port);
   } else {
-    port = DEFAULT_OPTIONS.port;
+    port = Number(DEFAULT_OPTIONS.port);
   }
   if (Number.isNaN(port) || port === 0) {
     throw new ConnectionParamsError(

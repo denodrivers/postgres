@@ -91,6 +91,9 @@ export class Pool {
     return this.#available_connections.size;
   }
 
+  /**
+   * A class that manages connection pooling for PostgreSQL clients
+   */
   constructor(
     connection_params: ClientOptions | ConnectionString | undefined,
     size: number,

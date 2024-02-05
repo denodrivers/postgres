@@ -16,7 +16,21 @@ export type {
   TLSOptions,
 } from "./connection/connection_params.ts";
 export type { Session } from "./client.ts";
+export type { Notice } from "./connection/message.ts";
 export { PoolClient, QueryClient } from "./client.ts";
-export type { QueryObjectOptions, QueryOptions } from "./query/query.ts";
+export type {
+  CommandType,
+  QueryArguments,
+  QueryArrayResult,
+  QueryObjectOptions,
+  QueryObjectResult,
+  QueryOptions,
+  QueryResult,
+  ResultType,
+  RowDescription,
+} from "./query/query.ts";
 export { Savepoint, Transaction } from "./query/transaction.ts";
-export type { TransactionOptions } from "./query/transaction.ts";
+export type {
+  IsolationLevel,
+  TransactionOptions,
+} from "./query/transaction.ts";

@@ -19,6 +19,9 @@ import {
 import { Transaction, type TransactionOptions } from "./query/transaction.ts";
 import { isTemplateString } from "./utils/utils.ts";
 
+/**
+ * The Session representing the current state of the connection
+ */
 export interface Session {
   /**
    * This is the code for the transaction currently locking the connection.
@@ -43,19 +46,31 @@ export interface Session {
   transport: "tcp" | "socket" | undefined;
 }
 
+/**
+ * An abstract client class used define common client properties and methods
+ */
 export abstract class QueryClient {
   #connection: Connection;
   #terminated = false;
   #transaction: string | null = null;
 
+  /**
+   * Create a new query client
+   */
   constructor(connection: Connection) {
     this.#connection = connection;
   }
 
+  /**
+   * Indicates if the client is currently connected to the database
+   */
   get connected(): boolean {
     return this.#connection.connected;
   }
 
+  /**
+   * The current session metadata
+   */
   get session(): Session {
     return {
       current_transaction: this.#transaction,
@@ -71,6 +86,9 @@ export abstract class QueryClient {
     }
   }
 
+  /**
+   * Close the connection to the database
+   */
   protected async closeConnection() {
     if (this.connected) {
       await this.#connection.end();
@@ -246,8 +264,7 @@ export abstract class QueryClient {
   }
 
   /**
-   * This method allows executed queries to be retrieved as array entries.
-   * It supports a generic interface in order to type the entries retrieved by the query
+   * Execute queries and retrieve the data as array entries. It supports a generic in order to type the entries retrieved by the query
    *
    * ```ts
    * import { Client } from "./client.ts";
@@ -257,19 +274,35 @@ export abstract class QueryClient {
    * const {rows} = await my_client.queryArray(
    *   "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<unknown[]>
-   * ```
-   *
-   * You can pass type arguments to the query in order to hint TypeScript what the return value will be
-   * ```ts
-   * import { Client } from "./client.ts";
    *
    * const my_client = new Client();
    * const { rows } = await my_client.queryArray<[number, string]>(
    *   "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<[number, string]>
    * ```
+   */
+  async queryArray<T extends Array<unknown>>(
+    query: string,
+    args?: QueryArguments,
+  ): Promise<QueryArrayResult<T>>;
+  /**
+   * Use the configuration object for more advance options to execute the query
    *
-   * It also allows you to execute prepared statements with template strings
+   * ```ts
+   * import { Client } from "./client.ts";
+   *
+   * const my_client = new Client();
+   * const { rows } = await my_client.queryArray<[number, string]>({
+   *   text: "SELECT ID, NAME FROM CLIENTS",
+   *   name: "select_clients",
+   * }); // Array<[number, string]>
+   * ```
+   */
+  async queryArray<T extends Array<unknown>>(
+    config: QueryOptions,
+  ): Promise<QueryArrayResult<T>>;
+  /**
+   * Execute prepared statements with template strings
    *
    * ```ts
    * import { Client } from "./client.ts";
@@ -280,13 +313,6 @@ export abstract class QueryClient {
    * const {rows} = await my_client.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
    * ```
    */
-  async queryArray<T extends Array<unknown>>(
-    query: string,
-    args?: QueryArguments,
-  ): Promise<QueryArrayResult<T>>;
-  async queryArray<T extends Array<unknown>>(
-    config: QueryOptions,
-  ): Promise<QueryArrayResult<T>>;
   async queryArray<T extends Array<unknown>>(
     strings: TemplateStringsArray,
     ...args: unknown[]
@@ -324,54 +350,51 @@ export abstract class QueryClient {
   }
 
   /**
-   * This method allows executed queries to be retrieved as object entries.
-   * It supports a generic interface in order to type the entries retrieved by the query
+   * Executed queries and retrieve the data as object entries. It supports a generic in order to type the entries retrieved by the query
    *
    * ```ts
    * import { Client } from "./client.ts";
    *
    * const my_client = new Client();
    *
-   * {
-   * 	 const { rows } = await my_client.queryObject(
-   *     "SELECT ID, NAME FROM CLIENTS"
-   * 	 ); // Record<string, unknown>
-   * }
+   * const { rows } = await my_client.queryObject(
+   *   "SELECT ID, NAME FROM CLIENTS"
+   * ); // Record<string, unknown>
    *
-   * {
-   * 	 const { rows } = await my_client.queryObject<{id: number, name: string}>(
-   *     "SELECT ID, NAME FROM CLIENTS"
-   *   ); // Array<{id: number, name: string}>
-   * }
+   * const { rows } = await my_client.queryObject<{id: number, name: string}>(
+   *   "SELECT ID, NAME FROM CLIENTS"
+   * ); // Array<{id: number, name: string}>
    * ```
-   *
-   * You can also map the expected results to object fields using the configuration interface.
-   * This will be assigned in the order they were provided
+   */
+  async queryObject<T>(
+    query: string,
+    args?: QueryArguments,
+  ): Promise<QueryObjectResult<T>>;
+  /**
+   * Use the configuration object for more advance options to execute the query
    *
    * ```ts
    * import { Client } from "./client.ts";
    *
    * const my_client = new Client();
    *
-   * {
-   *   const {rows} = await my_client.queryObject(
-   *     "SELECT ID, NAME FROM CLIENTS"
-   *   );
+   * const {rows} = await my_client.queryObject(
+   *   "SELECT ID, NAME FROM CLIENTS"
+   * );
+   * console.log(rows); // [{id: 78, name: "Frank"}, {id: 15, name: "Sarah"}]
    *
-   * 	 console.log(rows); // [{id: 78, name: "Frank"}, {id: 15, name: "Sarah"}]
-   * }
-   *
-   * {
-   * 	 const {rows} = await my_client.queryObject({
-   *     text: "SELECT ID, NAME FROM CLIENTS",
-   *  	 fields: ["personal_id", "complete_name"],
-   * 	  });
-   *
-   * 	 console.log(rows); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
-   * }
+   * const {rows} = await my_client.queryObject({
+   *   text: "SELECT ID, NAME FROM CLIENTS",
+   *   fields: ["personal_id", "complete_name"],
+   * });
+   * console.log(rows); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
    * ```
-   *
-   * It also allows you to execute prepared statements with template strings
+   */
+  async queryObject<T>(
+    config: QueryObjectOptions,
+  ): Promise<QueryObjectResult<T>>;
+  /**
+   * Execute prepared statements with template strings
    *
    * ```ts
    * import { Client } from "./client.ts";
@@ -382,13 +405,6 @@ export abstract class QueryClient {
    * const { rows } = await my_client.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
    * ```
    */
-  async queryObject<T>(
-    query: string,
-    args?: QueryArguments,
-  ): Promise<QueryObjectResult<T>>;
-  async queryObject<T>(
-    config: QueryObjectOptions,
-  ): Promise<QueryObjectResult<T>>;
   async queryObject<T>(
     query: TemplateStringsArray,
     ...args: unknown[]
@@ -431,6 +447,9 @@ export abstract class QueryClient {
     return await this.#executeQuery<T>(query);
   }
 
+  /**
+   * Resets the transaction session metadata
+   */
   protected resetSessionMetadata() {
     this.#transaction = null;
   }
@@ -472,6 +491,9 @@ export abstract class QueryClient {
  * ```
  */
 export class Client extends QueryClient {
+  /**
+   * Create a new client
+   */
   constructor(config?: ClientOptions | ConnectionString) {
     super(
       new Connection(createParams(config), async () => {
@@ -481,9 +503,15 @@ export class Client extends QueryClient {
   }
 }
 
+/**
+ * A client used specifically by a connection pool
+ */
 export class PoolClient extends QueryClient {
   #release: () => void;
 
+  /**
+   * Create a new Client used by the pool
+   */
   constructor(config: ClientConfiguration, releaseCallback: () => void) {
     super(
       new Connection(config, async () => {
@@ -493,6 +521,9 @@ export class PoolClient extends QueryClient {
     this.#release = releaseCallback;
   }
 
+  /**
+   * Releases the client back to the pool
+   */
   release() {
     this.#release();
 

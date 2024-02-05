@@ -80,8 +80,14 @@ function encodeBytes(value: Uint8Array): string {
   return `\\x${hex}`;
 }
 
+/**
+ * Types of a query arguments data encoded for execution
+ */
 export type EncodedArg = null | string | Uint8Array;
 
+/**
+ * Encode (serialize) a value that can be used in a query execution.
+ */
 export function encodeArgument(value: unknown): EncodedArg {
   if (value === null || typeof value === "undefined") {
     return null;

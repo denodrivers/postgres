@@ -14,23 +14,43 @@ export class Message {
   }
 }
 
+/**
+ * The notice interface defining the fields of a notice message
+ */
 export interface Notice {
+  /** The notice severity level */
   severity: string;
+  /** The notice code */
   code: string;
+  /** The notice message */
   message: string;
+  /** The additional notice detail */
   detail?: string;
+  /** The notice hint descrip=bing possible ways to fix this notice */
   hint?: string;
+  /** The position of code that triggered the notice */
   position?: string;
+  /** The internal position of code that triggered the notice */
   internalPosition?: string;
+  /** The internal query that triggered the notice */
   internalQuery?: string;
+  /** The where metadata */
   where?: string;
+  /** The database schema */
   schema?: string;
+  /** The table name */
   table?: string;
+  /** The column name */
   column?: string;
+  /** The data type name */
   dataType?: string;
+  /** The constraint name */
   constraint?: string;
+  /** The file name */
   file?: string;
+  /** The line number */
   line?: string;
+  /** The routine name */
   routine?: string;
 }
 
