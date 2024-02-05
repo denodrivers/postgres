@@ -117,10 +117,15 @@ export type ClientOptions = {
 
 /** The configuration options required to set up a Client instance */
 export type ClientConfiguration =
-  & Required<Omit<ClientOptions, "password" | "port">>
+  & Required<
+    Omit<ClientOptions, "password" | "port" | "tls" | "connection" | "options">
+  >
   & {
     password?: string;
     port: number;
+    tls: TLSOptions;
+    connection: ConnectionOptions;
+    options: Record<string, string>;
   };
 
 function formatMissingParams(missingParams: string[]) {
