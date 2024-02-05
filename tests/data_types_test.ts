@@ -1,4 +1,4 @@
-import { assertEquals, base64, date } from "./test_deps.ts";
+import { assertEquals, base64, formatDate, parseDate } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
 import { generateSimpleClientTest } from "./helpers.ts";
 import type {
@@ -34,7 +34,7 @@ function generateRandomPoint(max_value = 100): Point {
 
 const CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 function randomBase64(): string {
-  return base64.encode(
+  return base64.encodeBase64(
     Array.from(
       { length: Math.ceil(Math.random() * 256) },
       () => CHARS[Math.floor(Math.random() * CHARS.length)],
@@ -671,7 +671,7 @@ Deno.test(
       `SELECT decode('${base64_string}','base64')`,
     );
 
-    assertEquals(result.rows[0][0], base64.decode(base64_string));
+    assertEquals(result.rows[0][0], base64.decodeBase64(base64_string));
   }),
 );
 
@@ -691,7 +691,7 @@ Deno.test(
 
     assertEquals(
       result.rows[0][0],
-      strings.map(base64.decode),
+      strings.map(base64.decodeBase64),
     );
   }),
 );
@@ -931,7 +931,7 @@ Deno.test(
     );
 
     assertEquals(result.rows[0], [
-      date.parse(date_text, "yyyy-MM-dd"),
+      parseDate(date_text, "yyyy-MM-dd"),
       Infinity,
     ]);
   }),
@@ -941,7 +941,7 @@ Deno.test(
   "date array",
   testClient(async (client) => {
     await client.queryArray(`SET SESSION TIMEZONE TO '${timezone}'`);
-    const dates = ["2020-01-01", date.format(new Date(), "yyyy-MM-dd")];
+    const dates = ["2020-01-01", formatDate(new Date(), "yyyy-MM-dd")];
 
     const { rows: result } = await client.queryArray<[[Date, Date]]>(
       "SELECT ARRAY[$1::DATE, $2]",
@@ -950,7 +950,7 @@ Deno.test(
 
     assertEquals(
       result[0][0],
-      dates.map((d) => date.parse(d, "yyyy-MM-dd")),
+      dates.map((d) => parseDate(d, "yyyy-MM-dd")),
     );
   }),
 );

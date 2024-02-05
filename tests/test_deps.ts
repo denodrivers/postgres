@@ -6,5 +6,6 @@ export {
   assertObjectMatch,
   assertRejects,
   assertThrows,
-} from "https://deno.land/std@0.160.0/testing/asserts.ts";
-export * as streams from "https://deno.land/std@0.160.0/streams/conversion.ts";
+} from "https://deno.land/std@0.214.0/assert/mod.ts";
+export { format as formatDate } from "https://deno.land/std@0.214.0/datetime/format.ts";
+export { copy as copyStream } from "https://deno.land/std@0.214.0/io/copy.ts";
