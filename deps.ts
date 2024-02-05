@@ -1,14 +1,14 @@
-export * as base64 from "https://deno.land/std@0.214.0/encoding/base64.ts";
-export * as hex from "https://deno.land/std@0.214.0/encoding/hex.ts";
-export { parse as parseDate } from "https://deno.land/std@0.214.0/datetime/parse.ts";
-export { BufReader } from "https://deno.land/std@0.214.0/io/buf_reader.ts";
-export { BufWriter } from "https://deno.land/std@0.214.0/io/buf_writer.ts";
-export { copy } from "https://deno.land/std@0.214.0/bytes/copy.ts";
-export { crypto } from "https://deno.land/std@0.214.0/crypto/crypto.ts";
-export { delay } from "https://deno.land/std@0.214.0/async/delay.ts";
-export { bold, yellow } from "https://deno.land/std@0.214.0/fmt/colors.ts";
+export * as base64 from "jsr:@std/encoding@0.213.1/base64";
+export * as hex from "jsr:@std/encoding@0.213.1/hex";
+export { parse as parseDate } from "jsr:@std/datetime@0.213.1/parse";
+export { BufReader } from "jsr:@std/io@0.213.1/buf_reader";
+export { BufWriter } from "jsr:@std/io@0.213.1/buf_writer";
+export { copy } from "jsr:@std/bytes@0.213.1/copy";
+export { crypto } from "jsr:@std/crypto@0.213.1/crypto";
+export { delay } from "jsr:@std/async@0.213.1/delay";
+export { bold, yellow } from "jsr:@std/fmt@0.213.1/colors";
 export {
   fromFileUrl,
   isAbsolute,
   join as joinPath,
-} from "https://deno.land/std@0.214.0/path/mod.ts";
+} from "jsr:@std/path@0.213.1";

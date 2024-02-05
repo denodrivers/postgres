@@ -52,7 +52,7 @@ export abstract class QueryClient {
     this.#connection = connection;
   }
 
-  get connected() {
+  get connected(): boolean {
     return this.#connection.connected;
   }
 
