@@ -1,0 +1,5 @@
+{
+  "name": "@bartlomieju/postgres",
+  "version": "0.17.1",
+  "exports": "./mod.ts"
+}
