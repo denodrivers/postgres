@@ -95,7 +95,7 @@ export class Pool {
   constructor(
     connection_params: ClientOptions | ConnectionString | undefined,
     size: number,
-    lazy: boolean = false
+    lazy: boolean = false,
   ) {
     this.#connection_params = createParams(connection_params);
     this.#lazy = lazy;
@@ -182,8 +182,9 @@ export class Pool {
   async #initialize() {
     const initialized = this.#lazy ? 0 : this.#size;
     const clients = Array.from({ length: this.#size }, async (_e, index) => {
-      const client: PoolClient = new PoolClient(this.#connection_params, () =>
-        this.#available_connections!.push(client)
+      const client: PoolClient = new PoolClient(
+        this.#connection_params,
+        () => this.#available_connections!.push(client),
       );
 
       if (index < initialized) {
@@ -196,7 +197,7 @@ export class Pool {
     this.#available_connections = new DeferredAccessStack(
       await Promise.all(clients),
       (client) => client.connect(),
-      (client) => client.connected
+      (client) => client.connected,
     );
 
     this.#ended = false;
