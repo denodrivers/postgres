@@ -14,7 +14,7 @@ function toStdJsrSpecifier(
 ): string {
   return path === "mod"
     ? `jsr:@std/${module}@${version}`
-    : `jsr:@std/${module}@${version}/${path}`;
+    : `jsr:/@std/${module}@${version}/${path}`;
 }
 
 for await (
