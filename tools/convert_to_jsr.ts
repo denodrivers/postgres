@@ -8,10 +8,15 @@ const POSTGRES_JSR_SPECIFIER = `jsr:${denoConfig.name}`;
 
 function toStdJsrSpecifier(
   _full: string,
-  version: string,
+  _version: string,
   module: string,
   path: string,
 ): string {
+  /**
+   * @todo(iuioiua) Restore the dynamic use of the `version` argument
+   * once 0.214.0 is released.
+   */
+  const version = "0.213.1";
   return path === "mod"
     ? `jsr:@std/${module}@${version}`
     : `jsr:@std/${module}@${version}/${path}`;
