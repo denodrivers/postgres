@@ -47,7 +47,7 @@ export interface Session {
 }
 
 /**
- * An abstract client class used define common client properties and methods
+ * An abstract class used to define common database client properties and methods
  */
 export abstract class QueryClient {
   #connection: Connection;
