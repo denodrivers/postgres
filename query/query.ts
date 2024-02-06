@@ -14,8 +14,7 @@ import { type Notice } from "../connection/message.ts";
  * They will take the position according to the order in which they were provided
  *
  * ```ts
- * import { Client } from "../client.ts";
- *
+ * import { Client } from "https://deno.land/x/postgres/mod.ts";
  * const my_client = new Client();
  *
  * await my_client.queryArray("SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2", [
@@ -24,11 +23,14 @@ import { type Notice } from "../connection/message.ts";
  * ]);
  * ```
  */
+
+/** Types of arguments passed to a query */
 export type QueryArguments = unknown[] | Record<string, unknown>;
 
 const commandTagRegexp = /^([A-Za-z]+)(?: (\d+))?(?: (\d+))?/;
 
-type CommandType =
+/** Type of query to be executed */
+export type CommandType =
   | "INSERT"
   | "DELETE"
   | "UPDATE"
@@ -37,16 +39,16 @@ type CommandType =
   | "FETCH"
   | "COPY";
 
+/** Type of a query result */
 export enum ResultType {
   ARRAY,
   OBJECT,
 }
 
+/** Class to describe a row */
 export class RowDescription {
-  constructor(
-    public columnCount: number,
-    public columns: Column[],
-  ) {}
+  /** Create a new row description */
+  constructor(public columnCount: number, public columns: Column[]) {}
 }
 
 /**
@@ -110,15 +112,21 @@ function normalizeObjectQueryArgs(
   return normalized_args;
 }
 
+/** Types of options  */
 export interface QueryOptions {
+  /** The arguments to be passed to the query */
   args?: QueryArguments;
+  /** A custom function to  override the encoding logic of the arguments passed to the query */
   encoder?: (arg: unknown) => EncodedArg;
+  /**The name of the query statement */
   name?: string;
   // TODO
   // Rename to query
+  /** The query statement to be executed */
   text: string;
 }
 
+/** Options to control the behavior of a Query instance */
 export interface QueryObjectOptions extends QueryOptions {
   // TODO
   // Support multiple case options
@@ -142,16 +150,32 @@ export interface QueryObjectOptions extends QueryOptions {
   fields?: string[];
 }
 
+/**
+ * This class is used to handle the result of a query
+ */
 export class QueryResult {
+  /**
+   * Type of query executed for this result
+   */
   public command!: CommandType;
+  /**
+   * The amount of rows affected by the query
+   */
+  // TODO change to affectedRows
   public rowCount?: number;
   /**
    * This variable will be set after the class initialization, however it's required to be set
    * in order to handle result rows coming in
    */
   #row_description?: RowDescription;
+  /**
+   * The warnings of the result
+   */
   public warnings: Notice[] = [];
 
+  /**
+   * The row description of the result
+   */
   get rowDescription(): RowDescription | undefined {
     return this.#row_description;
   }
@@ -163,6 +187,9 @@ export class QueryResult {
     }
   }
 
+  /**
+   * Create a query result instance for the query passed
+   */
   constructor(public query: Query<ResultType>) {}
 
   /**
@@ -173,6 +200,9 @@ export class QueryResult {
     this.rowDescription = description;
   }
 
+  /**
+   * Handles the command complete message
+   */
   handleCommandComplete(commandTag: string): void {
     const match = commandTagRegexp.exec(commandTag);
     if (match) {
@@ -198,11 +228,20 @@ export class QueryResult {
   }
 }
 
+/**
+ * This class is used to handle the result of a query that returns an array
+ */
 export class QueryArrayResult<
   T extends Array<unknown> = Array<unknown>,
 > extends QueryResult {
+  /**
+   * The result rows
+   */
   public rows: T[] = [];
 
+  /**
+   * Insert a row into the result
+   */
   insertRow(row_data: Uint8Array[]) {
     if (!this.rowDescription) {
       throw new Error(
@@ -246,6 +285,9 @@ function snakecaseToCamelcase(input: string) {
   }, "");
 }
 
+/**
+ * This class is used to handle the result of a query that returns an object
+ */
 export class QueryObjectResult<
   T = Record<string, unknown>,
 > extends QueryResult {
@@ -253,8 +295,14 @@ export class QueryObjectResult<
    * The column names will be undefined on the first run of insertRow, since
    */
   public columns?: string[];
+  /**
+   * The rows of the result
+   */
   public rows: T[] = [];
 
+  /**
+   * Insert a row into the result
+   */
   insertRow(row_data: Uint8Array[]) {
     if (!this.rowDescription) {
       throw new Error(
@@ -310,25 +358,25 @@ export class QueryObjectResult<
       );
     }
 
-    const row = row_data.reduce(
-      (row, raw_value, index) => {
-        const current_column = this.rowDescription!.columns[index];
+    const row = row_data.reduce((row, raw_value, index) => {
+      const current_column = this.rowDescription!.columns[index];
 
-        if (raw_value === null) {
-          row[columns[index]] = null;
-        } else {
-          row[columns[index]] = decode(raw_value, current_column);
-        }
+      if (raw_value === null) {
+        row[columns[index]] = null;
+      } else {
+        row[columns[index]] = decode(raw_value, current_column);
+      }
 
-        return row;
-      },
-      {} as Record<string, unknown>,
-    );
+      return row;
+    }, {} as Record<string, unknown>);
 
     this.rows.push(row as T);
   }
 }
 
+/**
+ * This class is used to handle the query to be executed by the database
+ */
 export class Query<T extends ResultType> {
   public args: EncodedArg[];
   public camelcase?: boolean;
