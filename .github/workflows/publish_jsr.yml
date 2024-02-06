@@ -1,0 +1,53 @@
+name: Publish to JSR
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  DENO_UNSTABLE_WORKSPACES: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v1
+
+      - name: Convert to JSR package
+        run: deno run -A tools/convert_to_jsr.ts
+
+      - name: Format
+        run: deno fmt --check
+      
+      - name: Lint
+        run: deno lint
+
+      - name: Documentation tests
+        run: deno test --doc client.ts mod.ts pool.ts client/ connection/ query/ utils/
+
+      - name: Build tests container
+        run: docker-compose build tests
+      
+      - name: Run tests
+        run: docker-compose run tests
+
+      - name: Publish (dry run)
+        if: startsWith(github.ref, 'refs/tags/') == false
+        run: deno publish --dry-run
+
+      - name: Publish (real)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: deno publish
