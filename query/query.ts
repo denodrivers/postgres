@@ -14,8 +14,6 @@ import { type Notice } from "../connection/message.ts";
  * They will take the position according to the order in which they were provided
  *
  * ```ts
- * import { Client } from "../client.ts";
- *
  * const my_client = new Client();
  *
  * await my_client.queryArray("SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2", [

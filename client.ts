@@ -105,8 +105,6 @@ export abstract class QueryClient {
    * In order to create a transaction, use the `createTransaction` method in your client as follows:
    *
    * ```ts
-   * import { Client } from "./client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("my_transaction_name");
    *
@@ -119,8 +117,6 @@ export abstract class QueryClient {
    * the client without applying any of the changes that took place inside it
    *
    * ```ts
-   * import { Client } from "./client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -137,7 +133,6 @@ export abstract class QueryClient {
    * the transaction
    *
    * ```ts
-   * import { Client } from "./client.ts";
    *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
@@ -163,8 +158,6 @@ export abstract class QueryClient {
    * - Repeatable read: This isolates the transaction in a way that any external changes to the data we are reading
    *   won't be visible inside the transaction until it has finished
    *   ```ts
-   *   import { Client } from "./client.ts";
-   *
    *   const client = new Client();
    *   const transaction = await client.createTransaction("my_transaction", { isolation_level: "repeatable_read" });
    *   ```
@@ -172,8 +165,6 @@ export abstract class QueryClient {
    * - Serializable: This isolation level prevents the current transaction from making persistent changes
    *   if the data they were reading at the beginning of the transaction has been modified (recommended)
    *   ```ts
-   *   import { Client } from "./client.ts";
-   *
    *   const client = new Client();
    *   const transaction = await client.createTransaction("my_transaction", { isolation_level: "serializable" });
    *   ```
@@ -186,8 +177,6 @@ export abstract class QueryClient {
    *   is to in conjuction with the repeatable read isolation, ensuring the data you are reading does not change
    *   during the transaction, specially useful for data extraction
    *   ```ts
-   *   import { Client } from "./client.ts";
-   *
    *   const client = new Client();
    *   const transaction = await client.createTransaction("my_transaction", { read_only: true });
    *   ```
@@ -198,8 +187,6 @@ export abstract class QueryClient {
    * you can do the following:
    *
    * ```ts
-   * import { Client } from "./client.ts";
-   *
    * const client_1 = new Client();
    * const client_2 = new Client();
    * const transaction_1 = client_1.createTransaction("transaction_1");
@@ -267,8 +254,6 @@ export abstract class QueryClient {
    * Execute queries and retrieve the data as array entries. It supports a generic in order to type the entries retrieved by the query
    *
    * ```ts
-   * import { Client } from "./client.ts";
-   *
    * const my_client = new Client();
    *
    * const {rows} = await my_client.queryArray(
@@ -289,8 +274,6 @@ export abstract class QueryClient {
    * Use the configuration object for more advance options to execute the query
    *
    * ```ts
-   * import { Client } from "./client.ts";
-   *
    * const my_client = new Client();
    * const { rows } = await my_client.queryArray<[number, string]>({
    *   text: "SELECT ID, NAME FROM CLIENTS",
@@ -305,7 +288,6 @@ export abstract class QueryClient {
    * Execute prepared statements with template strings
    *
    * ```ts
-   * import { Client } from "./client.ts";
    * const my_client = new Client();
    *
    * const id = 12;
@@ -353,8 +335,6 @@ export abstract class QueryClient {
    * Executed queries and retrieve the data as object entries. It supports a generic in order to type the entries retrieved by the query
    *
    * ```ts
-   * import { Client } from "./client.ts";
-   *
    * const my_client = new Client();
    *
    * const { rows } = await my_client.queryObject(
@@ -374,8 +354,6 @@ export abstract class QueryClient {
    * Use the configuration object for more advance options to execute the query
    *
    * ```ts
-   * import { Client } from "./client.ts";
-   *
    * const my_client = new Client();
    *
    * const {rows} = await my_client.queryObject(
@@ -397,8 +375,6 @@ export abstract class QueryClient {
    * Execute prepared statements with template strings
    *
    * ```ts
-   * import { Client } from "./client.ts";
-   *
    * const my_client = new Client();
    * const id = 12;
    * // Array<{id: number, name: string}>
@@ -460,8 +436,6 @@ export abstract class QueryClient {
  * statements asynchronously
  *
  * ```ts
- * import { Client } from "./client.ts";
- *
  * const client = new Client();
  * await client.connect();
  * await client.queryArray`UPDATE MY_TABLE SET MY_FIELD = 0`;
@@ -472,8 +446,6 @@ export abstract class QueryClient {
  * for concurrency capabilities check out connection pools
  *
  * ```ts
- * import { Client } from "./client.ts";
- *
  * const client_1 = new Client();
  * await client_1.connect();
  * // Even if operations are not awaited, they will be executed in the order they were

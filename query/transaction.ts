@@ -60,8 +60,6 @@ export class Savepoint {
    * Releasing a savepoint will remove it's last instance in the transaction
    *
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -73,8 +71,6 @@ export class Savepoint {
    * It will also allow you to set the savepoint to the position it had before the last update
    *
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -99,8 +95,6 @@ export class Savepoint {
    * Updating a savepoint will update its position in the transaction execution
    *
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -114,8 +108,6 @@ export class Savepoint {
    * You can also undo a savepoint update by using the `release` method
    *
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -201,8 +193,6 @@ export class Transaction {
    * The begin method will officially begin the transaction, and it must be called before
    * any query or transaction operation is executed in order to lock the session
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction_name");
    *
@@ -278,8 +268,6 @@ export class Transaction {
    * current transaction and end the current transaction
    *
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -292,8 +280,6 @@ export class Transaction {
    * start a new with the same transaction parameters in a single statement
    *
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -353,8 +339,6 @@ export class Transaction {
    * the snapshot state between two transactions
    *
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client_1 = new Client();
    * const client_2 = new Client();
    * const transaction_1 = client_1.createTransaction("transaction");
@@ -379,8 +363,6 @@ export class Transaction {
    * It supports a generic interface in order to type the entries retrieved by the query
    *
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -391,8 +373,6 @@ export class Transaction {
    *
    * You can pass type arguments to the query in order to hint TypeScript what the return value will be
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -404,8 +384,6 @@ export class Transaction {
    * It also allows you to execute prepared stamements with template strings
    *
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -422,7 +400,6 @@ export class Transaction {
    * Use the configuration object for more advance options to execute the query
    *
    * ```ts
-   * import { Client } from "./client.ts";
    *
    * const my_client = new Client();
    * const { rows } = await my_client.queryArray<[number, string]>({
@@ -438,7 +415,6 @@ export class Transaction {
    * Execute prepared statements with template strings
    *
    * ```ts
-   * import { Client } from "./client.ts";
    * const my_client = new Client();
    *
    * const id = 12;
@@ -489,8 +465,6 @@ export class Transaction {
    * Executed queries and retrieve the data as object entries. It supports a generic in order to type the entries retrieved by the query
    *
    * ```ts
-   * import { Client } from "./client.ts";
-   *
    * const my_client = new Client();
    *
    * const { rows } = await my_client.queryObject(
@@ -510,8 +484,6 @@ export class Transaction {
    * Use the configuration object for more advance options to execute the query
    *
    * ```ts
-   * import { Client } from "./client.ts";
-   *
    * const my_client = new Client();
    *
    * const {rows} = await my_client.queryObject(
@@ -533,8 +505,6 @@ export class Transaction {
    * Execute prepared statements with template strings
    *
    * ```ts
-   * import { Client } from "./client.ts";
-   *
    * const my_client = new Client();
    * const id = 12;
    * // Array<{id: number, name: string}>
@@ -593,8 +563,6 @@ export class Transaction {
    * Calling a rollback without arguments will terminate the current transaction and undo all changes.
    *
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -609,8 +577,6 @@ export class Transaction {
    * Savepoints can be used to rollback specific changes part of a transaction.
    *
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -633,8 +599,6 @@ export class Transaction {
    * The `chain` option allows you to undo the current transaction and restart it with the same parameters in a single statement
    *
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -743,8 +707,6 @@ export class Transaction {
    *
    * A savepoint can be easily created like this
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -755,8 +717,6 @@ export class Transaction {
    * All savepoints can have multiple positions in a transaction, and you can change or update
    * this positions by using the `update` and `release` methods
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
@@ -773,8 +733,6 @@ export class Transaction {
    * Creating a new savepoint with an already used name will return you a reference to
    * the original savepoint
    * ```ts
-   * import { Client } from "../client.ts";
-   *
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
