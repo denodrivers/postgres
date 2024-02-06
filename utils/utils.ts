@@ -43,6 +43,20 @@ export interface Uri {
   user: string;
 }
 
+type ConnectionInfo = {
+  driver?: string;
+  user?: string;
+  password?: string;
+  full_host?: string;
+  path?: string;
+  params?: string;
+};
+
+type ParsedHost = {
+  host?: string;
+  port?: string;
+};
+
 /**
  * This function parses valid connection strings according to https://www.postgresql.org/docs/14/libpq-connect.html#LIBPQ-CONNSTRING
  *
@@ -53,6 +67,7 @@ export function parseConnectionUri(uri: string): Uri {
     /(?<driver>\w+):\/{2}((?<user>[^\/?#\s:]+?)?(:(?<password>[^\/?#\s]+)?)?@)?(?<full_host>[^\/?#\s]+)?(\/(?<path>[^?#\s]*))?(\?(?<params>[^#\s]+))?.*/,
   );
   if (!parsed_uri) throw new Error("Could not parse the provided URL");
+
   let {
     driver = "",
     full_host = "",
@@ -60,26 +75,17 @@ export function parseConnectionUri(uri: string): Uri {
     password = "",
     path = "",
     user = "",
-  }: {
-    driver?: string;
-    user?: string;
-    password?: string;
-    full_host?: string;
-    path?: string;
-    params?: string;
-  } = parsed_uri.groups ?? {};
+  }: ConnectionInfo = parsed_uri.groups ?? {};
 
   const parsed_host = full_host.match(
     /(?<host>(\[.+\])|(.*?))(:(?<port>[\w]*))?$/,
   );
   if (!parsed_host) throw new Error(`Could not parse "${full_host}" host`);
+
   let {
     host = "",
     port = "",
-  }: {
-    host?: string;
-    port?: string;
-  } = parsed_host.groups ?? {};
+  }: ParsedHost = parsed_host.groups ?? {};
 
   try {
     if (host) {
@@ -87,9 +93,7 @@ export function parseConnectionUri(uri: string): Uri {
     }
   } catch (_e) {
     console.error(
-      bold(
-        yellow("Failed to decode URL host") + "\nDefaulting to raw host",
-      ),
+      bold(yellow("Failed to decode URL host") + "\nDefaulting to raw host"),
     );
   }
 

@@ -43,7 +43,10 @@ export enum ResultType {
 }
 
 export class RowDescription {
-  constructor(public columnCount: number, public columns: Column[]) {}
+  constructor(
+    public columnCount: number,
+    public columns: Column[],
+  ) {}
 }
 
 /**
@@ -95,9 +98,7 @@ function normalizeObjectQueryArgs(
   args: Record<string, unknown>,
 ): Record<string, unknown> {
   const normalized_args = Object.fromEntries(
-    Object.entries(args).map((
-      [key, value],
-    ) => [key.toLowerCase(), value]),
+    Object.entries(args).map(([key, value]) => [key.toLowerCase(), value]),
   );
 
   if (Object.keys(normalized_args).length !== Object.keys(args).length) {
@@ -197,8 +198,9 @@ export class QueryResult {
   }
 }
 
-export class QueryArrayResult<T extends Array<unknown> = Array<unknown>>
-  extends QueryResult {
+export class QueryArrayResult<
+  T extends Array<unknown> = Array<unknown>,
+> extends QueryResult {
   public rows: T[] = [];
 
   insertRow(row_data: Uint8Array[]) {
@@ -234,19 +236,14 @@ function findDuplicatesInArray(array: string[]): string[] {
 }
 
 function snakecaseToCamelcase(input: string) {
-  return input
-    .split("_")
-    .reduce(
-      (res, word, i) => {
-        if (i !== 0) {
-          word = word[0].toUpperCase() + word.slice(1);
-        }
+  return input.split("_").reduce((res, word, i) => {
+    if (i !== 0) {
+      word = word[0].toUpperCase() + word.slice(1);
+    }
 
-        res += word;
-        return res;
-      },
-      "",
-    );
+    res += word;
+    return res;
+  }, "");
 }
 
 export class QueryObjectResult<
@@ -283,8 +280,8 @@ export class QueryObjectResult<
             snakecaseToCamelcase(column.name)
           );
         } else {
-          column_names = this.rowDescription.columns.map((column) =>
-            column.name
+          column_names = this.rowDescription.columns.map(
+            (column) => column.name,
           );
         }
 
@@ -293,7 +290,9 @@ export class QueryObjectResult<
         if (duplicates.length) {
           throw new Error(
             `Field names ${
-              duplicates.map((str) => `"${str}"`).join(", ")
+              duplicates
+                .map((str) => `"${str}"`)
+                .join(", ")
             } are duplicated in the result of the query`,
           );
         }
@@ -360,15 +359,8 @@ export class Query<T extends ResultType> {
       this.text = config_or_text;
       this.args = args.map(encodeArgument);
     } else {
-      let {
-        args = [],
-        camelcase,
-        encoder = encodeArgument,
-        fields,
-        // deno-lint-ignore no-unused-vars
-        name,
-        text,
-      } = config_or_text;
+      const { camelcase, encoder = encodeArgument, fields } = config_or_text;
+      let { args = [], text } = config_or_text;
 
       // Check that the fields passed are valid and can be used to map
       // the result of the query

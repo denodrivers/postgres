@@ -33,13 +33,13 @@ export const INCOMING_TLS_MESSAGES = {
 
 export const INCOMING_QUERY_MESSAGES = {
   BIND_COMPLETE: "2",
-  PARSE_COMPLETE: "1",
   COMMAND_COMPLETE: "C",
   DATA_ROW: "D",
   EMPTY_QUERY: "I",
-  NO_DATA: "n",
   NOTICE_WARNING: "N",
+  NO_DATA: "n",
   PARAMETER_STATUS: "S",
+  PARSE_COMPLETE: "1",
   READY: "Z",
   ROW_DESCRIPTION: "T",
 } as const;
