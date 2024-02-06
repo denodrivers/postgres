@@ -14,6 +14,7 @@ import { DeferredAccessStack } from "./utils/deferred.ts";
  * with their PostgreSQL database
  *
  * ```ts
+ * import { Pool } from "https://deno.land/x/postgres/mod.ts";
  * const pool = new Pool({
  *   database: "database",
  *   hostname: "hostname",
@@ -33,6 +34,7 @@ import { DeferredAccessStack } from "./utils/deferred.ts";
  * available connections in the pool
  *
  * ```ts
+ * import { Pool } from "https://deno.land/x/postgres/mod.ts";
  * // Creates a pool with 10 max available connections
  * // Connection with the database won't be established until the user requires it
  * const pool = new Pool({}, 10, true);
@@ -93,7 +95,7 @@ export class Pool {
   constructor(
     connection_params: ClientOptions | ConnectionString | undefined,
     size: number,
-    lazy: boolean = false,
+    lazy: boolean = false
   ) {
     this.#connection_params = createParams(connection_params);
     this.#lazy = lazy;
@@ -115,6 +117,7 @@ export class Pool {
    * with the database if no other connections are available
    *
    * ```ts
+   * import { Pool } from "https://deno.land/x/postgres/mod.ts";
    * const pool = new Pool({}, 10);
    * const client = await pool.connect();
    * await client.queryArray`UPDATE MY_TABLE SET X = 1`;
@@ -135,6 +138,7 @@ export class Pool {
    * This will close all open connections and set a terminated status in the pool
    *
    * ```ts
+   * import { Pool } from "https://deno.land/x/postgres/mod.ts";
    * const pool = new Pool({}, 10);
    *
    * await pool.end();
@@ -146,6 +150,7 @@ export class Pool {
    * will reinitialize the connections according to the original configuration of the pool
    *
    * ```ts
+   * import { Pool } from "https://deno.land/x/postgres/mod.ts";
    * const pool = new Pool({}, 10);
    * await pool.end();
    * const client = await pool.connect();
@@ -177,9 +182,8 @@ export class Pool {
   async #initialize() {
     const initialized = this.#lazy ? 0 : this.#size;
     const clients = Array.from({ length: this.#size }, async (_e, index) => {
-      const client: PoolClient = new PoolClient(
-        this.#connection_params,
-        () => this.#available_connections!.push(client),
+      const client: PoolClient = new PoolClient(this.#connection_params, () =>
+        this.#available_connections!.push(client)
       );
 
       if (index < initialized) {
@@ -192,7 +196,7 @@ export class Pool {
     this.#available_connections = new DeferredAccessStack(
       await Promise.all(clients),
       (client) => client.connect(),
-      (client) => client.connected,
+      (client) => client.connected
     );
 
     this.#ended = false;
