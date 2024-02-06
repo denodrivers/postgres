@@ -15,7 +15,7 @@ for await (
   const entry of walk(".", {
     includeDirs: false,
     exts: [".ts", ".md"],
-    skip: [/docker/, /.github/],
+    skip: [/docker/, /.github/, /tools/],
     followSymlinks: false,
   })
 ) {
