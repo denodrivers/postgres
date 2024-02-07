@@ -32,8 +32,8 @@ await client.connect();
 }
 
 {
-  const result =
-    await client.queryArray`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
+  const result = await client
+    .queryArray`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
   console.log(result.rows); // [[1, 'Carlos']]
 }
 
@@ -43,8 +43,8 @@ await client.connect();
 }
 
 {
-  const result =
-    await client.queryObject`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
+  const result = await client
+    .queryObject`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
   console.log(result.rows); // [{id: 1, name: 'Carlos'}]
 }
 
@@ -59,8 +59,8 @@ For more examples, visit the documentation available at
 The documentation is available on the deno-postgres website
 [https://deno-postgres.com/](https://deno-postgres.com/)
 
-Join the [Discord](https://discord.gg/HEdTCvZUSf) as well! It's a good place
-to discuss bugs and features before opening issues.
+Join the [Discord](https://discord.gg/HEdTCvZUSf) as well! It's a good place to
+discuss bugs and features before opening issues.
 
 ## Contributing
 
@@ -71,17 +71,16 @@ to discuss bugs and features before opening issues.
   - https://docs.docker.com/get-docker/
   - https://docs.docker.com/compose/install/
 
-- You don't need `deno` installed in your machine to run the tests since it
-  will be installed in the Docker container when you build it. However, you will
-  need it to run the linter and formatter locally
+- You don't need `deno` installed in your machine to run the tests since it will
+  be installed in the Docker container when you build it. However, you will need
+  it to run the linter and formatter locally
 
   - https://deno.land/
   - `deno upgrade --version 1.7.1`
   - `dvm install 1.7.1 && dvm use 1.7.1`
 
-- You don't need to install Postgres locally on your machine to test
-  the library, it will run as a service in the Docker container when you build
-  it
+- You don't need to install Postgres locally on your machine to test the
+  library, it will run as a service in the Docker container when you build it
 
 ### Running the tests
 
@@ -97,8 +96,8 @@ The build step will check linting and formatting as well and report it to the
 command line
 
 It is recommended that you don't rely on any previously initialized data for
-your tests instead create all the data you need at the moment of
-running the tests
+your tests instead create all the data you need at the moment of running the
+tests
 
 For example, the following test will create a temporal table that will disappear
 once the test has been completed
@@ -166,10 +165,9 @@ When contributing to the repository, make sure to:
    explaining their usage
 3. All code must pass the format and lint checks enforced by `deno fmt` and
    `deno lint` respectively. The build will only pass the tests if these
-conditions are met. Ignore rules will be accepted in the code base when
-   their respective justification is given in a comment
-4. All features and fixes must have a corresponding test added to be
-   accepted
+   conditions are met. Ignore rules will be accepted in the code base when their
+   respective justification is given in a comment
+4. All features and fixes must have a corresponding test added to be accepted
 
 ## Maintainers guidelines
 
@@ -183,4 +181,5 @@ preserved their individual licenses and copyrights.
 
 Everything is licensed under the MIT License.
 
-All additional work is copyright 2018 - 2022 — Bartłomiej Iwańczuk and Steven Guerrero — All rights reserved.
+All additional work is copyright 2018 - 2022 — Bartłomiej Iwańczuk and Steven
+Guerrero — All rights reserved.
