@@ -157,7 +157,7 @@ This situation will become more stable as `std` and `deno-postgres` approach 1.0
 | 1.15.0        | 0.13.0             |                    |
 | 1.16.0        | 0.14.0             | 0.14.3             |
 | 1.17.0        | 0.15.0             |                    |
-
+| 1.40.0        | 0.17.2             |                    |
 This module is available on JSR starting from 0.17.2. The minimum recommended
 Deno version is 1.40.
 
