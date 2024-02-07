@@ -147,16 +147,18 @@ alongside the library
 
 This situation will become more stable as `std` and `deno-postgres` approach 1.0
 
-| Deno version  | Min driver version | Max driver version |
-| ------------- | ------------------ | ------------------ |
-| 1.8.x         | 0.5.0              | 0.10.0             |
-| 1.9.0         | 0.11.0             | 0.11.1             |
-| 1.9.1 and up  | 0.11.2             | 0.11.3             |
-| 1.11.0 and up | 0.12.0             | 0.12.0             |
-| 1.14.0 and up | 0.13.0             | 0.13.0             |
-| 1.15.0        | 0.13.0             |                    |
-| 1.16.0        | 0.14.0             | 0.14.3             |
-| 1.17.0        | 0.15.0             |                    |
+| Deno version                                          | Min driver version | Max driver version |
+| ----------------------------------------------------- | ------------------ | ------------------ |
+| 1.8.x                                                 | 0.5.0              | 0.10.0             |
+| 1.9.0                                                 | 0.11.0             | 0.11.1             |
+| 1.9.1 and up                                          | 0.11.2             | 0.11.3             |
+| 1.11.0 and up                                         | 0.12.0             | 0.12.0             |
+| 1.14.0 and up                                         | 0.13.0             | 0.13.0             |
+| 1.15.0                                                | 0.13.0             |                    |
+| 1.16.0                                                | 0.14.0             | 0.14.3             |
+| 1.17.0                                                | 0.15.0             |                    |
+| 1.40.0                                                | 0.17.2             |                    |
+| This module is available on JSR starting from 0.17.2. |                    |                    |
 
 ## Contributing guidelines
 
@@ -171,6 +173,11 @@ When contributing to repository make sure to:
    their respective justification is given in a comment
 4. All features and fixes must have a corresponding test added in order to be
    accepted
+
+## Maintainers guidelines
+
+When publishing a new version, ensure that the `version` field in `deno.json`
+has been updated to match the new version.
 
 ## License
 
