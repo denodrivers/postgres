@@ -35,6 +35,7 @@ import {
   decodeTid,
   decodeTidArray,
 } from "./decoders.ts";
+import { ClientControls } from "../connection/connection_params.ts";
 
 export class Column {
   constructor(
@@ -44,7 +45,7 @@ export class Column {
     public typeOid: number,
     public columnLength: number,
     public typeModifier: number,
-    public format: Format,
+    public format: Format
   ) {}
 }
 
@@ -58,7 +59,7 @@ const decoder = new TextDecoder();
 // TODO
 // Decode binary fields
 function decodeBinary() {
-  throw new Error("Not implemented!");
+  throw new Error("Decoding binary data is not implemented!");
 }
 
 function decodeText(value: Uint8Array, typeOid: number) {
@@ -201,17 +202,26 @@ function decodeText(value: Uint8Array, typeOid: number) {
       bold(yellow(`Error decoding type Oid ${typeOid} value`)) +
         _e.message +
         "\n" +
-        bold("Defaulting to null."),
+        bold("Defaulting to null.")
     );
     // If an error occurred during decoding, return null
     return null;
   }
 }
 
-export function decode(value: Uint8Array, column: Column) {
+export function decode(
+  value: Uint8Array,
+  column: Column,
+  controls?: ClientControls
+) {
   if (column.format === Format.BINARY) {
     return decodeBinary();
   } else if (column.format === Format.TEXT) {
+    // If the user has specified a decode strategy, use that
+    if (controls?.decode_strategy === "string") {
+      return decoder.decode(value);
+    }
+    // default to 'auto' mode, which uses the typeOid to determine the decoding strategy
     return decodeText(value, column.typeOid);
   } else {
     throw new Error(`Unknown column format: ${column.format}`);

@@ -139,7 +139,7 @@ export class Connection {
 
   constructor(
     connection_params: ClientConfiguration,
-    disconnection_callback: () => Promise<void>,
+    disconnection_callback: () => Promise<void>
   ) {
     this.#connection_params = connection_params;
     this.#onDisconnection = disconnection_callback;
@@ -190,7 +190,7 @@ export class Connection {
         return false;
       default:
         throw new Error(
-          `Could not check if server accepts SSL connections, server responded with: ${response}`,
+          `Could not check if server accepts SSL connections, server responded with: ${response}`
         );
     }
   }
@@ -220,7 +220,7 @@ export class Connection {
         .addCString(
           connection_options
             .map(([key, value]) => `--${key}=${value}`)
-            .join(" "),
+            .join(" ")
         );
     }
 
@@ -266,7 +266,7 @@ export class Connection {
       } catch (e) {
         if (e instanceof Deno.errors.NotFound) {
           throw new ConnectionError(
-            `Could not open socket in path "${socket_guess}"`,
+            `Could not open socket in path "${socket_guess}"`
           );
         }
         throw e;
@@ -276,7 +276,7 @@ export class Connection {
 
   async #openTlsConnection(
     connection: Deno.Conn,
-    options: { hostname: string; caCerts: string[] },
+    options: { hostname: string; caCerts: string[] }
   ) {
     this.#conn = await Deno.startTls(connection, options);
     this.#bufWriter = new BufWriter(this.#conn);
@@ -345,7 +345,7 @@ export class Connection {
                 bold(yellow("TLS connection failed with message: ")) +
                   e.message +
                   "\n" +
-                  bold("Defaulting to non-encrypted connection"),
+                  bold("Defaulting to non-encrypted connection")
               );
               await this.#openConnection({ hostname, port, transport: "tcp" });
               this.#tls = false;
@@ -357,7 +357,7 @@ export class Connection {
           // Make sure to close the connection before erroring
           this.#closeConnection();
           throw new Error(
-            "The server isn't accepting TLS connections. Change the client configuration so TLS configuration isn't required to connect",
+            "The server isn't accepting TLS connections. Change the client configuration so TLS configuration isn't required to connect"
           );
         }
       }
@@ -373,14 +373,14 @@ export class Connection {
         if (e instanceof Deno.errors.InvalidData && tls_enabled) {
           if (tls_enforced) {
             throw new Error(
-              "The certificate used to secure the TLS connection is invalid.",
+              "The certificate used to secure the TLS connection is invalid."
             );
           } else {
             console.error(
               bold(yellow("TLS connection failed with message: ")) +
                 e.message +
                 "\n" +
-                bold("Defaulting to non-encrypted connection"),
+                bold("Defaulting to non-encrypted connection")
             );
             await this.#openConnection({ hostname, port, transport: "tcp" });
             this.#tls = false;
@@ -436,7 +436,7 @@ export class Connection {
   async startup(is_reconnection: boolean) {
     if (is_reconnection && this.#connection_params.connection.attempts === 0) {
       throw new Error(
-        "The client has been disconnected from the database. Enable reconnection in the client to attempt reconnection after failure",
+        "The client has been disconnected from the database. Enable reconnection in the client to attempt reconnection after failure"
       );
     }
 
@@ -512,19 +512,19 @@ export class Connection {
       }
       case AUTHENTICATION_TYPE.SCM:
         throw new Error(
-          "Database server expected SCM authentication, which is not supported at the moment",
+          "Database server expected SCM authentication, which is not supported at the moment"
         );
       case AUTHENTICATION_TYPE.GSS_STARTUP:
         throw new Error(
-          "Database server expected GSS authentication, which is not supported at the moment",
+          "Database server expected GSS authentication, which is not supported at the moment"
         );
       case AUTHENTICATION_TYPE.GSS_CONTINUE:
         throw new Error(
-          "Database server expected GSS authentication, which is not supported at the moment",
+          "Database server expected GSS authentication, which is not supported at the moment"
         );
       case AUTHENTICATION_TYPE.SSPI:
         throw new Error(
-          "Database server expected SSPI authentication, which is not supported at the moment",
+          "Database server expected SSPI authentication, which is not supported at the moment"
         );
       case AUTHENTICATION_TYPE.SASL_STARTUP:
         authentication_result = await this.#authenticateWithSasl();
@@ -552,14 +552,14 @@ export class Connection {
 
     if (!this.#connection_params.password) {
       throw new ConnectionParamsError(
-        "Attempting MD5 authentication with unset password",
+        "Attempting MD5 authentication with unset password"
       );
     }
 
     const password = await hashMd5Password(
       this.#connection_params.password,
       this.#connection_params.user,
-      salt,
+      salt
     );
     const buffer = this.#packetWriter.addCString(password).flush(0x70);
 
@@ -575,13 +575,13 @@ export class Connection {
   async #authenticateWithSasl(): Promise<Message> {
     if (!this.#connection_params.password) {
       throw new ConnectionParamsError(
-        "Attempting SASL auth with unset password",
+        "Attempting SASL auth with unset password"
       );
     }
 
     const client = new scram.Client(
       this.#connection_params.user,
-      this.#connection_params.password,
+      this.#connection_params.password
     );
     const utf8 = new TextDecoder("utf-8");
 
@@ -600,7 +600,7 @@ export class Connection {
         const authentication_type = maybe_sasl_continue.reader.readInt32();
         if (authentication_type !== AUTHENTICATION_TYPE.SASL_CONTINUE) {
           throw new Error(
-            `Unexpected authentication type in SASL negotiation: ${authentication_type}`,
+            `Unexpected authentication type in SASL negotiation: ${authentication_type}`
           );
         }
         break;
@@ -609,11 +609,11 @@ export class Connection {
         throw new PostgresError(parseNoticeMessage(maybe_sasl_continue));
       default:
         throw new Error(
-          `Unexpected message in SASL negotiation: ${maybe_sasl_continue.type}`,
+          `Unexpected message in SASL negotiation: ${maybe_sasl_continue.type}`
         );
     }
     const sasl_continue = utf8.decode(
-      maybe_sasl_continue.reader.readAllBytes(),
+      maybe_sasl_continue.reader.readAllBytes()
     );
     await client.receiveChallenge(sasl_continue);
 
@@ -628,7 +628,7 @@ export class Connection {
         const authentication_type = maybe_sasl_final.reader.readInt32();
         if (authentication_type !== AUTHENTICATION_TYPE.SASL_FINAL) {
           throw new Error(
-            `Unexpected authentication type in SASL finalization: ${authentication_type}`,
+            `Unexpected authentication type in SASL finalization: ${authentication_type}`
           );
         }
         break;
@@ -637,7 +637,7 @@ export class Connection {
         throw new PostgresError(parseNoticeMessage(maybe_sasl_final));
       default:
         throw new Error(
-          `Unexpected message in SASL finalization: ${maybe_sasl_continue.type}`,
+          `Unexpected message in SASL finalization: ${maybe_sasl_continue.type}`
         );
     }
     const sasl_final = utf8.decode(maybe_sasl_final.reader.readAllBytes());
@@ -649,7 +649,7 @@ export class Connection {
 
   async #simpleQuery(query: Query<ResultType.ARRAY>): Promise<QueryArrayResult>;
   async #simpleQuery(
-    query: Query<ResultType.OBJECT>,
+    query: Query<ResultType.OBJECT>
   ): Promise<QueryObjectResult>;
   async #simpleQuery(query: Query<ResultType>): Promise<QueryResult> {
     this.#packetWriter.clear();
@@ -678,14 +678,14 @@ export class Connection {
           break;
         case INCOMING_QUERY_MESSAGES.COMMAND_COMPLETE: {
           result.handleCommandComplete(
-            parseCommandCompleteMessage(current_message),
+            parseCommandCompleteMessage(current_message)
           );
           break;
         }
         case INCOMING_QUERY_MESSAGES.DATA_ROW: {
           const row_data = parseRowDataMessage(current_message);
           try {
-            result.insertRow(row_data);
+            result.insertRow(row_data, this.#connection_params.controls);
           } catch (e) {
             error = e;
           }
@@ -705,13 +705,13 @@ export class Connection {
           break;
         case INCOMING_QUERY_MESSAGES.ROW_DESCRIPTION: {
           result.loadColumnDescriptions(
-            parseRowDescriptionMessage(current_message),
+            parseRowDescriptionMessage(current_message)
           );
           break;
         }
         default:
           throw new Error(
-            `Unexpected simple query message: ${current_message.type}`,
+            `Unexpected simple query message: ${current_message.type}`
           );
       }
 
@@ -820,7 +820,7 @@ export class Connection {
    * https://www.postgresql.org/docs/14/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
    */
   async #preparedQuery<T extends ResultType>(
-    query: Query<T>,
+    query: Query<T>
   ): Promise<QueryResult> {
     // The parse messages declares the statement, query arguments and the cursor used in the transaction
     // The database will respond with a parse response
@@ -855,14 +855,14 @@ export class Connection {
           break;
         case INCOMING_QUERY_MESSAGES.COMMAND_COMPLETE: {
           result.handleCommandComplete(
-            parseCommandCompleteMessage(current_message),
+            parseCommandCompleteMessage(current_message)
           );
           break;
         }
         case INCOMING_QUERY_MESSAGES.DATA_ROW: {
           const row_data = parseRowDataMessage(current_message);
           try {
-            result.insertRow(row_data);
+            result.insertRow(row_data, this.#connection_params.controls);
           } catch (e) {
             error = e;
           }
@@ -884,13 +884,13 @@ export class Connection {
           break;
         case INCOMING_QUERY_MESSAGES.ROW_DESCRIPTION: {
           result.loadColumnDescriptions(
-            parseRowDescriptionMessage(current_message),
+            parseRowDescriptionMessage(current_message)
           );
           break;
         }
         default:
           throw new Error(
-            `Unexpected prepared query message: ${current_message.type}`,
+            `Unexpected prepared query message: ${current_message.type}`
           );
       }
 
