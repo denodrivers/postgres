@@ -14,7 +14,6 @@ import {
 } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
 import { PoolClient, QueryClient } from "../client.ts";
-import { ClientConfiguration } from "../connection/connection_params.ts";
 import { ClientOptions } from "../connection/connection_params.ts";
 
 function withClient(
