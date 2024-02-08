@@ -1,3 +1,8 @@
+// Check for minimum supported V8 runtime version
+if(Number(Deno.version.v8.split(".")[0]) < 12) {
+  throw new Error("deno-postgres requires at least Deno v1.38 including V8 v12 or later.")
+}
+
 export { Client } from "./client.ts";
 export {
   ConnectionError,
