@@ -45,7 +45,7 @@ export class Column {
     public typeOid: number,
     public columnLength: number,
     public typeModifier: number,
-    public format: Format
+    public format: Format,
   ) {}
 }
 
@@ -202,7 +202,7 @@ function decodeText(value: Uint8Array, typeOid: number) {
       bold(yellow(`Error decoding type Oid ${typeOid} value`)) +
         _e.message +
         "\n" +
-        bold("Defaulting to null.")
+        bold("Defaulting to null."),
     );
     // If an error occurred during decoding, return null
     return null;
@@ -212,7 +212,7 @@ function decodeText(value: Uint8Array, typeOid: number) {
 export function decode(
   value: Uint8Array,
   column: Column,
-  controls?: ClientControls
+  controls?: ClientControls,
 ) {
   if (column.format === Format.BINARY) {
     return decodeBinary();

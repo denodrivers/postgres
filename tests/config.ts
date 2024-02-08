@@ -1,4 +1,7 @@
-import { ClientConfiguration, ClientOptions } from "../connection/connection_params.ts";
+import {
+  ClientConfiguration,
+  ClientOptions,
+} from "../connection/connection_params.ts";
 import config_file1 from "./config.json" with { type: "json" };
 
 type TcpConfiguration = Omit<ClientConfiguration, "connection"> & {
@@ -67,7 +70,9 @@ export const getClearSocketConfiguration = (): SocketConfiguration => {
 };
 
 /** MD5 authenticated user with privileged access to the database */
-export const getMainConfiguration = (_config?:ClientOptions ): TcpConfiguration => {
+export const getMainConfiguration = (
+  _config?: ClientOptions,
+): TcpConfiguration => {
   return {
     applicationName: config.postgres_md5.applicationName,
     database: config.postgres_md5.database,

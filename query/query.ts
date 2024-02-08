@@ -63,7 +63,7 @@ export class RowDescription {
 export function templateStringToQuery<T extends ResultType>(
   template: TemplateStringsArray,
   args: unknown[],
-  result_type: T
+  result_type: T,
 ): Query<T> {
   const text = template.reduce((curr, next, index) => {
     return `${curr}$${index}${next}`;
@@ -74,7 +74,7 @@ export function templateStringToQuery<T extends ResultType>(
 
 function objectQueryToQueryArgs(
   query: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): [string, unknown[]] {
   args = normalizeObjectQueryArgs(args);
 
@@ -86,7 +86,7 @@ function objectQueryToQueryArgs(
       clean_args.push(args[match]);
     } else {
       throw new Error(
-        `No value was provided for the query argument "${match}"`
+        `No value was provided for the query argument "${match}"`,
       );
     }
 
@@ -98,15 +98,15 @@ function objectQueryToQueryArgs(
 
 /** This function lowercases all the keys of the object passed to it and checks for collission names */
 function normalizeObjectQueryArgs(
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Record<string, unknown> {
   const normalized_args = Object.fromEntries(
-    Object.entries(args).map(([key, value]) => [key.toLowerCase(), value])
+    Object.entries(args).map(([key, value]) => [key.toLowerCase(), value]),
   );
 
   if (Object.keys(normalized_args).length !== Object.keys(args).length) {
     throw new Error(
-      "The arguments provided for the query must be unique (insensitive)"
+      "The arguments provided for the query must be unique (insensitive)",
     );
   }
 
@@ -233,7 +233,7 @@ export class QueryResult {
  * This class is used to handle the result of a query that returns an array
  */
 export class QueryArrayResult<
-  T extends Array<unknown> = Array<unknown>
+  T extends Array<unknown> = Array<unknown>,
 > extends QueryResult {
   /**
    * The result rows
@@ -246,7 +246,7 @@ export class QueryArrayResult<
   insertRow(row_data: Uint8Array[], controls?: ClientControls) {
     if (!this.rowDescription) {
       throw new Error(
-        "The row descriptions required to parse the result data weren't initialized"
+        "The row descriptions required to parse the result data weren't initialized",
       );
     }
 
@@ -290,7 +290,7 @@ function snakecaseToCamelcase(input: string) {
  * This class is used to handle the result of a query that returns an object
  */
 export class QueryObjectResult<
-  T = Record<string, unknown>
+  T = Record<string, unknown>,
 > extends QueryResult {
   /**
    * The column names will be undefined on the first run of insertRow, since
@@ -307,7 +307,7 @@ export class QueryObjectResult<
   insertRow(row_data: Uint8Array[], controls?: ClientControls) {
     if (!this.rowDescription) {
       throw new Error(
-        "The row description required to parse the result data wasn't initialized"
+        "The row description required to parse the result data wasn't initialized",
       );
     }
 
@@ -317,7 +317,7 @@ export class QueryObjectResult<
         if (this.rowDescription.columns.length !== this.query.fields.length) {
           throw new RangeError(
             "The fields provided for the query don't match the ones returned as a result " +
-              `(${this.rowDescription.columns.length} expected, ${this.query.fields.length} received)`
+              `(${this.rowDescription.columns.length} expected, ${this.query.fields.length} received)`,
           );
         }
 
@@ -330,7 +330,7 @@ export class QueryObjectResult<
           );
         } else {
           column_names = this.rowDescription.columns.map(
-            (column) => column.name
+            (column) => column.name,
           );
         }
 
@@ -338,9 +338,11 @@ export class QueryObjectResult<
         const duplicates = findDuplicatesInArray(column_names);
         if (duplicates.length) {
           throw new Error(
-            `Field names ${duplicates
-              .map((str) => `"${str}"`)
-              .join(", ")} are duplicated in the result of the query`
+            `Field names ${
+              duplicates
+                .map((str) => `"${str}"`)
+                .join(", ")
+            } are duplicated in the result of the query`,
           );
         }
 
@@ -353,7 +355,7 @@ export class QueryObjectResult<
 
     if (columns.length !== row_data.length) {
       throw new RangeError(
-        "The result fields returned by the database don't match the defined structure of the result"
+        "The result fields returned by the database don't match the defined structure of the result",
       );
     }
 
@@ -395,7 +397,7 @@ export class Query<T extends ResultType> {
   constructor(
     config_or_text: string | QueryObjectOptions,
     result_type: T,
-    args: QueryArguments = []
+    args: QueryArguments = [],
   ) {
     this.result_type = result_type;
     if (typeof config_or_text === "string") {
@@ -417,13 +419,13 @@ export class Query<T extends ResultType> {
         );
         if (!fields_are_clean) {
           throw new TypeError(
-            "The fields provided for the query must contain only letters and underscores"
+            "The fields provided for the query must contain only letters and underscores",
           );
         }
 
         if (new Set(fields).size !== fields.length) {
           throw new TypeError(
-            "The fields provided for the query must be unique"
+            "The fields provided for the query must be unique",
           );
         }
 

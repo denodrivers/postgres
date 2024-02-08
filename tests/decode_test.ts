@@ -27,9 +27,9 @@ Deno.test("decodeBigint", function () {
 Deno.test("decodeBigintArray", function () {
   assertEquals(
     decodeBigintArray(
-      "{17365398509481972,9007199254740992,-10414398509481984}"
+      "{17365398509481972,9007199254740992,-10414398509481984}",
     ),
-    [17365398509481972n, 9007199254740992n, -10414398509481984n]
+    [17365398509481972n, 9007199254740992n, -10414398509481984n],
   );
 });
 
@@ -64,25 +64,25 @@ Deno.test("decodeBox", function () {
   assertThrows(
     () => decodeBox(testValue),
     Error,
-    `Invalid Box: "${testValue}". Box must have only 2 point, 1 given.`
+    `Invalid Box: "${testValue}". Box must have only 2 point, 1 given.`,
   );
   testValue = "(12.4,2),(123,123,123),(9303,33)";
   assertThrows(
     () => decodeBox(testValue),
     Error,
-    `Invalid Box: "${testValue}". Box must have only 2 point, 3 given.`
+    `Invalid Box: "${testValue}". Box must have only 2 point, 3 given.`,
   );
   testValue = "(0,0),(123,123,123)";
   assertThrows(
     () => decodeBox(testValue),
     Error,
-    `Invalid Box: "${testValue}" : Invalid Point: "(123,123,123)". Points must have only 2 coordinates, 3 given.`
+    `Invalid Box: "${testValue}" : Invalid Point: "(123,123,123)". Points must have only 2 coordinates, 3 given.`,
   );
   testValue = "(0,0),(100,r100)";
   assertThrows(
     () => decodeBox(testValue),
     Error,
-    `Invalid Box: "${testValue}" : Invalid Point: "(100,r100)". Coordinate "r100" must be a valid number.`
+    `Invalid Box: "${testValue}" : Invalid Point: "(100,r100)". Coordinate "r100" must be a valid number.`,
   );
 });
 
@@ -95,13 +95,13 @@ Deno.test("decodeCircle", function () {
   assertThrows(
     () => decodeCircle(testValue),
     Error,
-    `Invalid Circle: "${testValue}" : Invalid Point: "(c21 23,2)". Coordinate "c21 23" must be a valid number.`
+    `Invalid Circle: "${testValue}" : Invalid Point: "(c21 23,2)". Coordinate "c21 23" must be a valid number.`,
   );
   testValue = "<(33,2),mn23 3.5>";
   assertThrows(
     () => decodeCircle(testValue),
     Error,
-    `Invalid Circle: "${testValue}". Circle radius "mn23 3.5" must be a valid number.`
+    `Invalid Circle: "${testValue}". Circle radius "mn23 3.5" must be a valid number.`,
   );
 });
 
@@ -112,11 +112,11 @@ Deno.test("decodeDate", function () {
 Deno.test("decodeDatetime", function () {
   assertEquals(
     decodeDatetime("2021-08-01"),
-    new Date("2021-08-01 00:00:00-00")
+    new Date("2021-08-01 00:00:00-00"),
   );
   assertEquals(
     decodeDatetime("1997-12-17 07:37:16-08"),
-    new Date("1997-12-17 07:37:16-08")
+    new Date("1997-12-17 07:37:16-08"),
   );
 });
 
@@ -133,14 +133,14 @@ Deno.test("decodeInt", function () {
 Deno.test("decodeJson", function () {
   assertEquals(
     decodeJson(
-      '{"key_1": "MY VALUE", "key_2": null, "key_3": 10, "key_4": {"subkey_1": true, "subkey_2": ["1",2]}}'
+      '{"key_1": "MY VALUE", "key_2": null, "key_3": 10, "key_4": {"subkey_1": true, "subkey_2": ["1",2]}}',
     ),
     {
       key_1: "MY VALUE",
       key_2: null,
       key_3: 10,
       key_4: { subkey_1: true, subkey_2: ["1", 2] },
-    }
+    },
   );
   assertThrows(() => decodeJson("{ 'eqw' ; ddd}"));
 });
@@ -151,13 +151,13 @@ Deno.test("decodeLine", function () {
   assertThrows(
     () => decodeLine("{100,50,0,100}"),
     Error,
-    `Invalid Line: "${testValue}". Line in linear equation format must have 3 constants, 4 given.`
+    `Invalid Line: "${testValue}". Line in linear equation format must have 3 constants, 4 given.`,
   );
   testValue = "{100,d3km,0}";
   assertThrows(
     () => decodeLine(testValue),
     Error,
-    `Invalid Line: "${testValue}". Line constant "d3km" must be a valid number.`
+    `Invalid Line: "${testValue}". Line constant "d3km" must be a valid number.`,
   );
 });
 
@@ -170,25 +170,25 @@ Deno.test("decodeLineSegment", function () {
   assertThrows(
     () => decodeLineSegment(testValue),
     Error,
-    `Invalid Line Segment: "${testValue}" : Invalid Point: "(r344,350)". Coordinate "r344" must be a valid number.`
+    `Invalid Line Segment: "${testValue}" : Invalid Point: "(r344,350)". Coordinate "r344" must be a valid number.`,
   );
   testValue = "((100),(r344,350))";
   assertThrows(
     () => decodeLineSegment(testValue),
     Error,
-    `Invalid Line Segment: "${testValue}" : Invalid Point: "(100)". Points must have only 2 coordinates, 1 given.`
+    `Invalid Line Segment: "${testValue}" : Invalid Point: "(100)". Points must have only 2 coordinates, 1 given.`,
   );
   testValue = "((100,50))";
   assertThrows(
     () => decodeLineSegment(testValue),
     Error,
-    `Invalid Line Segment: "${testValue}". Line segments must have only 2 point, 1 given.`
+    `Invalid Line Segment: "${testValue}". Line segments must have only 2 point, 1 given.`,
   );
   testValue = "((100,50),(350,350),(100,100))";
   assertThrows(
     () => decodeLineSegment(testValue),
     Error,
-    `Invalid Line Segment: "${testValue}". Line segments must have only 2 point, 3 given.`
+    `Invalid Line Segment: "${testValue}". Line segments must have only 2 point, 3 given.`,
   );
 });
 
@@ -206,13 +206,13 @@ Deno.test("decodePath", function () {
   assertThrows(
     () => decodePath(testValue),
     Error,
-    `Invalid Path: "${testValue}" : Invalid Point: "(350,kjf334)". Coordinate "kjf334" must be a valid number.`
+    `Invalid Path: "${testValue}" : Invalid Point: "(350,kjf334)". Coordinate "kjf334" must be a valid number.`,
   );
   testValue = "((100,50,9949))";
   assertThrows(
     () => decodePath(testValue),
     Error,
-    `Invalid Path: "${testValue}" : Invalid Point: "(100,50,9949)". Points must have only 2 coordinates, 3 given.`
+    `Invalid Path: "${testValue}" : Invalid Point: "(100,50,9949)". Points must have only 2 coordinates, 3 given.`,
   );
 });
 
@@ -222,25 +222,25 @@ Deno.test("decodePoint", function () {
   assertThrows(
     () => decodePoint(testValue),
     Error,
-    `Invalid Point: "${testValue}". Points must have only 2 coordinates, 1 given.`
+    `Invalid Point: "${testValue}". Points must have only 2 coordinates, 1 given.`,
   );
   testValue = "(100.100,50,350)";
   assertThrows(
     () => decodePoint(testValue),
     Error,
-    `Invalid Point: "${testValue}". Points must have only 2 coordinates, 3 given.`
+    `Invalid Point: "${testValue}". Points must have only 2 coordinates, 3 given.`,
   );
   testValue = "(1,r344)";
   assertThrows(
     () => decodePoint(testValue),
     Error,
-    `Invalid Point: "${testValue}". Coordinate "r344" must be a valid number.`
+    `Invalid Point: "${testValue}". Coordinate "r344" must be a valid number.`,
   );
   testValue = "(cd 213ee,100)";
   assertThrows(
     () => decodePoint(testValue),
     Error,
-    `Invalid Point: "${testValue}". Coordinate "cd 213ee" must be a valid number.`
+    `Invalid Point: "${testValue}". Coordinate "cd 213ee" must be a valid number.`,
   );
 });
 
@@ -316,12 +316,12 @@ Deno.test("decode_strategy", function () {
     // check 'auto' behavior
     assertEquals(
       decode(encodedValue, testValue.column, { decode_strategy: "auto" }),
-      testValue.parsed
+      testValue.parsed,
     );
     // check 'string' behavior
     assertEquals(
       decode(encodedValue, testValue.column, { decode_strategy: "string" }),
-      testValue.value
+      testValue.value,
     );
   }
 });

@@ -19,7 +19,7 @@ import { ClientOptions } from "../connection/connection_params.ts";
 
 function withClient(
   t: (client: QueryClient) => void | Promise<void>,
-  config?: ClientOptions
+  config?: ClientOptions,
 ) {
   async function clientWrapper() {
     const client = new Client(getMainConfiguration(config));
@@ -51,7 +51,7 @@ function withClient(
 
 function withClientGenerator(
   t: (getClient: () => Promise<QueryClient>) => void | Promise<void>,
-  pool_size = 10
+  pool_size = 10,
 ) {
   async function clientWrapper() {
     const clients: Client[] = [];
@@ -101,18 +101,18 @@ Deno.test(
   withClient(async (client) => {
     const result = await client.queryArray("SELECT UNNEST(ARRAY[1, 2])");
     assertEquals(result.rows.length, 2);
-  })
+  }),
 );
 
 Deno.test(
   "Object query",
   withClient(async (client) => {
     const result = await client.queryObject(
-      "SELECT ARRAY[1, 2, 3] AS ID, 'DATA' AS TYPE"
+      "SELECT ARRAY[1, 2, 3] AS ID, 'DATA' AS TYPE",
     );
 
     assertEquals(result.rows, [{ id: [1, 2, 3], type: "DATA" }]);
-  })
+  }),
 );
 
 Deno.test(
@@ -120,7 +120,7 @@ Deno.test(
   withClient(
     async (client) => {
       const result = await client.queryObject(
-        `SELECT ARRAY[1, 2, 3] AS _int_array, 3.14::REAL AS _float, 'DATA' AS _text, '{"test": "foo", "arr": [1,2,3]}'::JSONB AS _json, 'Y'::BOOLEAN AS _bool`
+        `SELECT ARRAY[1, 2, 3] AS _int_array, 3.14::REAL AS _float, 'DATA' AS _text, '{"test": "foo", "arr": [1,2,3]}'::JSONB AS _json, 'Y'::BOOLEAN AS _bool`,
       );
 
       assertEquals(result.rows, [
@@ -133,8 +133,8 @@ Deno.test(
         },
       ]);
     },
-    { controls: { decode_strategy: "auto" } }
-  )
+    { controls: { decode_strategy: "auto" } },
+  ),
 );
 
 Deno.test(
@@ -142,7 +142,7 @@ Deno.test(
   withClient(
     async (client) => {
       const result = await client.queryObject(
-        `SELECT ARRAY[1, 2, 3] AS _int_array, 3.14::REAL AS _float, 'DATA' AS _text, '{"test": "foo", "arr": [1,2,3]}'::JSONB AS _json, 'Y'::BOOLEAN AS _bool`
+        `SELECT ARRAY[1, 2, 3] AS _int_array, 3.14::REAL AS _float, 'DATA' AS _text, '{"test": "foo", "arr": [1,2,3]}'::JSONB AS _json, 'Y'::BOOLEAN AS _bool`,
       );
 
       assertEquals(result.rows, [
@@ -155,8 +155,8 @@ Deno.test(
         },
       ]);
     },
-    { controls: { decode_strategy: "string" } }
-  )
+    { controls: { decode_strategy: "string" } },
+  ),
 );
 
 Deno.test(
@@ -191,7 +191,7 @@ Deno.test(
       });
       assertEquals(result.rows, [{ id: value }]);
     }
-  })
+  }),
 );
 
 Deno.test(
@@ -228,7 +228,7 @@ Deno.test(
       });
       assertEquals(result.rows, [{ id: value }]);
     }
-  })
+  }),
 );
 
 Deno.test(
@@ -237,16 +237,16 @@ Deno.test(
     const value = "some_value";
     const { rows: res } = await client.queryArray(
       "SELECT $value, $VaLue, $VALUE",
-      { value }
+      { value },
     );
     assertEquals(res, [[value, value, value]]);
 
     await assertRejects(
       () => client.queryArray("SELECT $A", { a: 1, A: 2 }),
       Error,
-      "The arguments provided for the query must be unique (insensitive)"
+      "The arguments provided for the query must be unique (insensitive)",
     );
-  })
+  }),
 );
 
 Deno.test(
@@ -266,7 +266,7 @@ Deno.test(
     });
 
     assertEquals(rows[0], { result: 1 });
-  })
+  }),
 );
 
 Deno.test(
@@ -275,7 +275,7 @@ Deno.test(
     await assertRejects(
       () => client.queryArray("SELECT 1; SELECT '2'::INT; SELECT 'A'::INT"),
       PostgresError,
-      "invalid input syntax for type integer"
+      "invalid input syntax for type integer",
     );
 
     const { rows } = await client.queryObject<{ result: number }>({
@@ -284,7 +284,7 @@ Deno.test(
     });
 
     assertEquals(rows[0], { result: 1 });
-  })
+  }),
 );
 
 Deno.test(
@@ -295,7 +295,7 @@ Deno.test(
     const value = "193";
     const { rows: result_2 } = await client.queryObject`SELECT ${value} AS B`;
     assertEquals(result_2[0], { b: value });
-  })
+  }),
 );
 
 Deno.test(
@@ -307,7 +307,7 @@ Deno.test(
     });
 
     assertEquals(result, [{ result: 1 }, { result: 2 }]);
-  })
+  }),
 );
 
 Deno.test(
@@ -315,7 +315,7 @@ Deno.test(
   withClient(async (client) => {
     const { rows: result } = await client.queryArray("");
     assertEquals(result, []);
-  })
+  }),
 );
 
 Deno.test(
@@ -328,7 +328,7 @@ Deno.test(
         client.queryArray("INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)", [
           "TEXT",
         ]),
-      PostgresError
+      PostgresError,
     );
 
     const result = "handled";
@@ -340,7 +340,7 @@ Deno.test(
     });
 
     assertEquals(rows[0], { result });
-  })
+  }),
 );
 
 Deno.test(
@@ -351,7 +351,7 @@ Deno.test(
     const value = "z";
     const { rows: result_2 } = await client.queryObject`SELECT ${value} AS B`;
     assertEquals(result_2[0], { b: value });
-  })
+  }),
 );
 
 Deno.test(
@@ -365,14 +365,14 @@ Deno.test(
       item_2,
     ]);
     assertEquals(result_1[0], [[item_1, item_2]]);
-  })
+  }),
 );
 
 Deno.test(
   "Handles parameter status messages on array query",
   withClient(async (client) => {
-    const { rows: result_1 } =
-      await client.queryArray`SET TIME ZONE 'HongKong'`;
+    const { rows: result_1 } = await client
+      .queryArray`SET TIME ZONE 'HongKong'`;
 
     assertEquals(result_1, []);
 
@@ -382,7 +382,7 @@ Deno.test(
     });
 
     assertEquals(result_2, [{ result: 1 }]);
-  })
+  }),
 );
 
 Deno.test(
@@ -390,7 +390,8 @@ Deno.test(
   withClient(async (client) => {
     const result = 10;
 
-    await client.queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE(RES INTEGER) RETURNS INT AS $$
+    await client
+      .queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE(RES INTEGER) RETURNS INT AS $$
 			BEGIN
 			SET TIME ZONE 'HongKong';
 			END;
@@ -402,10 +403,11 @@ Deno.test(
           result,
         ]),
       PostgresError,
-      "control reached end of function without RETURN"
+      "control reached end of function without RETURN",
     );
 
-    await client.queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE(RES INTEGER) RETURNS INT AS $$
+    await client
+      .queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE(RES INTEGER) RETURNS INT AS $$
 			BEGIN
 			SET TIME ZONE 'HongKong';
 			RETURN RES;
@@ -419,13 +421,14 @@ Deno.test(
     });
 
     assertEquals(result_1, [{ result }]);
-  })
+  }),
 );
 
 Deno.test(
   "Handles parameter status after error",
   withClient(async (client) => {
-    await client.queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE() RETURNS INT AS $$
+    await client
+      .queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE() RETURNS INT AS $$
 			BEGIN
 			SET TIME ZONE 'HongKong';
 			END;
@@ -434,9 +437,9 @@ Deno.test(
     await assertRejects(
       () => client.queryArray`SELECT * FROM PG_TEMP.CHANGE_TIMEZONE()`,
       PostgresError,
-      "control reached end of function without RETURN"
+      "control reached end of function without RETURN",
     );
-  })
+  }),
 );
 
 Deno.test(
@@ -449,9 +452,9 @@ Deno.test(
         await client.queryArray`SELECT 1`;
       },
       Error,
-      "Connection to the database has been terminated"
+      "Connection to the database has been terminated",
     );
-  })
+  }),
 );
 
 // This test depends on the assumption that all clients will default to
@@ -462,7 +465,7 @@ Deno.test(
     await assertRejects(
       () =>
         client.queryArray`SELECT PG_TERMINATE_BACKEND(${client.session.pid})`,
-      ConnectionError
+      ConnectionError,
     );
 
     const { rows: result } = await client.queryObject<{ res: number }>({
@@ -472,21 +475,22 @@ Deno.test(
     assertEquals(result[0].res, 1);
 
     assertEquals(client.connected, true);
-  })
+  }),
 );
 
 Deno.test(
   "Handling of debug notices",
   withClient(async (client) => {
     // Create temporary function
-    await client.queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.CREATE_NOTICE () RETURNS INT AS $$ BEGIN RAISE NOTICE 'NOTICED'; RETURN (SELECT 1); END; $$ LANGUAGE PLPGSQL;`;
+    await client
+      .queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.CREATE_NOTICE () RETURNS INT AS $$ BEGIN RAISE NOTICE 'NOTICED'; RETURN (SELECT 1); END; $$ LANGUAGE PLPGSQL;`;
 
     const { rows, warnings } = await client.queryArray(
-      "SELECT * FROM PG_TEMP.CREATE_NOTICE();"
+      "SELECT * FROM PG_TEMP.CREATE_NOTICE();",
     );
     assertEquals(rows[0][0], 1);
     assertEquals(warnings[0].message, "NOTICED");
-  })
+  }),
 );
 
 // This query doesn't recreate the table and outputs
@@ -496,17 +500,18 @@ Deno.test(
   withClient(async (client) => {
     await client.queryArray("CREATE TEMP TABLE NOTICE_TEST (ABC INT);");
     const { warnings } = await client.queryArray(
-      "CREATE TEMP TABLE IF NOT EXISTS NOTICE_TEST (ABC INT);"
+      "CREATE TEMP TABLE IF NOT EXISTS NOTICE_TEST (ABC INT);",
     );
 
     assert(warnings[0].message.includes("already exists"));
-  })
+  }),
 );
 
 Deno.test(
   "Handling of messages between data fetching",
   withClient(async (client) => {
-    await client.queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.MESSAGE_BETWEEN_DATA(MESSAGE VARCHAR) RETURNS VARCHAR AS $$
+    await client
+      .queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.MESSAGE_BETWEEN_DATA(MESSAGE VARCHAR) RETURNS VARCHAR AS $$
 			BEGIN
 			RAISE NOTICE '%', MESSAGE;
 			RETURN MESSAGE;
@@ -538,7 +543,7 @@ Deno.test(
 
     assertEquals(result[2], { result: message_3 });
     assertObjectMatch(warnings[2], { message: message_3 });
-  })
+  }),
 );
 
 Deno.test(
@@ -552,14 +557,14 @@ Deno.test(
     const expectedDate = Date.UTC(2019, 1, 10, 6, 0, 40, 5);
 
     assertEquals(row[0].toUTCString(), new Date(expectedDate).toUTCString());
-  })
+  }),
 );
 
 Deno.test(
   "Binary data is parsed correctly",
   withClient(async (client) => {
-    const { rows: result_1 } =
-      await client.queryArray`SELECT E'foo\\\\000\\\\200\\\\\\\\\\\\377'::BYTEA`;
+    const { rows: result_1 } = await client
+      .queryArray`SELECT E'foo\\\\000\\\\200\\\\\\\\\\\\377'::BYTEA`;
 
     const expectedBytes = new Uint8Array([102, 111, 111, 0, 128, 92, 255]);
 
@@ -569,20 +574,21 @@ Deno.test(
       expectedBytes,
     ]);
     assertEquals(result_2[0][0], expectedBytes);
-  })
+  }),
 );
 
 Deno.test(
   "Result object metadata",
   withClient(async (client) => {
     await client.queryArray`CREATE TEMP TABLE METADATA (VALUE INTEGER)`;
-    await client.queryArray`INSERT INTO METADATA VALUES (100), (200), (300), (400), (500), (600)`;
+    await client
+      .queryArray`INSERT INTO METADATA VALUES (100), (200), (300), (400), (500), (600)`;
 
     let result;
 
     // simple select
     result = await client.queryArray(
-      "SELECT * FROM METADATA WHERE VALUE = 100"
+      "SELECT * FROM METADATA WHERE VALUE = 100",
     );
     assertEquals(result.command, "SELECT");
     assertEquals(result.rowCount, 1);
@@ -590,14 +596,14 @@ Deno.test(
     // parameterized select
     result = await client.queryArray(
       "SELECT * FROM METADATA WHERE VALUE IN ($1, $2)",
-      [200, 300]
+      [200, 300],
     );
     assertEquals(result.command, "SELECT");
     assertEquals(result.rowCount, 2);
 
     // simple delete
     result = await client.queryArray(
-      "DELETE FROM METADATA WHERE VALUE IN (100, 200)"
+      "DELETE FROM METADATA WHERE VALUE IN (100, 200)",
     );
     assertEquals(result.command, "DELETE");
     assertEquals(result.rowCount, 2);
@@ -621,7 +627,7 @@ Deno.test(
 
     // simple update
     result = await client.queryArray(
-      "UPDATE METADATA SET VALUE = 500 WHERE VALUE IN (500, 600)"
+      "UPDATE METADATA SET VALUE = 500 WHERE VALUE IN (500, 600)",
     );
     assertEquals(result.command, "UPDATE");
     assertEquals(result.rowCount, 2);
@@ -629,11 +635,11 @@ Deno.test(
     // parameterized update
     result = await client.queryArray(
       "UPDATE METADATA SET VALUE = 400 WHERE VALUE = $1",
-      [400]
+      [400],
     );
     assertEquals(result.command, "UPDATE");
     assertEquals(result.rowCount, 1);
-  })
+  }),
 );
 
 Deno.test(
@@ -648,7 +654,7 @@ Deno.test(
     ]);
 
     assert(warnings[0].message.includes("will be truncated"));
-  })
+  }),
 );
 
 Deno.test(
@@ -661,7 +667,7 @@ Deno.test(
     >`SELECT ${value_1}, ${value_2}`;
 
     assertEquals(rows[0], [value_1, value_2]);
-  })
+  }),
 );
 
 Deno.test(
@@ -680,7 +686,7 @@ Deno.test(
     });
 
     assertEquals(result[0], record);
-  })
+  }),
 );
 
 Deno.test(
@@ -699,7 +705,7 @@ Deno.test(
     });
 
     assertEquals(result[0], record);
-  })
+  }),
 );
 
 Deno.test(
@@ -711,7 +717,7 @@ Deno.test(
     });
 
     assertEquals(result.rows, [{ ID: [1, 2, 3], type: "DATA" }]);
-  })
+  }),
 );
 
 Deno.test(
@@ -727,7 +733,7 @@ Deno.test(
     });
 
     assertEquals(result[0], record);
-  })
+  }),
 );
 
 Deno.test(
@@ -740,9 +746,9 @@ Deno.test(
           fields: ["FIELD_1", "FIELD_1"],
         }),
       TypeError,
-      "The fields provided for the query must be unique"
+      "The fields provided for the query must be unique",
     );
-  })
+  }),
 );
 
 Deno.test(
@@ -751,7 +757,7 @@ Deno.test(
     await assertRejects(
       () => client.queryObject`SELECT 1 AS "a", 2 AS A`,
       Error,
-      `Field names "a" are duplicated in the result of the query`
+      `Field names "a" are duplicated in the result of the query`,
     );
 
     await assertRejects(
@@ -761,9 +767,9 @@ Deno.test(
           text: `SELECT 1 AS "fieldX", 2 AS field_x`,
         }),
       Error,
-      `Field names "fieldX" are duplicated in the result of the query`
+      `Field names "fieldX" are duplicated in the result of the query`,
     );
-  })
+  }),
 );
 
 Deno.test(
@@ -784,9 +790,9 @@ Deno.test(
         });
       },
       TypeError,
-      "The fields provided for the query must contain only letters and underscores"
+      "The fields provided for the query must contain only letters and underscores",
     );
-  })
+  }),
 );
 
 Deno.test(
@@ -800,7 +806,7 @@ Deno.test(
         });
       },
       TypeError,
-      "The fields provided for the query must contain only letters and underscores"
+      "The fields provided for the query must contain only letters and underscores",
     );
 
     await assertRejects(
@@ -811,7 +817,7 @@ Deno.test(
         });
       },
       TypeError,
-      "The fields provided for the query must contain only letters and underscores"
+      "The fields provided for the query must contain only letters and underscores",
     );
 
     await assertRejects(
@@ -822,9 +828,9 @@ Deno.test(
         });
       },
       TypeError,
-      "The fields provided for the query must contain only letters and underscores"
+      "The fields provided for the query must contain only letters and underscores",
     );
-  })
+  }),
 );
 
 Deno.test(
@@ -838,9 +844,9 @@ Deno.test(
         });
       },
       RangeError,
-      "The fields provided for the query don't match the ones returned as a result (1 expected, 2 received)"
+      "The fields provided for the query don't match the ones returned as a result (1 expected, 2 received)",
     );
-  })
+  }),
 );
 
 Deno.test(
@@ -853,9 +859,9 @@ Deno.test(
           fields: ["result"],
         }),
       RangeError,
-      "The result fields returned by the database don't match the defined structure of the result"
+      "The result fields returned by the database don't match the defined structure of the result",
     );
-  })
+  }),
 );
 
 Deno.test(
@@ -869,7 +875,7 @@ Deno.test(
     }>`SELECT ${value.x} AS x, ${value.y} AS y`;
 
     assertEquals(rows[0], value);
-  })
+  }),
 );
 
 Deno.test(
@@ -879,9 +885,9 @@ Deno.test(
       // deno-lint-ignore ban-ts-comment
       // @ts-expect-error
       () => client.createTransaction(),
-      "Transaction name must be a non-empty string"
+      "Transaction name must be a non-empty string",
     );
-  })
+  }),
 );
 
 Deno.test(
@@ -894,7 +900,7 @@ Deno.test(
     assertEquals(
       client.session.current_transaction,
       transaction_name,
-      "Client is locked out during transaction"
+      "Client is locked out during transaction",
     );
     await transaction.queryArray`CREATE TEMP TABLE TEST (X INTEGER)`;
     const savepoint = await transaction.savepoint("table_creation");
@@ -905,7 +911,7 @@ Deno.test(
     assertEquals(
       query_1.rows[0].x,
       1,
-      "Operation was not executed inside transaction"
+      "Operation was not executed inside transaction",
     );
     await transaction.rollback(savepoint);
     const query_2 = await transaction.queryObject<{
@@ -914,15 +920,15 @@ Deno.test(
     assertEquals(
       query_2.rowCount,
       0,
-      "Rollback was not succesful inside transaction"
+      "Rollback was not succesful inside transaction",
     );
     await transaction.commit();
     assertEquals(
       client.session.current_transaction,
       null,
-      "Client was not released after transaction"
+      "Client was not released after transaction",
     );
-  })
+  }),
 );
 
 Deno.test(
@@ -934,8 +940,8 @@ Deno.test(
 
     const data = 1;
     {
-      const { rows: result } =
-        await transaction.queryArray`SELECT ${data}::INTEGER`;
+      const { rows: result } = await transaction
+        .queryArray`SELECT ${data}::INTEGER`;
       assertEquals(result[0], [data]);
     }
     {
@@ -948,7 +954,7 @@ Deno.test(
     }
 
     await transaction.commit();
-  })
+  }),
 );
 
 Deno.test(
@@ -964,7 +970,7 @@ Deno.test(
 
     const transaction_rr = client_1.createTransaction(
       "transactionIsolationLevelRepeatableRead",
-      { isolation_level: "repeatable_read" }
+      { isolation_level: "repeatable_read" },
     );
     await transaction_rr.begin();
 
@@ -987,7 +993,7 @@ Deno.test(
     assertEquals(
       query_2,
       [{ x: 1 }],
-      "Repeatable read transaction should not be able to observe changes that happened after the transaction start"
+      "Repeatable read transaction should not be able to observe changes that happened after the transaction start",
     );
 
     await transaction_rr.commit();
@@ -998,11 +1004,11 @@ Deno.test(
     assertEquals(
       query_3,
       [{ x: 2 }],
-      "Main session should be able to observe changes after transaction ended"
+      "Main session should be able to observe changes after transaction ended",
     );
 
     await client_1.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
-  })
+  }),
 );
 
 Deno.test(
@@ -1018,7 +1024,7 @@ Deno.test(
 
     const transaction_rr = client_1.createTransaction(
       "transactionIsolationLevelRepeatableRead",
-      { isolation_level: "serializable" }
+      { isolation_level: "serializable" },
     );
     await transaction_rr.begin();
 
@@ -1034,7 +1040,7 @@ Deno.test(
       () => transaction_rr.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 3`,
       TransactionError,
       undefined,
-      "A serializable transaction should throw if the data read in the transaction has been modified externally"
+      "A serializable transaction should throw if the data read in the transaction has been modified externally",
     );
 
     const { rows: query_3 } = await client_1.queryObject<{
@@ -1043,11 +1049,11 @@ Deno.test(
     assertEquals(
       query_3,
       [{ x: 2 }],
-      "Main session should be able to observe changes after transaction ended"
+      "Main session should be able to observe changes after transaction ended",
     );
 
     await client_1.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
-  })
+  }),
 );
 
 Deno.test(
@@ -1064,11 +1070,11 @@ Deno.test(
       () => transaction.queryArray`DELETE FROM FOR_TRANSACTION_TEST`,
       TransactionError,
       undefined,
-      "DELETE shouldn't be able to be used in a read-only transaction"
+      "DELETE shouldn't be able to be used in a read-only transaction",
     );
 
     await client.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
-  })
+  }),
 );
 
 Deno.test(
@@ -1099,7 +1105,7 @@ Deno.test(
     assertEquals(
       query_1,
       [{ x: 1 }],
-      "External changes shouldn't affect repeatable read transaction"
+      "External changes shouldn't affect repeatable read transaction",
     );
 
     const snapshot = await transaction_1.getSnapshot();
@@ -1116,14 +1122,14 @@ Deno.test(
     assertEquals(
       query_2,
       [{ x: 1 }],
-      "External changes shouldn't affect repeatable read transaction with previous snapshot"
+      "External changes shouldn't affect repeatable read transaction with previous snapshot",
     );
 
     await transaction_1.commit();
     await transaction_2.commit();
 
     await client_1.queryArray`DROP TABLE FOR_TRANSACTION_TEST`;
-  })
+  }),
 );
 
 Deno.test(
@@ -1138,7 +1144,7 @@ Deno.test(
       () => client.queryArray`SELECT 1`,
       Error,
       `This connection is currently locked by the "${name}" transaction`,
-      "The connection is not being locked by the transaction"
+      "The connection is not being locked by the transaction",
     );
     await transaction.commit();
 
@@ -1146,9 +1152,9 @@ Deno.test(
     assertEquals(
       client.session.current_transaction,
       null,
-      "Client was not released after transaction"
+      "Client was not released after transaction",
     );
-  })
+  }),
 );
 
 Deno.test(
@@ -1163,16 +1169,16 @@ Deno.test(
     assertEquals(
       client.session.current_transaction,
       name,
-      "Client shouldn't have been released on chained commit"
+      "Client shouldn't have been released on chained commit",
     );
 
     await transaction.commit();
     assertEquals(
       client.session.current_transaction,
       null,
-      "Client was not released after transaction ended"
+      "Client was not released after transaction ended",
     );
-  })
+  }),
 );
 
 Deno.test(
@@ -1195,7 +1201,7 @@ Deno.test(
     assertEquals(
       client.session.current_transaction,
       name,
-      "Client shouldn't have been released after chained rollback"
+      "Client shouldn't have been released after chained rollback",
     );
 
     await transaction.rollback();
@@ -1208,16 +1214,16 @@ Deno.test(
     assertEquals(
       client.session.current_transaction,
       null,
-      "Client was not released after rollback"
+      "Client was not released after rollback",
     );
-  })
+  }),
 );
 
 Deno.test(
   "Transaction rollback validations",
   withClient(async (client) => {
     const transaction = client.createTransaction(
-      "transactionRollbackValidations"
+      "transactionRollbackValidations",
     );
     await transaction.begin();
 
@@ -1225,11 +1231,11 @@ Deno.test(
       // @ts-ignore This is made to check the two properties aren't passed at once
       () => transaction.rollback({ savepoint: "unexistent", chain: true }),
       Error,
-      "The chain option can't be used alongside a savepoint on a rollback operation"
+      "The chain option can't be used alongside a savepoint on a rollback operation",
     );
 
     await transaction.commit();
-  })
+  }),
 );
 
 Deno.test(
@@ -1242,7 +1248,7 @@ Deno.test(
     await assertRejects(
       () => transaction.queryArray`SELECT []`,
       TransactionError,
-      `The transaction "${name}" has been aborted`
+      `The transaction "${name}" has been aborted`,
     );
     assertEquals(client.session.current_transaction, null);
 
@@ -1250,10 +1256,10 @@ Deno.test(
     await assertRejects(
       () => transaction.queryObject`SELECT []`,
       TransactionError,
-      `The transaction "${name}" has been aborted`
+      `The transaction "${name}" has been aborted`,
     );
     assertEquals(client.session.current_transaction, null);
-  })
+  }),
 );
 
 Deno.test(
@@ -1295,13 +1301,13 @@ Deno.test(
     assertEquals(
       savepoint.instances,
       2,
-      "An incorrect number of instances were created for a transaction savepoint"
+      "An incorrect number of instances were created for a transaction savepoint",
     );
     await savepoint.release();
     assertEquals(
       savepoint.instances,
       1,
-      "The instance for the savepoint was not released"
+      "The instance for the savepoint was not released",
     );
 
     // This checks that the savepoint can be called by name as well
@@ -1312,7 +1318,7 @@ Deno.test(
     assertEquals(query_5, [{ y: 1 }]);
 
     await transaction.commit();
-  })
+  }),
 );
 
 Deno.test(
@@ -1324,22 +1330,22 @@ Deno.test(
     await assertRejects(
       () => transaction.savepoint("1"),
       Error,
-      "The savepoint name can't begin with a number"
+      "The savepoint name can't begin with a number",
     );
 
     await assertRejects(
       () =>
         transaction.savepoint(
-          "this_savepoint_is_going_to_be_longer_than_sixty_three_characters"
+          "this_savepoint_is_going_to_be_longer_than_sixty_three_characters",
         ),
       Error,
-      "The savepoint name can't be longer than 63 characters"
+      "The savepoint name can't be longer than 63 characters",
     );
 
     await assertRejects(
       () => transaction.savepoint("+"),
       Error,
-      "The savepoint name can only contain alphanumeric characters"
+      "The savepoint name can only contain alphanumeric characters",
     );
 
     const savepoint = await transaction.savepoint("ABC1");
@@ -1348,7 +1354,7 @@ Deno.test(
     assertEquals(
       savepoint,
       await transaction.savepoint("abc1"),
-      "Creating a savepoint with the same name should return the original one"
+      "Creating a savepoint with the same name should return the original one",
     );
     await savepoint.release();
 
@@ -1357,23 +1363,23 @@ Deno.test(
     await assertRejects(
       () => savepoint.release(),
       Error,
-      "This savepoint has no instances to release"
+      "This savepoint has no instances to release",
     );
 
     await assertRejects(
       () => transaction.rollback(savepoint),
       Error,
-      `There are no savepoints of "abc1" left to rollback to`
+      `There are no savepoints of "abc1" left to rollback to`,
     );
 
     await assertRejects(
       () => transaction.rollback("UNEXISTENT"),
       Error,
-      `There is no "unexistent" savepoint registered in this transaction`
+      `There is no "unexistent" savepoint registered in this transaction`,
     );
 
     await transaction.commit();
-  })
+  }),
 );
 
 Deno.test(
@@ -1388,7 +1394,7 @@ Deno.test(
     await assertRejects(
       () => transaction_y.begin(),
       Error,
-      `This client already has an ongoing transaction "x"`
+      `This client already has an ongoing transaction "x"`,
     );
 
     await transaction_x.commit();
@@ -1396,44 +1402,44 @@ Deno.test(
     await assertRejects(
       () => transaction_y.begin(),
       Error,
-      "This transaction is already open"
+      "This transaction is already open",
     );
 
     await transaction_y.commit();
     await assertRejects(
       () => transaction_y.commit(),
       Error,
-      `This transaction has not been started yet, make sure to use the "begin" method to do so`
+      `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
     await assertRejects(
       () => transaction_y.commit(),
       Error,
-      `This transaction has not been started yet, make sure to use the "begin" method to do so`
+      `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
     await assertRejects(
       () => transaction_y.queryArray`SELECT 1`,
       Error,
-      `This transaction has not been started yet, make sure to use the "begin" method to do so`
+      `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
     await assertRejects(
       () => transaction_y.queryObject`SELECT 1`,
       Error,
-      `This transaction has not been started yet, make sure to use the "begin" method to do so`
+      `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
     await assertRejects(
       () => transaction_y.rollback(),
       Error,
-      `This transaction has not been started yet, make sure to use the "begin" method to do so`
+      `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
 
     await assertRejects(
       () => transaction_y.savepoint("SOME"),
       Error,
-      `This transaction has not been started yet, make sure to use the "begin" method to do so`
+      `This transaction has not been started yet, make sure to use the "begin" method to do so`,
     );
-  })
+  }),
 );
