@@ -91,9 +91,12 @@ export interface TLSOptions {
   caCertificates: string[];
 }
 
-export type DecoderFunction = (value: string) => unknown;
-
+export type DecodeStrategy = "string" | "auto";
 export type Decoders = Record<number, DecoderFunction>;
+/**
+ * A decoder function that takes a string and returns a parsed value of some type
+ */
+export type DecoderFunction = (value: string) => unknown;
 
 /**
  * Control the behavior for the client instance
@@ -111,18 +114,22 @@ export type ClientControls = {
    * - `strict` : deno-postgres parses the data into JS objects, and if a parser is not implemented, it throws an error
    * - `raw` : the data is returned as Uint8Array
    */
-  decode_strategy?: "string" | "auto";
+  decode_strategy?: DecodeStrategy;
 
   /**
-   * Overide to decoder used to decode text fields. The key is the OID type number
-   * and the value is the decoder function
+   * A dictionary of functions used to decode (parse) column field values from string to a custom type. These functions will
+   * take presedence over the `decode_strategy`. Each key in the dictionary is the column OID type number and the value is
+   * the decoder function. You can use the `Oid` object to set the decoder functions.
    *
-   * You can use the Oid map to set the decoder:
-   * ```
+   * @example
    * {
-   *   [Oid.date]: (value: string) => new Date(value),
+   *   //   16 = Oid.bool : convert all boolean values to numbers
+   *   '16': (value: string) => value === 't' ? 1 : 0,
+   *   // 1082 = Oid.date : convert all dates to dayjs objects
+   *   [1082]: (value: string) => dayjs(value),
+   *   //   23 = Oid.int4 : convert all integers to positive numbers
+   *   [Oid.int4]: (value: string) => Math.max(0, parseInt(value || '0', 10)),
    * }
-   * ```
    */
   decoders?: Decoders;
 };
