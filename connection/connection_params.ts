@@ -118,9 +118,9 @@ export type ClientControls = {
    * and the value is the decoder function
    *
    * You can use the Oid map to set the decoder:
-   * ```ts
+   * ```
    * {
-   *  [Oid.date]: (value: string) => new Date(value),
+   *   [Oid.date]: (value: string) => new Date(value),
    * }
    * ```
    */
