@@ -65,7 +65,7 @@ function decodeBinary() {
 function decodeText(value: Uint8Array, typeOid: number, decoders?: Decoders) {
   const strValue = decoder.decode(value);
 
-  if (!!decoders?.[typeOid]) {
+  if (decoders?.[typeOid]) {
     return decoders[typeOid](strValue);
   }
 

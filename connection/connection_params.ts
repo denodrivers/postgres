@@ -1,7 +1,6 @@
 import { parseConnectionUri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 import { fromFileUrl, isAbsolute } from "../deps.ts";
-import { Oid } from "../query/oid.ts";
 
 /**
  * The connection string must match the following URI structure. All parameters but database and user are optional
