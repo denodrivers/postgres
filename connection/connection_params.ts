@@ -1,6 +1,7 @@
 import { parseConnectionUri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 import { fromFileUrl, isAbsolute } from "../deps.ts";
+import { Oid } from "../query/oid.ts";
 
 /**
  * The connection string must match the following URI structure. All parameters but database and user are optional
@@ -91,6 +92,10 @@ export interface TLSOptions {
   caCertificates: string[];
 }
 
+export type DecoderFunction = (value: string) => unknown;
+
+export type Decoders = Record<number, DecoderFunction>;
+
 /**
  * Control the behavior for the client instance
  */
@@ -108,6 +113,19 @@ export type ClientControls = {
    * - `raw` : the data is returned as Uint8Array
    */
   decode_strategy?: "string" | "auto";
+
+  /**
+   * Overide to decoder used to decode text fields. The key is the OID type number
+   * and the value is the decoder function
+   *
+   * You can use the Oid map to set the decoder:
+   * ```ts
+   * {
+   *  [Oid.date]: (value: string) => new Date(value),
+   * }
+   * ```
+   */
+  decoders?: Decoders;
 };
 
 /** The Client database connection options */

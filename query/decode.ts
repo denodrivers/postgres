@@ -35,7 +35,7 @@ import {
   decodeTid,
   decodeTidArray,
 } from "./decoders.ts";
-import { ClientControls } from "../connection/connection_params.ts";
+import { ClientControls, Decoders } from "../connection/connection_params.ts";
 
 export class Column {
   constructor(
@@ -62,8 +62,12 @@ function decodeBinary() {
   throw new Error("Decoding binary data is not implemented!");
 }
 
-function decodeText(value: Uint8Array, typeOid: number) {
+function decodeText(value: Uint8Array, typeOid: number, decoders?: Decoders) {
   const strValue = decoder.decode(value);
+
+  if (!!decoders?.[typeOid]) {
+    return decoders[typeOid](strValue);
+  }
 
   try {
     switch (typeOid) {
@@ -222,7 +226,7 @@ export function decode(
       return decoder.decode(value);
     }
     // default to 'auto' mode, which uses the typeOid to determine the decoding strategy
-    return decodeText(value, column.typeOid);
+    return decodeText(value, column.typeOid, controls?.decoders);
   } else {
     throw new Error(`Unknown column format: ${column.format}`);
   }
