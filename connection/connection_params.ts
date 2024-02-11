@@ -107,7 +107,7 @@ export type ClientControls = {
    * - `strict` : deno-postgres parses the data into JS objects, and if a parser is not implemented, it throws an error
    * - `raw` : the data is returned as Uint8Array
    */
-  decode_strategy?: "string" | "auto";
+  decodeStrategy?: "string" | "auto";
 };
 
 /** The Client database connection options */

@@ -251,7 +251,7 @@ Deno.test("decodeTid", function () {
   ]);
 });
 
-Deno.test("decode_strategy", function () {
+Deno.test("decode strategy", function () {
   const testValues = [
     {
       value: "40",
@@ -315,12 +315,12 @@ Deno.test("decode_strategy", function () {
     assertEquals(decode(encodedValue, testValue.column), testValue.parsed);
     // check 'auto' behavior
     assertEquals(
-      decode(encodedValue, testValue.column, { decode_strategy: "auto" }),
+      decode(encodedValue, testValue.column, { decodeStrategy: "auto" }),
       testValue.parsed,
     );
     // check 'string' behavior
     assertEquals(
-      decode(encodedValue, testValue.column, { decode_strategy: "string" }),
+      decode(encodedValue, testValue.column, { decodeStrategy: "string" }),
       testValue.value,
     );
   }
