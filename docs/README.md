@@ -687,7 +687,7 @@ statements apply here as well
 const my_id = 17;
 await client.queryArray`UPDATE TABLE X SET Y = 0 WHERE Z = ${my_id}`;
 
-// Invalid attempt to replace an specifier
+// Invalid attempt to replace a specifier
 const my_table = "IMPORTANT_TABLE";
 const my_other_id = 41;
 await client
@@ -699,12 +699,12 @@ await client
 When a query is executed, the database returns all the data serialized as string
 values. The `deno-postgres` driver automatically takes care of decoding the
 results data of your query into the closest JavaScript compatible data type.
-This makes it easy to work with the data in your applciation using native
+This makes it easy to work with the data in your application using native
 Javascript types. A list of implemented type parsers can be found
 [here](https://github.com/denodrivers/postgres/issues/446).
 
 However, you may have more specific needs or may want to handle decoding
-yourself in your application. The driver provides 2 ways to handle decoding of
+yourself in your application. The driver provides two ways to handle decoding of
 the result data:
 
 #### Decode strategy
@@ -714,9 +714,9 @@ decode the result data. This can be done by setting the `decodeStrategy`
 controls option when creating your query client. The following options are
 available:
 
-- `auto` : (**default**) deno-postgres parses the data into JS types or objects
+- `auto`: (**default**) deno-postgres parses the data into JS types or objects
   (non-implemented type parsers would still return strings).
-- `string` : all values are returned as string, and the user has to take care of
+- `string`: all values are returned as string, and the user has to take care of
   parsing
 
 ```ts
@@ -733,7 +733,7 @@ available:
   const result = await client.queryArray(
     "SELECT ID, NAME, AGE, BIRTHDATE FROM PEOPLE WHERE ID = 1",
   );
-  console.log(result.rows); // [[1, "Laura", 25, 1996-01-01T00:00:00.000Z ]]
+  console.log(result.rows); // [[1, "Laura", 25, Date('1996-01-01') ]]
 
   // versus
 
@@ -757,8 +757,8 @@ available:
 
 You can also provide custom decoders to the client that will be used to decode
 the result data. This can be done by setting the `decoders` controls option in
-the client configuration. This options is a map object where the keys are the
-type names or Oid number and the values are the custom decoder functions.
+the client configuration. This option is a map object where the keys are the
+type names or Oid numbers and the values are the custom decoder functions.
 
 You can use it with the decode strategy. Custom decoders take precedence over
 the strategy and internal parsers.
@@ -785,7 +785,7 @@ the strategy and internal parsers.
   const result = await client.queryObject(
     "SELECT ID, NAME, IS_ACTIVE FROM PEOPLE",
   );
-  console.log(result.rows[0]); // {id: '1', name: 'Javier',  _bool: { value: false, type: "boolean"}}
+  console.log(result.rows[0]); // {id: '1', name: 'Javier',  is_active: { value: false, type: "boolean"}}
 }
 ```
 
