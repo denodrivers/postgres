@@ -223,7 +223,7 @@ export function decode(
     return decodeBinary();
   } else if (column.format === Format.TEXT) {
     // If the user has specified a decode strategy, use that
-    if (controls?.decode_strategy === "string") {
+    if (controls?.decodeStrategy === "string") {
       return decoder.decode(value);
     }
     // default to 'auto' mode, which uses the typeOid to determine the decoding strategy

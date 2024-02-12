@@ -139,7 +139,7 @@ Deno.test(
         },
       ]);
     },
-    { controls: { decode_strategy: "auto" } },
+    { controls: { decodeStrategy: "auto" } },
   ),
 );
 
@@ -167,7 +167,7 @@ Deno.test(
         },
       ]);
     },
-    { controls: { decode_strategy: "string" } },
+    { controls: { decodeStrategy: "string" } },
   ),
 );
 
