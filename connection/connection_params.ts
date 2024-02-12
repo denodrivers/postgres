@@ -128,13 +128,18 @@ export type ClientControls = {
    *
    * @example
    * ```ts
+   * import dayjs from 'https://esm.sh/dayjs';
+   * import { Oid,Decoders } from '../mod.ts'
+   *
    * {
-   *   //   16 = Oid.bool : convert all boolean values to numbers
-   *   '16': (value: string) => value === 't' ? 1 : 0,
-   *   // 1082 = Oid.date : convert all dates to dayjs objects
-   *   1082: (value: string) => dayjs(value),
-   *   //   23 = Oid.int4 : convert all integers to positive numbers
-   *   [Oid.int4]: (value: string) => Math.max(0, parseInt(value || '0', 10)),
+   *   const decoders: Decoders = {
+   *     //   16 = Oid.bool : convert all boolean values to numbers
+   *     '16': (value: string) => value === 't' ? 1 : 0,
+   *     // 1082 = Oid.date : convert all dates to dayjs objects
+   *     1082: (value: string) => dayjs(value),
+   *     //   23 = Oid.int4 : convert all integers to positive numbers
+   *     [Oid.int4]: (value: string) => Math.max(0, parseInt(value || '0', 10)),
+   *   }
    * }
    * ```
    */
@@ -171,21 +176,19 @@ export type ClientOptions = {
 };
 
 /** The configuration options required to set up a Client instance */
-export type ClientConfiguration =
-  & Required<
-    Omit<
-      ClientOptions,
-      "password" | "port" | "tls" | "connection" | "options" | "controls"
-    >
+export type ClientConfiguration = Required<
+  Omit<
+    ClientOptions,
+    "password" | "port" | "tls" | "connection" | "options" | "controls"
   >
-  & {
-    connection: ConnectionOptions;
-    controls?: ClientControls;
-    options: Record<string, string>;
-    password?: string;
-    port: number;
-    tls: TLSOptions;
-  };
+> & {
+  connection: ConnectionOptions;
+  controls?: ClientControls;
+  options: Record<string, string>;
+  password?: string;
+  port: number;
+  tls: TLSOptions;
+};
 
 function formatMissingParams(missingParams: string[]) {
   return `Missing connection parameters: ${missingParams.join(", ")}`;
@@ -201,7 +204,7 @@ function formatMissingParams(missingParams: string[]) {
 function assertRequiredOptions(
   options: Partial<ClientConfiguration>,
   requiredKeys: (keyof ClientOptions)[],
-  has_env_access: boolean,
+  has_env_access: boolean
 ): asserts options is ClientConfiguration {
   const missingParams: (keyof ClientOptions)[] = [];
   for (const key of requiredKeys) {
@@ -249,7 +252,7 @@ function parseOptionsArgument(options: string): Record<string, string> {
       if (args[x] === "-c") {
         if (args[x + 1] === undefined) {
           throw new Error(
-            `No provided value for "${args[x]}" in options parameter`,
+            `No provided value for "${args[x]}" in options parameter`
           );
         }
 
@@ -258,7 +261,7 @@ function parseOptionsArgument(options: string): Record<string, string> {
         x++;
       } else {
         throw new Error(
-          `Argument "${args[x]}" is not supported in options parameter`,
+          `Argument "${args[x]}" is not supported in options parameter`
         );
       }
     } else if (/^--\w/.test(args[x])) {
@@ -296,9 +299,10 @@ function parseOptionsFromUri(connection_string: string): ClientOptions {
       port: uri.port || uri.params.port,
       // Compatibility with JDBC, not standard
       // Treat as sslmode=require
-      sslmode: uri.params.ssl === "true"
-        ? "require"
-        : (uri.params.sslmode as TLSModes),
+      sslmode:
+        uri.params.ssl === "true"
+          ? "require"
+          : (uri.params.sslmode as TLSModes),
       user: uri.user || uri.params.user,
     };
   } catch (e) {
@@ -307,13 +311,15 @@ function parseOptionsFromUri(connection_string: string): ClientOptions {
 
   if (!["postgres", "postgresql"].includes(postgres_uri.driver)) {
     throw new ConnectionParamsError(
-      `Supplied DSN has invalid driver: ${postgres_uri.driver}.`,
+      `Supplied DSN has invalid driver: ${postgres_uri.driver}.`
     );
   }
 
   // No host by default means socket connection
   const host_type = postgres_uri.host
-    ? isAbsolute(postgres_uri.host) ? "socket" : "tcp"
+    ? isAbsolute(postgres_uri.host)
+      ? "socket"
+      : "tcp"
     : "socket";
 
   const options = postgres_uri.options
@@ -341,7 +347,7 @@ function parseOptionsFromUri(connection_string: string): ClientOptions {
     }
     default: {
       throw new ConnectionParamsError(
-        `Supplied DSN has invalid sslmode '${postgres_uri.sslmode}'`,
+        `Supplied DSN has invalid sslmode '${postgres_uri.sslmode}'`
       );
     }
   }
@@ -359,31 +365,29 @@ function parseOptionsFromUri(connection_string: string): ClientOptions {
   };
 }
 
-const DEFAULT_OPTIONS:
-  & Omit<
-    ClientConfiguration,
-    "database" | "user" | "hostname"
-  >
-  & { host: string; socket: string } = {
-    applicationName: "deno_postgres",
-    connection: {
-      attempts: 1,
-      interval: (previous_interval) => previous_interval + 500,
-    },
-    host: "127.0.0.1",
-    socket: "/tmp",
-    host_type: "socket",
-    options: {},
-    port: 5432,
-    tls: {
-      enabled: true,
-      enforce: false,
-      caCertificates: [],
-    },
-  };
+const DEFAULT_OPTIONS: Omit<
+  ClientConfiguration,
+  "database" | "user" | "hostname"
+> & { host: string; socket: string } = {
+  applicationName: "deno_postgres",
+  connection: {
+    attempts: 1,
+    interval: (previous_interval) => previous_interval + 500,
+  },
+  host: "127.0.0.1",
+  socket: "/tmp",
+  host_type: "socket",
+  options: {},
+  port: 5432,
+  tls: {
+    enabled: true,
+    enforce: false,
+    caCertificates: [],
+  },
+};
 
 export function createParams(
-  params: string | ClientOptions = {},
+  params: string | ClientOptions = {}
 ): ClientConfiguration {
   if (typeof params === "string") {
     params = parseOptionsFromUri(params);
@@ -404,8 +408,8 @@ export function createParams(
   const provided_host = params.hostname ?? pgEnv.hostname;
 
   // If a host is provided, the default connection type is TCP
-  const host_type = params.host_type ??
-    (provided_host ? "tcp" : DEFAULT_OPTIONS.host_type);
+  const host_type =
+    params.host_type ?? (provided_host ? "tcp" : DEFAULT_OPTIONS.host_type);
   if (!["tcp", "socket"].includes(host_type)) {
     throw new ConnectionParamsError(`"${host_type}" is not a valid host type`);
   }
@@ -464,13 +468,13 @@ export function createParams(
   }
   if (Number.isNaN(port) || port === 0) {
     throw new ConnectionParamsError(
-      `"${params.port ?? pgEnv.port}" is not a valid port number`,
+      `"${params.port ?? pgEnv.port}" is not a valid port number`
     );
   }
 
   if (host_type === "socket" && params?.tls) {
     throw new ConnectionParamsError(
-      'No TLS options are allowed when host type is set to "socket"',
+      'No TLS options are allowed when host type is set to "socket"'
     );
   }
   const tls_enabled = !!(params?.tls?.enabled ?? DEFAULT_OPTIONS.tls.enabled);
@@ -478,21 +482,22 @@ export function createParams(
 
   if (!tls_enabled && tls_enforced) {
     throw new ConnectionParamsError(
-      "Can't enforce TLS when client has TLS encryption is disabled",
+      "Can't enforce TLS when client has TLS encryption is disabled"
     );
   }
 
   // TODO
   // Perhaps username should be taken from the PC user as a default?
   const connection_options = {
-    applicationName: params.applicationName ??
+    applicationName:
+      params.applicationName ??
       pgEnv.applicationName ??
       DEFAULT_OPTIONS.applicationName,
     connection: {
-      attempts: params?.connection?.attempts ??
-        DEFAULT_OPTIONS.connection.attempts,
-      interval: params?.connection?.interval ??
-        DEFAULT_OPTIONS.connection.interval,
+      attempts:
+        params?.connection?.attempts ?? DEFAULT_OPTIONS.connection.attempts,
+      interval:
+        params?.connection?.interval ?? DEFAULT_OPTIONS.connection.interval,
     },
     database: params.database ?? pgEnv.database,
     hostname: host,
@@ -512,7 +517,7 @@ export function createParams(
   assertRequiredOptions(
     connection_options,
     ["applicationName", "database", "hostname", "host_type", "port", "user"],
-    has_env_access,
+    has_env_access
   );
 
   return connection_options;
