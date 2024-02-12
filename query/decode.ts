@@ -217,7 +217,8 @@ export function decode(
   // check if there is a custom decoder
   if (controls?.decoders) {
     // check if there is a custom decoder by oid (number) or by type name (string)
-    let decoderFunc = controls.decoders?.[column.typeOid] || controls.decoders?.[OidTypes[column.typeOid as OidType]];
+    const decoderFunc = controls.decoders?.[column.typeOid] ||
+      controls.decoders?.[OidTypes[column.typeOid as OidType]];
 
     if (decoderFunc) {
       return decoderFunc(strValue, column.typeOid);
