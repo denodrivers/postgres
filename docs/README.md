@@ -8,7 +8,7 @@
 
 `deno-postgres` is a lightweight PostgreSQL driver for Deno focused on user
 experience. It provides abstractions for most common operations such as typed
-queries, prepared statements, connection pools and transactions.
+queries, prepared statements, connection pools, and transactions.
 
 ```ts
 import { Client } from "https://deno.land/x/postgres/mod.ts";
@@ -73,9 +73,9 @@ await client.end();
 
 ### Connection defaults
 
-The only required parameters for stablishing connection with your database are
+The only required parameters for establishing connection with your database are
 the database name and your user, the rest of them have sensible defaults to save
-up time when configuring your connection, such as the following:
+uptime when configuring your connection, such as the following:
 
 - connection.attempts: "1"
 - connection.interval: Exponential backoff increasing the time by 500 ms on
@@ -92,7 +92,7 @@ up time when configuring your connection, such as the following:
 
 Many services provide a connection string as a global format to connect to your
 database, and `deno-postgres` makes it easy to integrate this into your code by
-parsing the options in your connection string as if it was an options object
+parsing the options in your connection string as if it were an options object
 
 You can create your own connection string by using the following structure:
 
@@ -116,14 +116,14 @@ of search parameters such as the following:
 - options: This parameter can be used by other database engines usable through
   the Postgres protocol (such as Cockroachdb for example) to send additional
   values for connection (ej: options=--cluster=your_cluster_name)
-- sslmode: Allows you to specify the tls configuration for your client, the
+- sslmode: Allows you to specify the tls configuration for your client; the
   allowed values are the following:
 
-  - verify-full: Same behaviour as `require`
-  - verify-ca: Same behaviour as `require`
-  - require: Attempt to stablish a TLS connection, abort the connection if the
+  - verify-full: Same behavior as `require`
+  - verify-ca: Same behavior as `require`
+  - require: Attempt to establish a TLS connection, abort the connection if the
     negotiation fails
-  - prefer: Attempt to stablish a TLS connection, default to unencrypted if the
+  - prefer: Attempt to establish a TLS connection, default to unencrypted if the
     negotiation fails
   - disable: Skip TLS connection altogether
 
@@ -132,7 +132,7 @@ of search parameters such as the following:
 #### Password encoding
 
 One thing that must be taken into consideration is that passwords contained
-inside the URL must be properly encoded in order to be passed down to the
+inside the URL must be properly encoded to be passed down to the
 database. You can achieve that by using the JavaScript API `encodeURIComponent`
 and passing your password as an argument.
 
@@ -146,17 +146,17 @@ and passing your password as an argument.
 - `postgres://me:Mtx%253@localhost:5432/my_database`
 - `postgres://me:p%C3%A1ssword!%3Dwith_symbols@localhost:5432/my_database`
 
-If the password is not encoded correctly, the driver will try and pass the raw
-password to the database, however it's highly recommended that all passwords are
+If the password is not encoded correctly, the driver will try to pass the raw
+password to the database, however, it's highly recommended that all passwords are
 always encoded to prevent authentication errors
 
 ### Database reconnection
 
 It's a very common occurrence to get broken connections due to connectivity
-issues or OS related problems, however while this may be a minor inconvenience
+issues or OS-related problems; however, while this may be a minor inconvenience
 in development, it becomes a serious matter in a production environment if not
 handled correctly. To mitigate the impact of disconnected clients
-`deno-postgres` allows the developer to stablish a new connection with the
+`deno-postgres` allows the developer to establish a new connection with the
 database automatically before executing a query on a broken connection.
 
 To manage the number of reconnection attempts, adjust the `connection.attempts`
@@ -175,7 +175,7 @@ try {
 await client.queryArray`SELECT 1`;
 ```
 
-If automatic reconnection is not desired, the developer can simply set the
+If automatic reconnection is not desired, the developer can set the
 number of attempts to zero and manage connection and reconnection manually
 
 ```ts
@@ -202,9 +202,9 @@ Your initial connection will also be affected by this setting in a slightly
 different manner than already active errored connections. If you fail to connect
 to your database in the first attempt, the client will keep trying to connect as
 many times as requested, meaning that if your attempt configuration is three,
-your total first-connection-attempts will ammount to four.
+your total first-connection-attempts will amount to four.
 
-Additionally you can set an interval before each reconnection by using the
+Additionally, you can set an interval before each reconnection by using the
 `interval` parameter. This can be either a plane number or a function where the
 developer receives the previous interval and returns the new one, making it easy
 to implement exponential backoff (Note: the initial interval for this function
@@ -305,7 +305,7 @@ const client = new Client(
 );
 ```
 
-Additionally you can specify the host using the `host` URL parameter
+Additionally, you can specify the host using the `host` URL parameter
 
 ```ts
 const client = new Client(
@@ -325,15 +325,15 @@ terminate the connection or to attempt to connect using a non-encrypted one.
 This behavior can be defined using the connection parameter `tls.enforce` or the
 "required" option when using a connection string.
 
-If set, the driver will fail inmediately if no TLS connection can be
-established, otherwise the driver will attempt to connect without encryption
-after TLS connection has failed, but will display a warning containing the
+If set, the driver will fail immediately if no TLS connection can be
+established, otherwise, the driver will attempt to connect without encryption
+after the TLS connection has failed, but will display a warning containing the
 reason why the TLS connection failed. **This is the default configuration**.
 
 If you wish to skip TLS connections altogether, you can do so by passing false
 as a parameter in the `tls.enabled` option or the "disable" option when using a
 connection string. Although discouraged, this option is pretty useful when
-dealing with development databases or versions of Postgres that didn't support
+dealing with development databases or versions of Postgres that don't support
 TLS encrypted connections.
 
 #### About invalid and custom TLS certificates
@@ -342,7 +342,7 @@ There is a myriad of factors you have to take into account when using a
 certificate to encrypt your connection that, if not taken care of, can render
 your certificate invalid.
 
-When using a self signed certificate, make sure to specify the PEM encoded CA
+When using a self-signed certificate, make sure to specify the PEM encoded CA
 certificate using the `--cert` option when starting Deno (Deno 1.12.2 or later)
 or in the `tls.caCertificates` option when creating a client (Deno 1.15.0 later)
 
@@ -365,14 +365,14 @@ const client = new Client({
 ```
 
 TLS can be disabled from your server by editing your `postgresql.conf` file and
-setting the `ssl` option to `off`, or in the driver side by using the "disabled"
+setting the `ssl` option to `off`, or on the driver side by using the "disabled"
 option in the client configuration.
 
 ### Env parameters
 
 The values required to connect to the database can be read directly from
 environmental variables, given the case that the user doesn't provide them while
-initializing the client. The only requirement for this variables to be read is
+initializing the client. The only requirement for these variables to be read is
 for Deno to be run with `--allow-env` permissions
 
 The env variables that the client will recognize are taken from `libpq` to keep
@@ -391,9 +391,9 @@ await client.end();
 ## Connection Client
 
 Clients are the most basic block for establishing communication with your
-database. They provide abstractions over queries, transactions and connection
+database. They provide abstractions over queries, transactions, and connection
 management. In `deno-postgres`, similar clients such as the transaction and pool
-client inherit it's functionality from the basic client, so the available
+client inherit their functionality from the basic client, so the available
 methods will be very similar across implementations.
 
 You can create a new client by providing the required connection parameters:
@@ -427,7 +427,7 @@ await client_1.end();
 await client_2.end();
 ```
 
-Ending a client will cause it to destroy it's connection with the database,
+Ending a client will cause it to destroy its connection with the database,
 forcing you to reconnect in order to execute operations again. In Postgres,
 connections are a synonym for session, which means that temporal operations such
 as the creation of temporal tables or the use of the `PG_TEMP` schema will not
@@ -515,7 +515,7 @@ await client_3.release();
 
 #### Pools made simple
 
-The following example is a simple abstraction over pools that allow you to
+The following example is a simple abstraction over pools that allows you to
 execute one query and release the used client after returning the result in a
 single function call
 
@@ -538,8 +538,8 @@ await runQuery("SELECT ID, NAME FROM USERS WHERE ID = '1'"); // [{id: 1, name: '
 ## Executing queries
 
 Executing a query is as simple as providing the raw SQL to your client, it will
-automatically be queued, validated and processed so you can get a human
-readable, blazing fast result
+automatically be queued, validated, and processed so you can get a human
+readable, blazing-fast result
 
 ```ts
 const result = await client.queryArray("SELECT ID, NAME FROM PEOPLE");
@@ -552,7 +552,7 @@ Prepared statements are a Postgres mechanism designed to prevent SQL injection
 and maximize query performance for multiple queries (see
 https://security.stackexchange.com/questions/15214/are-prepared-statements-100-safe-against-sql-injection)
 
-The idea is simple, provide a base sql statement with placeholders for any
+The idea is simple, provide a base SQL statement with placeholders for any
 variables required, and then provide said variables in an array of arguments
 
 ```ts
@@ -597,7 +597,7 @@ replaced at runtime with an argument object
 }
 ```
 
-Behind the scenes, `deno-postgres` will replace the variables names in your
+Behind the scenes, `deno-postgres` will replace the variable names in your
 query for Postgres-readable placeholders making it easy to reuse values in
 multiple places in your query
 
@@ -626,7 +626,7 @@ arguments object
 
 #### Template strings
 
-Even thought the previous call is already pretty simple, it can be simplified
+Even though the previous call is already pretty simple, it can be simplified
 even further by the use of template strings, offering all the benefits of
 prepared statements with a nice and clear syntax for your queries
 
@@ -648,12 +648,12 @@ prepared statements with a nice and clear syntax for your queries
 
 Obviously, you can't pass any parameters provided by the `QueryOptions`
 interface such as explicitly named fields, so this API is best used when you
-have a straight forward statement that only requires arguments to work as
+have a straightforward statement that only requires arguments to work as
 intended
 
-#### Regarding non argument parameters
+#### Regarding non-argument parameters
 
-A common assumption many people do when working with prepared statements is that
+A common assumption many people make when working with prepared statements is that
 they work the same way string interpolation works, by replacing the placeholders
 with whatever variables have been passed down to the query. However the reality
 is a little more complicated than that where only very specific parts of a query
@@ -676,7 +676,7 @@ SELECT MY_DATA FROM $1
 Specifically, you can't replace any keyword or specifier in a query, only
 literal values, such as the ones you would use in an `INSERT` or `WHERE` clause
 
-This is specially hard to grasp when working with template strings, since the
+This is especially hard to grasp when working with template strings, since the
 assumption that is made most of the time is that all items inside a template
 string call are being interpolated with the underlying string, however as
 explained above this is not the case, so all previous warnings about prepared
@@ -700,7 +700,7 @@ When a query is executed, the database returns all the data serialized as string
 values. The `deno-postgres` driver automatically takes care of decoding the
 results data of your query into the closest JavaScript compatible data type.
 This makes it easy to work with the data in your application using native
-Javascript types. A list of implemented type parsers can be found
+JavaScript types. A list of implemented type parsers can be found
 [here](https://github.com/denodrivers/postgres/issues/446).
 
 However, you may have more specific needs or may want to handle decoding
@@ -714,7 +714,7 @@ decode the result data. This can be done by setting the `decodeStrategy`
 controls option when creating your query client. The following options are
 available:
 
-- `auto`: (**default**) deno-postgres parses the data into JS types or objects
+- `auto`: (**default**) values are parsed to JavaScript types or objects
   (non-implemented type parsers would still return strings).
 - `string`: all values are returned as string, and the user has to take care of
   parsing
@@ -793,7 +793,7 @@ the strategy and internal parsers.
 
 Both the `queryArray` and `queryObject` functions have a generic implementation
 that allows users to type the result of the executed query to obtain
-intellisense
+IntelliSense
 
 ```ts
 {
@@ -849,11 +849,11 @@ const users = result.rows;
 
 #### Case transformation
 
-When consuming a database, specially one not managed by themselves but a
+When consuming a database, especially one not managed by themselves but a
 external one, many developers have to face different naming standards that may
 disrupt the consistency of their codebase. And while there are simple solutions
 for that such as aliasing every query field that is done to the database, one
-easyb built-in solution allows developers to transform the incoming query names
+easy built-in solution allows developers to transform the incoming query names
 into the casing of their preference without any extra steps
 
 ##### Camelcase
@@ -897,7 +897,7 @@ const result = await client.queryObject({
 const users = result.rows; // [{id: 1, name: 'Ca'}, {id: 2, name: 'Jo'}, ...]
 ```
 
-**Don't use TypeScript generics to map these properties**, this generics only
+**Don't use TypeScript generics to map these properties**, these generics only
 exist at compile time and won't affect the final outcome of the query
 
 ```ts
@@ -936,7 +936,7 @@ Other aspects to take into account when using the `fields` argument:
 }
 
 {
-  // This will throw because the returned number of columns don't match the
+  // This will throw because the returned number of columns doesn't match the
   // number of defined ones in the function call
   await client.queryObject({
     text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
@@ -949,7 +949,7 @@ Other aspects to take into account when using the `fields` argument:
 
 A lot of effort was put into abstracting Transactions in the library, and the
 final result is an API that is both simple to use and offers all of the options
-and features that you would get by executing SQL statements, plus and extra
+and features that you would get by executing SQL statements, plus an extra
 layer of abstraction that helps you catch mistakes ahead of time.
 
 #### Creating a transaction
@@ -973,14 +973,14 @@ await transaction.commit();
 
 ##### Transaction locks
 
-Due to how SQL transactions work, everytime you begin a transaction all queries
+Due to how SQL transactions work, every time you begin a transaction all queries
 you do in your session will run inside that transaction context. This is a
 problem for query execution since it might cause queries that are meant to do
 persistent changes to the database to live inside this context, making them
-susceptible to be rolled back unintentionally. We will call this kind of queries
+susceptible to being rolled back unintentionally. We will call this kind of queries
 **unsafe operations**.
 
-Everytime you create a transaction the client you use will get a lock, with the
+Every time you create a transaction the client you use will get a lock, with the
 purpose of blocking any external queries from running while a transaction takes
 course, effectively avoiding all unsafe operations.
 
@@ -998,10 +998,10 @@ await transaction.commit();
 await client.queryArray`DELETE TABLE X`;
 ```
 
-For this very reason however, if you are using transactions in an application
+For this very reason, however, if you are using transactions in an application
 with concurrent access like an API, it is recommended that you don't use the
 Client API at all. If you do so, the client will be blocked from executing other
-queries until the transaction has finished. Instead of that, use a connection
+queries until the transaction has finished. Instead, use a connection
 pool, that way all your operations will be executed in a different context
 without locking the main client.
 
@@ -1038,7 +1038,7 @@ SELECT ID FROM MY_TABLE; -- Will attempt to execute, but will fail cause transac
 COMMIT; -- Transaction will end, but no changes to MY_TABLE will be made
 ```
 
-However, due to how JavaScript works we can handle this kinds of errors in a
+However, due to how JavaScript works we can handle these kinds of errors in a
 more fashionable way. All failed queries inside a transaction will automatically
 end it and release the main client.
 
@@ -1055,7 +1055,7 @@ function executeMyTransaction() {
     await transaction.queryArray`SELECT []`; // Error will be thrown, transaction will be aborted
     await transaction.queryArray`SELECT ID FROM MY_TABLE`; // Won't even attempt to execute
 
-    await transaction.commit(); // Don't even need it, transaction was already ended
+    await transaction.commit(); // Don't even need it, the transaction was already ended
   } catch (e) {
     return false;
   }
@@ -1064,9 +1064,9 @@ function executeMyTransaction() {
 }
 ```
 
-This limits only to database related errors though, regular errors won't end the
+This limits only to database-related errors though, regular errors won't end the
 connection and may allow the user to execute a different code path. This is
-specially good for ahead of time validation errors such as the ones found in the
+especially good for ahead-of-time validation errors such as the ones found in the
 rollback and savepoint features.
 
 ```ts
@@ -1098,7 +1098,7 @@ await transaction.commit();
 #### Transaction options
 
 PostgreSQL provides many options to customize the behavior of transactions, such
-as isolation level, read modes and startup snapshot. All this options can be set
+as isolation level, read modes, and startup snapshot. All these options can be set
 by passing a second argument to the `startTransaction` method
 
 ```ts
@@ -1116,10 +1116,10 @@ place _after_ the transaction had begun.
 
 The following is a demonstration. A sensible transaction that loads a table with
 some very important test results and the students that passed said test. This is
-a long running operation, and in the meanwhile someone is tasked to cleanup the
-results from the tests table because it's taking too much space in the database.
+a long-running operation, and in the meanwhile, someone is tasked to clean up the
+results from the tests table because it's taking up too much space in the database.
 
-If the transaction were to be executed as it follows, the test results would be
+If the transaction were to be executed as follows, the test results would be
 lost before the graduated students could be extracted from the original table,
 causing a mismatch in the data.
 
@@ -1146,7 +1146,7 @@ await transaction.queryArray`INSERT INTO TEST_RESULTS
 // executes this query while the operation above still takes place
 await client_2.queryArray`DELETE FROM TESTS WHERE TEST_TYPE = 'final_test'`;
 
-// Test information is gone, no data will be loaded into the graduated students table
+// Test information is gone, and no data will be loaded into the graduated students table
 await transaction.queryArray`INSERT INTO GRADUATED_STUDENTS
   SELECT
     USER_ID
@@ -1207,7 +1207,7 @@ following levels of transaction isolation:
   ```
 
 - Serializable: Just like the repeatable read mode, all external changes won't
-  be visible until the transaction has finished. However this also prevents the
+  be visible until the transaction has finished. However, this also prevents the
   current transaction from making persistent changes if the data they were
   reading at the beginning of the transaction has been modified (recommended)
 
@@ -1244,9 +1244,9 @@ following levels of transaction isolation:
 
 ##### Read modes
 
-In many cases, and specially when allowing third parties to access data inside
+In many cases, and especially when allowing third parties to access data inside
 your database it might be a good choice to prevent queries from modifying the
-database in the course of the transaction. You can revoke this write privileges
+database in the course of the transaction. You can revoke these write privileges
 by setting `read_only: true` in the transaction options. The default for all
 transactions will be to enable write permission.
 
@@ -1357,7 +1357,7 @@ await transaction.rollback(savepoint); // Truncate gets undone
 ##### Rollback
 
 A rollback allows the user to end the transaction without persisting the changes
-made to the database, preventing that way any unwanted operation to take place.
+made to the database, preventing that way any unwanted operation from taking place.
 
 ```ts
 const transaction = client.createTransaction("rolled_back_transaction");
