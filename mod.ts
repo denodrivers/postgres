@@ -15,9 +15,9 @@ export type {
   ClientOptions,
   ConnectionOptions,
   ConnectionString,
-  TLSOptions,
-  DecodeStrategy,
   Decoders,
+  DecodeStrategy,
+  TLSOptions,
 } from "./connection/connection_params.ts";
 export type { Session } from "./client.ts";
 export type { Notice } from "./connection/message.ts";
