@@ -1,4 +1,4 @@
-import { Oid } from "./oid.ts";
+import { Oid, OidType, OidTypes } from "./oid.ts";
 import { bold, yellow } from "../deps.ts";
 import {
   decodeBigint,
@@ -35,7 +35,7 @@ import {
   decodeTid,
   decodeTidArray,
 } from "./decoders.ts";
-import { ClientControls, Decoders } from "../connection/connection_params.ts";
+import { ClientControls } from "../connection/connection_params.ts";
 
 export class Column {
   constructor(
@@ -62,15 +62,8 @@ function decodeBinary() {
   throw new Error("Decoding binary data is not implemented!");
 }
 
-function decodeText(value: Uint8Array, typeOid: number, decoders?: Decoders) {
-  const strValue = decoder.decode(value);
-
+function decodeText(value: string, typeOid: number) {
   try {
-    // If the user has specified a custom decoder, use that
-    if (decoders?.[typeOid]) {
-      return decoders[typeOid](strValue);
-    }
-
     switch (typeOid) {
       case Oid.bpchar:
       case Oid.char:
@@ -97,7 +90,7 @@ function decodeText(value: Uint8Array, typeOid: number, decoders?: Decoders) {
       case Oid.uuid:
       case Oid.varchar:
       case Oid.void:
-        return strValue;
+        return value;
       case Oid.bpchar_array:
       case Oid.char_array:
       case Oid.cidr_array:
@@ -122,85 +115,85 @@ function decodeText(value: Uint8Array, typeOid: number, decoders?: Decoders) {
       case Oid.timetz_array:
       case Oid.uuid_array:
       case Oid.varchar_array:
-        return decodeStringArray(strValue);
+        return decodeStringArray(value);
       case Oid.float4:
-        return decodeFloat(strValue);
+        return decodeFloat(value);
       case Oid.float4_array:
-        return decodeFloatArray(strValue);
+        return decodeFloatArray(value);
       case Oid.int2:
       case Oid.int4:
       case Oid.xid:
-        return decodeInt(strValue);
+        return decodeInt(value);
       case Oid.int2_array:
       case Oid.int4_array:
       case Oid.xid_array:
-        return decodeIntArray(strValue);
+        return decodeIntArray(value);
       case Oid.bool:
-        return decodeBoolean(strValue);
+        return decodeBoolean(value);
       case Oid.bool_array:
-        return decodeBooleanArray(strValue);
+        return decodeBooleanArray(value);
       case Oid.box:
-        return decodeBox(strValue);
+        return decodeBox(value);
       case Oid.box_array:
-        return decodeBoxArray(strValue);
+        return decodeBoxArray(value);
       case Oid.circle:
-        return decodeCircle(strValue);
+        return decodeCircle(value);
       case Oid.circle_array:
-        return decodeCircleArray(strValue);
+        return decodeCircleArray(value);
       case Oid.bytea:
-        return decodeBytea(strValue);
+        return decodeBytea(value);
       case Oid.byte_array:
-        return decodeByteaArray(strValue);
+        return decodeByteaArray(value);
       case Oid.date:
-        return decodeDate(strValue);
+        return decodeDate(value);
       case Oid.date_array:
-        return decodeDateArray(strValue);
+        return decodeDateArray(value);
       case Oid.int8:
-        return decodeBigint(strValue);
+        return decodeBigint(value);
       case Oid.int8_array:
-        return decodeBigintArray(strValue);
+        return decodeBigintArray(value);
       case Oid.json:
       case Oid.jsonb:
-        return decodeJson(strValue);
+        return decodeJson(value);
       case Oid.json_array:
       case Oid.jsonb_array:
-        return decodeJsonArray(strValue);
+        return decodeJsonArray(value);
       case Oid.line:
-        return decodeLine(strValue);
+        return decodeLine(value);
       case Oid.line_array:
-        return decodeLineArray(strValue);
+        return decodeLineArray(value);
       case Oid.lseg:
-        return decodeLineSegment(strValue);
+        return decodeLineSegment(value);
       case Oid.lseg_array:
-        return decodeLineSegmentArray(strValue);
+        return decodeLineSegmentArray(value);
       case Oid.path:
-        return decodePath(strValue);
+        return decodePath(value);
       case Oid.path_array:
-        return decodePathArray(strValue);
+        return decodePathArray(value);
       case Oid.point:
-        return decodePoint(strValue);
+        return decodePoint(value);
       case Oid.point_array:
-        return decodePointArray(strValue);
+        return decodePointArray(value);
       case Oid.polygon:
-        return decodePolygon(strValue);
+        return decodePolygon(value);
       case Oid.polygon_array:
-        return decodePolygonArray(strValue);
+        return decodePolygonArray(value);
       case Oid.tid:
-        return decodeTid(strValue);
+        return decodeTid(value);
       case Oid.tid_array:
-        return decodeTidArray(strValue);
+        return decodeTidArray(value);
       case Oid.timestamp:
       case Oid.timestamptz:
-        return decodeDatetime(strValue);
+        return decodeDatetime(value);
       case Oid.timestamp_array:
       case Oid.timestamptz_array:
-        return decodeDatetimeArray(strValue);
+        return decodeDatetimeArray(value);
       default:
         // A separate category for not handled values
         // They might or might not be represented correctly as strings,
         // returning them to the user as raw strings allows them to parse
         // them as they see fit
-        return strValue;
+        return value;
     }
   } catch (_e) {
     console.error(
@@ -219,15 +212,28 @@ export function decode(
   column: Column,
   controls?: ClientControls,
 ) {
+  const strValue = decoder.decode(value);
+
+  // check if there is a custom decoder
+  if (controls?.decoders) {
+    // check if there is a custom decoder by oid (number) or by type name (string)
+    let decoderFunc = controls.decoders?.[column.typeOid] || controls.decoders?.[OidTypes[column.typeOid as OidType]];
+
+    if (decoderFunc) {
+      return decoderFunc(strValue, column.typeOid);
+    }
+  }
+
+  // check if the decode strategy is `string`
+  if (controls?.decodeStrategy === "string") {
+    return strValue;
+  }
+
+  // else, default to 'auto' mode, which uses the typeOid to determine the decoding strategy
   if (column.format === Format.BINARY) {
     return decodeBinary();
   } else if (column.format === Format.TEXT) {
-    // If the user has specified a decode strategy, use that
-    if (controls?.decodeStrategy === "string") {
-      return decoder.decode(value);
-    }
-    // default to 'auto' mode, which uses the typeOid to determine the decoding strategy
-    return decodeText(value, column.typeOid, controls?.decoders);
+    return decodeText(strValue, column.typeOid);
   } else {
     throw new Error(`Unknown column format: ${column.format}`);
   }

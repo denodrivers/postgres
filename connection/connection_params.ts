@@ -1,7 +1,7 @@
 import { parseConnectionUri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 import { fromFileUrl, isAbsolute } from "../deps.ts";
-import { Oid, OidKey } from '../query/oid.ts';
+import { OidKey } from "../query/oid.ts";
 
 /**
  * The connection string must match the following URI structure. All parameters but database and user are optional
@@ -101,7 +101,7 @@ export type Decoders = {
  * A decoder function that takes a string value and returns a parsed value of some type.
  * the Oid is also passed to the function for reference
  */
-export type DecoderFunction = (value: string, oid: number ) => unknown;
+export type DecoderFunction = (value: string, oid: number) => unknown;
 
 /**
  * Control the behavior for the client instance
