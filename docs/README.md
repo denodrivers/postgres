@@ -132,9 +132,9 @@ of search parameters such as the following:
 #### Password encoding
 
 One thing that must be taken into consideration is that passwords contained
-inside the URL must be properly encoded to be passed down to the
-database. You can achieve that by using the JavaScript API `encodeURIComponent`
-and passing your password as an argument.
+inside the URL must be properly encoded to be passed down to the database. You
+can achieve that by using the JavaScript API `encodeURIComponent` and passing
+your password as an argument.
 
 **Invalid**:
 
@@ -147,8 +147,8 @@ and passing your password as an argument.
 - `postgres://me:p%C3%A1ssword!%3Dwith_symbols@localhost:5432/my_database`
 
 If the password is not encoded correctly, the driver will try to pass the raw
-password to the database, however, it's highly recommended that all passwords are
-always encoded to prevent authentication errors
+password to the database, however, it's highly recommended that all passwords
+are always encoded to prevent authentication errors
 
 ### Database reconnection
 
@@ -175,8 +175,8 @@ try {
 await client.queryArray`SELECT 1`;
 ```
 
-If automatic reconnection is not desired, the developer can set the
-number of attempts to zero and manage connection and reconnection manually
+If automatic reconnection is not desired, the developer can set the number of
+attempts to zero and manage connection and reconnection manually
 
 ```ts
 const client = new Client({
@@ -597,9 +597,9 @@ replaced at runtime with an argument object
 }
 ```
 
-Behind the scenes, `deno-postgres` will replace the variable names in your
-query for Postgres-readable placeholders making it easy to reuse values in
-multiple places in your query
+Behind the scenes, `deno-postgres` will replace the variable names in your query
+for Postgres-readable placeholders making it easy to reuse values in multiple
+places in your query
 
 ```ts
 {
@@ -653,11 +653,11 @@ intended
 
 #### Regarding non-argument parameters
 
-A common assumption many people make when working with prepared statements is that
-they work the same way string interpolation works, by replacing the placeholders
-with whatever variables have been passed down to the query. However the reality
-is a little more complicated than that where only very specific parts of a query
-can use placeholders to indicate upcoming values
+A common assumption many people make when working with prepared statements is
+that they work the same way string interpolation works, by replacing the
+placeholders with whatever variables have been passed down to the query. However
+the reality is a little more complicated than that where only very specific
+parts of a query can use placeholders to indicate upcoming values
 
 That's the reason why the following works
 
@@ -949,8 +949,8 @@ Other aspects to take into account when using the `fields` argument:
 
 A lot of effort was put into abstracting Transactions in the library, and the
 final result is an API that is both simple to use and offers all of the options
-and features that you would get by executing SQL statements, plus an extra
-layer of abstraction that helps you catch mistakes ahead of time.
+and features that you would get by executing SQL statements, plus an extra layer
+of abstraction that helps you catch mistakes ahead of time.
 
 #### Creating a transaction
 
@@ -977,8 +977,8 @@ Due to how SQL transactions work, every time you begin a transaction all queries
 you do in your session will run inside that transaction context. This is a
 problem for query execution since it might cause queries that are meant to do
 persistent changes to the database to live inside this context, making them
-susceptible to being rolled back unintentionally. We will call this kind of queries
-**unsafe operations**.
+susceptible to being rolled back unintentionally. We will call this kind of
+queries **unsafe operations**.
 
 Every time you create a transaction the client you use will get a lock, with the
 purpose of blocking any external queries from running while a transaction takes
@@ -1001,9 +1001,9 @@ await client.queryArray`DELETE TABLE X`;
 For this very reason, however, if you are using transactions in an application
 with concurrent access like an API, it is recommended that you don't use the
 Client API at all. If you do so, the client will be blocked from executing other
-queries until the transaction has finished. Instead, use a connection
-pool, that way all your operations will be executed in a different context
-without locking the main client.
+queries until the transaction has finished. Instead, use a connection pool, that
+way all your operations will be executed in a different context without locking
+the main client.
 
 ```ts
 const client_1 = await pool.connect();
@@ -1066,8 +1066,8 @@ function executeMyTransaction() {
 
 This limits only to database-related errors though, regular errors won't end the
 connection and may allow the user to execute a different code path. This is
-especially good for ahead-of-time validation errors such as the ones found in the
-rollback and savepoint features.
+especially good for ahead-of-time validation errors such as the ones found in
+the rollback and savepoint features.
 
 ```ts
 const transaction = client.createTransaction("abortable");
@@ -1098,8 +1098,8 @@ await transaction.commit();
 #### Transaction options
 
 PostgreSQL provides many options to customize the behavior of transactions, such
-as isolation level, read modes, and startup snapshot. All these options can be set
-by passing a second argument to the `startTransaction` method
+as isolation level, read modes, and startup snapshot. All these options can be
+set by passing a second argument to the `startTransaction` method
 
 ```ts
 const transaction = client.createTransaction("ts_1", {
@@ -1116,8 +1116,9 @@ place _after_ the transaction had begun.
 
 The following is a demonstration. A sensible transaction that loads a table with
 some very important test results and the students that passed said test. This is
-a long-running operation, and in the meanwhile, someone is tasked to clean up the
-results from the tests table because it's taking up too much space in the database.
+a long-running operation, and in the meanwhile, someone is tasked to clean up
+the results from the tests table because it's taking up too much space in the
+database.
 
 If the transaction were to be executed as follows, the test results would be
 lost before the graduated students could be extracted from the original table,
@@ -1357,7 +1358,8 @@ await transaction.rollback(savepoint); // Truncate gets undone
 ##### Rollback
 
 A rollback allows the user to end the transaction without persisting the changes
-made to the database, preventing that way any unwanted operation from taking place.
+made to the database, preventing that way any unwanted operation from taking
+place.
 
 ```ts
 const transaction = client.createTransaction("rolled_back_transaction");
