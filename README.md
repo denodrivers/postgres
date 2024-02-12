@@ -6,7 +6,7 @@
 [![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://doc.deno.land/https/deno.land/x/postgres/mod.ts)
 [![License](https://img.shields.io/github/license/denodrivers/postgres?color=yellowgreen&label=License&style=flat-square)](LICENSE)
 
-A lightweight PostgreSQL driver for Deno focused on user experience.
+A lightweight PostgreSQL driver for Deno focused on developer experience.
 
 `deno-postgres` is being developed inspired by the excellent work of
 [node-postgres](https://github.com/brianc/node-postgres) and
