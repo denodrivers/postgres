@@ -76,8 +76,8 @@ discuss bugs and features before opening issues.
   it to run the linter and formatter locally
 
   - https://deno.land/
-  - `deno upgrade --version 1.7.1`
-  - `dvm install 1.7.1 && dvm use 1.7.1`
+  - `deno upgrade --version 1.40.0`
+  - `dvm install 1.40.0 && dvm use 1.40.0`
 
 - You don't need to install Postgres locally on your machine to test the
   library, it will run as a service in the Docker container when you build it
