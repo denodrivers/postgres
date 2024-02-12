@@ -91,19 +91,43 @@ export interface TLSOptions {
   caCertificates: string[];
 }
 
+/**
+ * Control the behavior for the client instance
+ */
+export type ClientControls = {
+  /**
+   * The strategy to use when decoding binary fields
+   *
+   * `string` : all values are returned as string, and the user has to take care of parsing
+   * `auto` : deno-postgres parses the data into JS objects (as many as possible implemented, non-implemented parsers would still return strings)
+   *
+   * Default: `auto`
+   *
+   * Future strategies might include:
+   * - `strict` : deno-postgres parses the data into JS objects, and if a parser is not implemented, it throws an error
+   * - `raw` : the data is returned as Uint8Array
+   */
+  decodeStrategy?: "string" | "auto";
+};
+
 /** The Client database connection options */
 export type ClientOptions = {
   /** Name of the  application connecing to the database */
   applicationName?: string;
   /** Additional connection options */
   connection?: Partial<ConnectionOptions>;
+  /** Control the client behavior */
+  controls?: ClientControls;
   /** The database name */
   database?: string;
   /** The name of the host */
   hostname?: string;
   /** The type of host connection */
   host_type?: "tcp" | "socket";
-  /** Additional client options */
+  /**
+   * Additional connection URI options
+   * https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS
+   */
   options?: string | Record<string, string>;
   /** The database user password */
   password?: string;
@@ -118,14 +142,18 @@ export type ClientOptions = {
 /** The configuration options required to set up a Client instance */
 export type ClientConfiguration =
   & Required<
-    Omit<ClientOptions, "password" | "port" | "tls" | "connection" | "options">
+    Omit<
+      ClientOptions,
+      "password" | "port" | "tls" | "connection" | "options" | "controls"
+    >
   >
   & {
+    connection: ConnectionOptions;
+    controls?: ClientControls;
+    options: Record<string, string>;
     password?: string;
     port: number;
     tls: TLSOptions;
-    connection: ConnectionOptions;
-    options: Record<string, string>;
   };
 
 function formatMissingParams(missingParams: string[]) {
@@ -168,7 +196,7 @@ function assertRequiredOptions(
 
 // TODO
 // Support more options from the spec
-/** options from URI per https://www.postgresql.org/docs/14/libpq-connect.html#LIBPQ-CONNSTRING */
+/** options from URI per https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING */
 interface PostgresUri {
   application_name?: string;
   dbname?: string;
@@ -447,6 +475,7 @@ export function createParams(
       caCertificates: params?.tls?.caCertificates ?? [],
     },
     user: params.user ?? pgEnv.user,
+    controls: params.controls,
   };
 
   assertRequiredOptions(

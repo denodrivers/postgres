@@ -685,7 +685,7 @@ export class Connection {
         case INCOMING_QUERY_MESSAGES.DATA_ROW: {
           const row_data = parseRowDataMessage(current_message);
           try {
-            result.insertRow(row_data);
+            result.insertRow(row_data, this.#connection_params.controls);
           } catch (e) {
             error = e;
           }
@@ -862,7 +862,7 @@ export class Connection {
         case INCOMING_QUERY_MESSAGES.DATA_ROW: {
           const row_data = parseRowDataMessage(current_message);
           try {
-            result.insertRow(row_data);
+            result.insertRow(row_data, this.#connection_params.controls);
           } catch (e) {
             error = e;
           }

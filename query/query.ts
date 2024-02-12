@@ -1,6 +1,7 @@
 import { encodeArgument, type EncodedArg } from "./encode.ts";
 import { type Column, decode } from "./decode.ts";
 import { type Notice } from "../connection/message.ts";
+import { type ClientControls } from "../connection/connection_params.ts";
 
 // TODO
 // Limit the type of parameters that can be passed
@@ -242,7 +243,7 @@ export class QueryArrayResult<
   /**
    * Insert a row into the result
    */
-  insertRow(row_data: Uint8Array[]) {
+  insertRow(row_data: Uint8Array[], controls?: ClientControls) {
     if (!this.rowDescription) {
       throw new Error(
         "The row descriptions required to parse the result data weren't initialized",
@@ -256,7 +257,7 @@ export class QueryArrayResult<
       if (raw_value === null) {
         return null;
       }
-      return decode(raw_value, column);
+      return decode(raw_value, column, controls);
     }) as T;
 
     this.rows.push(row);
@@ -303,7 +304,7 @@ export class QueryObjectResult<
   /**
    * Insert a row into the result
    */
-  insertRow(row_data: Uint8Array[]) {
+  insertRow(row_data: Uint8Array[], controls?: ClientControls) {
     if (!this.rowDescription) {
       throw new Error(
         "The row description required to parse the result data wasn't initialized",
@@ -364,7 +365,7 @@ export class QueryObjectResult<
       if (raw_value === null) {
         row[columns[index]] = null;
       } else {
-        row[columns[index]] = decode(raw_value, current_column);
+        row[columns[index]] = decode(raw_value, current_column, controls);
       }
 
       return row;

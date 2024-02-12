@@ -14,12 +14,14 @@ import {
 } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
 import { PoolClient, QueryClient } from "../client.ts";
+import { ClientOptions } from "../connection/connection_params.ts";
 
 function withClient(
   t: (client: QueryClient) => void | Promise<void>,
+  config?: ClientOptions,
 ) {
   async function clientWrapper() {
-    const client = new Client(getMainConfiguration());
+    const client = new Client(getMainConfiguration(config));
     try {
       await client.connect();
       await t(client);
@@ -29,7 +31,7 @@ function withClient(
   }
 
   async function poolWrapper() {
-    const pool = new Pool(getMainConfiguration(), 1);
+    const pool = new Pool(getMainConfiguration(config), 1);
     let client;
     try {
       client = await pool.connect();
@@ -113,14 +115,55 @@ Deno.test(
 );
 
 Deno.test(
+  "Decode strategy - auto",
+  withClient(
+    async (client) => {
+      const result = await client.queryObject(
+        `SELECT ARRAY[1, 2, 3] AS _int_array, 3.14::REAL AS _float, 'DATA' AS _text, '{"test": "foo", "arr": [1,2,3]}'::JSONB AS _json, 'Y'::BOOLEAN AS _bool`,
+      );
+
+      assertEquals(result.rows, [
+        {
+          _bool: true,
+          _float: 3.14,
+          _int_array: [1, 2, 3],
+          _json: { test: "foo", arr: [1, 2, 3] },
+          _text: "DATA",
+        },
+      ]);
+    },
+    { controls: { decodeStrategy: "auto" } },
+  ),
+);
+
+Deno.test(
+  "Decode strategy - string",
+  withClient(
+    async (client) => {
+      const result = await client.queryObject(
+        `SELECT ARRAY[1, 2, 3] AS _int_array, 3.14::REAL AS _float, 'DATA' AS _text, '{"test": "foo", "arr": [1,2,3]}'::JSONB AS _json, 'Y'::BOOLEAN AS _bool`,
+      );
+
+      assertEquals(result.rows, [
+        {
+          _bool: "t",
+          _float: "3.14",
+          _int_array: "{1,2,3}",
+          _json: '{"arr": [1, 2, 3], "test": "foo"}',
+          _text: "DATA",
+        },
+      ]);
+    },
+    { controls: { decodeStrategy: "string" } },
+  ),
+);
+
+Deno.test(
   "Array arguments",
   withClient(async (client) => {
     {
       const value = "1";
-      const result = await client.queryArray(
-        "SELECT $1",
-        [value],
-      );
+      const result = await client.queryArray("SELECT $1", [value]);
       assertEquals(result.rows, [[value]]);
     }
 
@@ -135,10 +178,7 @@ Deno.test(
 
     {
       const value = "3";
-      const result = await client.queryObject(
-        "SELECT $1 AS ID",
-        [value],
-      );
+      const result = await client.queryObject("SELECT $1 AS ID", [value]);
       assertEquals(result.rows, [{ id: value }]);
     }
 
@@ -158,10 +198,7 @@ Deno.test(
   withClient(async (client) => {
     {
       const value = "1";
-      const result = await client.queryArray(
-        "SELECT $id",
-        { id: value },
-      );
+      const result = await client.queryArray("SELECT $id", { id: value });
       assertEquals(result.rows, [[value]]);
     }
 
@@ -176,10 +213,9 @@ Deno.test(
 
     {
       const value = "3";
-      const result = await client.queryObject(
-        "SELECT $id as ID",
-        { id: value },
-      );
+      const result = await client.queryObject("SELECT $id as ID", {
+        id: value,
+      });
       assertEquals(result.rows, [{ id: value }]);
     }
 
@@ -218,10 +254,9 @@ Deno.test(
     await client.queryArray`CREATE TEMP TABLE PREPARED_STATEMENT_ERROR (X INT)`;
 
     await assertRejects(() =>
-      client.queryArray(
-        "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
-        ["TEXT"],
-      )
+      client.queryArray("INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)", [
+        "TEXT",
+      ])
     );
 
     const { rows } = await client.queryObject<{ result: number }>({
@@ -237,10 +272,7 @@ Deno.test(
   "Array query can handle multiple query failures at once",
   withClient(async (client) => {
     await assertRejects(
-      () =>
-        client.queryArray(
-          "SELECT 1; SELECT '2'::INT; SELECT 'A'::INT",
-        ),
+      () => client.queryArray("SELECT 1; SELECT '2'::INT; SELECT 'A'::INT"),
       PostgresError,
       "invalid input syntax for type integer",
     );
@@ -257,9 +289,7 @@ Deno.test(
 Deno.test(
   "Array query handles error during data processing",
   withClient(async (client) => {
-    await assertRejects(
-      () => client.queryObject`SELECT 'A' AS X, 'B' AS X`,
-    );
+    await assertRejects(() => client.queryObject`SELECT 'A' AS X, 'B' AS X`);
 
     const value = "193";
     const { rows: result_2 } = await client.queryObject`SELECT ${value} AS B`;
@@ -292,11 +322,13 @@ Deno.test(
   withClient(async (client) => {
     await client.queryArray`CREATE TEMP TABLE PREPARED_STATEMENT_ERROR (X INT)`;
 
-    await assertRejects(() =>
-      client.queryArray(
-        "INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)",
-        ["TEXT"],
-      ), PostgresError);
+    await assertRejects(
+      () =>
+        client.queryArray("INSERT INTO PREPARED_STATEMENT_ERROR VALUES ($1)", [
+          "TEXT",
+        ]),
+      PostgresError,
+    );
 
     const result = "handled";
 
@@ -313,9 +345,7 @@ Deno.test(
 Deno.test(
   "Prepared query handles error during data processing",
   withClient(async (client) => {
-    await assertRejects(
-      () => client.queryObject`SELECT ${1} AS A, ${2} AS A`,
-    );
+    await assertRejects(() => client.queryObject`SELECT ${1} AS A, ${2} AS A`);
 
     const value = "z";
     const { rows: result_2 } = await client.queryObject`SELECT ${value} AS B`;
@@ -329,10 +359,10 @@ Deno.test(
     const item_1 = "Test;Azer";
     const item_2 = "123;456";
 
-    const { rows: result_1 } = await client.queryArray(
-      `SELECT ARRAY[$1, $2]`,
-      [item_1, item_2],
-    );
+    const { rows: result_1 } = await client.queryArray(`SELECT ARRAY[$1, $2]`, [
+      item_1,
+      item_2,
+    ]);
     assertEquals(result_1[0], [[item_1, item_2]]);
   }),
 );
@@ -441,10 +471,7 @@ Deno.test(
       text: `SELECT 1`,
       fields: ["res"],
     });
-    assertEquals(
-      result[0].res,
-      1,
-    );
+    assertEquals(result[0].res, 1);
 
     assertEquals(client.connected, true);
   }),
@@ -470,9 +497,7 @@ Deno.test(
 Deno.test(
   "Handling of query notices",
   withClient(async (client) => {
-    await client.queryArray(
-      "CREATE TEMP TABLE NOTICE_TEST (ABC INT);",
-    );
+    await client.queryArray("CREATE TEMP TABLE NOTICE_TEST (ABC INT);");
     const { warnings } = await client.queryArray(
       "CREATE TEMP TABLE IF NOT EXISTS NOTICE_TEST (ABC INT);",
     );
@@ -544,10 +569,9 @@ Deno.test(
 
     assertEquals(result_1[0][0], expectedBytes);
 
-    const { rows: result_2 } = await client.queryArray(
-      "SELECT $1::BYTEA",
-      [expectedBytes],
-    );
+    const { rows: result_2 } = await client.queryArray("SELECT $1::BYTEA", [
+      expectedBytes,
+    ]);
     assertEquals(result_2[0][0], expectedBytes);
   }),
 );
@@ -584,10 +608,9 @@ Deno.test(
     assertEquals(result.rowCount, 2);
 
     // parameterized delete
-    result = await client.queryArray(
-      "DELETE FROM METADATA WHERE VALUE = $1",
-      [300],
-    );
+    result = await client.queryArray("DELETE FROM METADATA WHERE VALUE = $1", [
+      300,
+    ]);
     assertEquals(result.command, "DELETE");
     assertEquals(result.rowCount, 1);
 
@@ -626,7 +649,7 @@ Deno.test(
   `);
 
     assertEquals(result, [
-      { "very_very_very_very_very_very_very_very_very_very_very_long_nam": 1 },
+      { very_very_very_very_very_very_very_very_very_very_very_long_nam: 1 },
     ]);
 
     assert(warnings[0].message.includes("will be truncated"));
@@ -756,10 +779,7 @@ Deno.test(
       fields: ["a"],
     });
 
-    assertEquals(
-      result_1[0].a,
-      1,
-    );
+    assertEquals(result_1[0].a, 1);
 
     await assertRejects(
       async () => {
@@ -848,9 +868,10 @@ Deno.test(
   withClient(async (client) => {
     const value = { x: "A", y: "B" };
 
-    const { rows } = await client.queryObject<
-      { x: string; y: string }
-    >`SELECT ${value.x} AS x, ${value.y} AS y`;
+    const { rows } = await client.queryObject<{
+      x: string;
+      y: string;
+    }>`SELECT ${value.x} AS x, ${value.y} AS y`;
 
     assertEquals(rows[0], value);
   }),
@@ -883,18 +904,18 @@ Deno.test(
     await transaction.queryArray`CREATE TEMP TABLE TEST (X INTEGER)`;
     const savepoint = await transaction.savepoint("table_creation");
     await transaction.queryArray`INSERT INTO TEST (X) VALUES (1)`;
-    const query_1 = await transaction.queryObject<
-      { x: number }
-    >`SELECT X FROM TEST`;
+    const query_1 = await transaction.queryObject<{
+      x: number;
+    }>`SELECT X FROM TEST`;
     assertEquals(
       query_1.rows[0].x,
       1,
       "Operation was not executed inside transaction",
     );
     await transaction.rollback(savepoint);
-    const query_2 = await transaction.queryObject<
-      { x: number }
-    >`SELECT X FROM TEST`;
+    const query_2 = await transaction.queryObject<{
+      x: number;
+    }>`SELECT X FROM TEST`;
     assertEquals(
       query_2.rowCount,
       0,
@@ -953,21 +974,21 @@ Deno.test(
     await transaction_rr.begin();
 
     // This locks the current value of the test table
-    await transaction_rr.queryObject<
-      { x: number }
-    >`SELECT X FROM FOR_TRANSACTION_TEST`;
+    await transaction_rr.queryObject<{
+      x: number;
+    }>`SELECT X FROM FOR_TRANSACTION_TEST`;
 
     // Modify data outside the transaction
     await client_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
 
-    const { rows: query_1 } = await client_2.queryObject<
-      { x: number }
-    >`SELECT X FROM FOR_TRANSACTION_TEST`;
+    const { rows: query_1 } = await client_2.queryObject<{
+      x: number;
+    }>`SELECT X FROM FOR_TRANSACTION_TEST`;
     assertEquals(query_1, [{ x: 2 }]);
 
-    const { rows: query_2 } = await transaction_rr.queryObject<
-      { x: number }
-    >`SELECT X FROM FOR_TRANSACTION_TEST`;
+    const { rows: query_2 } = await transaction_rr.queryObject<{
+      x: number;
+    }>`SELECT X FROM FOR_TRANSACTION_TEST`;
     assertEquals(
       query_2,
       [{ x: 1 }],
@@ -976,9 +997,9 @@ Deno.test(
 
     await transaction_rr.commit();
 
-    const { rows: query_3 } = await client_1.queryObject<
-      { x: number }
-    >`SELECT X FROM FOR_TRANSACTION_TEST`;
+    const { rows: query_3 } = await client_1.queryObject<{
+      x: number;
+    }>`SELECT X FROM FOR_TRANSACTION_TEST`;
     assertEquals(
       query_3,
       [{ x: 2 }],
@@ -1007,9 +1028,9 @@ Deno.test(
     await transaction_rr.begin();
 
     // This locks the current value of the test table
-    await transaction_rr.queryObject<
-      { x: number }
-    >`SELECT X FROM FOR_TRANSACTION_TEST`;
+    await transaction_rr.queryObject<{
+      x: number;
+    }>`SELECT X FROM FOR_TRANSACTION_TEST`;
 
     // Modify data outside the transaction
     await client_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
@@ -1021,9 +1042,9 @@ Deno.test(
       "A serializable transaction should throw if the data read in the transaction has been modified externally",
     );
 
-    const { rows: query_3 } = await client_1.queryObject<
-      { x: number }
-    >`SELECT X FROM FOR_TRANSACTION_TEST`;
+    const { rows: query_3 } = await client_1.queryObject<{
+      x: number;
+    }>`SELECT X FROM FOR_TRANSACTION_TEST`;
     assertEquals(
       query_3,
       [{ x: 2 }],
@@ -1064,23 +1085,22 @@ Deno.test(
     await client_1.queryArray`DROP TABLE IF EXISTS FOR_TRANSACTION_TEST`;
     await client_1.queryArray`CREATE TABLE FOR_TRANSACTION_TEST (X INTEGER)`;
     await client_1.queryArray`INSERT INTO FOR_TRANSACTION_TEST (X) VALUES (1)`;
-    const transaction_1 = client_1.createTransaction(
-      "transactionSnapshot1",
-      { isolation_level: "repeatable_read" },
-    );
+    const transaction_1 = client_1.createTransaction("transactionSnapshot1", {
+      isolation_level: "repeatable_read",
+    });
     await transaction_1.begin();
 
     // This locks the current value of the test table
-    await transaction_1.queryObject<
-      { x: number }
-    >`SELECT X FROM FOR_TRANSACTION_TEST`;
+    await transaction_1.queryObject<{
+      x: number;
+    }>`SELECT X FROM FOR_TRANSACTION_TEST`;
 
     // Modify data outside the transaction
     await client_2.queryArray`UPDATE FOR_TRANSACTION_TEST SET X = 2`;
 
-    const { rows: query_1 } = await transaction_1.queryObject<
-      { x: number }
-    >`SELECT X FROM FOR_TRANSACTION_TEST`;
+    const { rows: query_1 } = await transaction_1.queryObject<{
+      x: number;
+    }>`SELECT X FROM FOR_TRANSACTION_TEST`;
     assertEquals(
       query_1,
       [{ x: 1 }],
@@ -1089,15 +1109,15 @@ Deno.test(
 
     const snapshot = await transaction_1.getSnapshot();
 
-    const transaction_2 = client_2.createTransaction(
-      "transactionSnapshot2",
-      { isolation_level: "repeatable_read", snapshot },
-    );
+    const transaction_2 = client_2.createTransaction("transactionSnapshot2", {
+      isolation_level: "repeatable_read",
+      snapshot,
+    });
     await transaction_2.begin();
 
-    const { rows: query_2 } = await transaction_2.queryObject<
-      { x: number }
-    >`SELECT X FROM FOR_TRANSACTION_TEST`;
+    const { rows: query_2 } = await transaction_2.queryObject<{
+      x: number;
+    }>`SELECT X FROM FOR_TRANSACTION_TEST`;
     assertEquals(
       query_2,
       [{ x: 1 }],
@@ -1170,9 +1190,9 @@ Deno.test(
     await transaction.begin();
     await transaction.queryArray`INSERT INTO MY_TEST (X) VALUES (1)`;
 
-    const { rows: query_1 } = await transaction.queryObject<
-      { x: number }
-    >`SELECT X FROM MY_TEST`;
+    const { rows: query_1 } = await transaction.queryObject<{
+      x: number;
+    }>`SELECT X FROM MY_TEST`;
     assertEquals(query_1, [{ x: 1 }]);
 
     await transaction.rollback({ chain: true });
@@ -1185,9 +1205,9 @@ Deno.test(
 
     await transaction.rollback();
 
-    const { rowCount: query_2 } = await client.queryObject<
-      { x: number }
-    >`SELECT X FROM MY_TEST`;
+    const { rowCount: query_2 } = await client.queryObject<{
+      x: number;
+    }>`SELECT X FROM MY_TEST`;
     assertEquals(query_2, 0);
 
     assertEquals(
@@ -1250,31 +1270,31 @@ Deno.test(
     await transaction.begin();
     await transaction.queryArray`CREATE TEMP TABLE X (Y INT)`;
     await transaction.queryArray`INSERT INTO X VALUES (1)`;
-    const { rows: query_1 } = await transaction.queryObject<
-      { y: number }
-    >`SELECT Y FROM X`;
+    const { rows: query_1 } = await transaction.queryObject<{
+      y: number;
+    }>`SELECT Y FROM X`;
     assertEquals(query_1, [{ y: 1 }]);
 
     const savepoint = await transaction.savepoint(savepoint_name);
 
     await transaction.queryArray`DELETE FROM X`;
-    const { rowCount: query_2 } = await transaction.queryObject<
-      { y: number }
-    >`SELECT Y FROM X`;
+    const { rowCount: query_2 } = await transaction.queryObject<{
+      y: number;
+    }>`SELECT Y FROM X`;
     assertEquals(query_2, 0);
 
     await savepoint.update();
 
     await transaction.queryArray`INSERT INTO X VALUES (2)`;
-    const { rows: query_3 } = await transaction.queryObject<
-      { y: number }
-    >`SELECT Y FROM X`;
+    const { rows: query_3 } = await transaction.queryObject<{
+      y: number;
+    }>`SELECT Y FROM X`;
     assertEquals(query_3, [{ y: 2 }]);
 
     await transaction.rollback(savepoint);
-    const { rowCount: query_4 } = await transaction.queryObject<
-      { y: number }
-    >`SELECT Y FROM X`;
+    const { rowCount: query_4 } = await transaction.queryObject<{
+      y: number;
+    }>`SELECT Y FROM X`;
     assertEquals(query_4, 0);
 
     assertEquals(
@@ -1291,9 +1311,9 @@ Deno.test(
 
     // This checks that the savepoint can be called by name as well
     await transaction.rollback(savepoint_name);
-    const { rows: query_5 } = await transaction.queryObject<
-      { y: number }
-    >`SELECT Y FROM X`;
+    const { rows: query_5 } = await transaction.queryObject<{
+      y: number;
+    }>`SELECT Y FROM X`;
     assertEquals(query_5, [{ y: 1 }]);
 
     await transaction.commit();

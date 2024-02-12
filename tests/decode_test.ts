@@ -1,3 +1,4 @@
+import { Column, decode } from "../query/decode.ts";
 import {
   decodeBigint,
   decodeBigintArray,
@@ -17,6 +18,7 @@ import {
   decodeTid,
 } from "../query/decoders.ts";
 import { assertEquals, assertThrows } from "./test_deps.ts";
+import { Oid } from "../query/oid.ts";
 
 Deno.test("decodeBigint", function () {
   assertEquals(decodeBigint("18014398509481984"), 18014398509481984n);
@@ -247,4 +249,79 @@ Deno.test("decodeTid", function () {
     19714398509481984n,
     29383838509481984n,
   ]);
+});
+
+Deno.test("decode strategy", function () {
+  const testValues = [
+    {
+      value: "40",
+      column: new Column("test", 0, 0, Oid.int4, 0, 0, 0),
+      parsed: 40,
+    },
+    {
+      value: "my_value",
+      column: new Column("test", 0, 0, Oid.text, 0, 0, 0),
+      parsed: "my_value",
+    },
+    {
+      value: "[(100,50),(350,350)]",
+      column: new Column("test", 0, 0, Oid.path, 0, 0, 0),
+      parsed: [
+        { x: "100", y: "50" },
+        { x: "350", y: "350" },
+      ],
+    },
+    {
+      value: '{"value_1","value_2","value_3"}',
+      column: new Column("test", 0, 0, Oid.text_array, 0, 0, 0),
+      parsed: ["value_1", "value_2", "value_3"],
+    },
+    {
+      value: "1997-12-17 07:37:16-08",
+      column: new Column("test", 0, 0, Oid.timestamp, 0, 0, 0),
+      parsed: new Date("1997-12-17 07:37:16-08"),
+    },
+    {
+      value: "Yes",
+      column: new Column("test", 0, 0, Oid.bool, 0, 0, 0),
+      parsed: true,
+    },
+    {
+      value: "<(12.4,2),3.5>",
+      column: new Column("test", 0, 0, Oid.circle, 0, 0, 0),
+      parsed: { point: { x: "12.4", y: "2" }, radius: "3.5" },
+    },
+    {
+      value: '{"test":1,"val":"foo","example":[1,2,false]}',
+      column: new Column("test", 0, 0, Oid.jsonb, 0, 0, 0),
+      parsed: { test: 1, val: "foo", example: [1, 2, false] },
+    },
+    {
+      value: "18014398509481984",
+      column: new Column("test", 0, 0, Oid.int8, 0, 0, 0),
+      parsed: 18014398509481984n,
+    },
+    {
+      value: "{3.14,1.11,0.43,200}",
+      column: new Column("test", 0, 0, Oid.float4_array, 0, 0, 0),
+      parsed: [3.14, 1.11, 0.43, 200],
+    },
+  ];
+
+  for (const testValue of testValues) {
+    const encodedValue = new TextEncoder().encode(testValue.value);
+
+    // check default behavior
+    assertEquals(decode(encodedValue, testValue.column), testValue.parsed);
+    // check 'auto' behavior
+    assertEquals(
+      decode(encodedValue, testValue.column, { decodeStrategy: "auto" }),
+      testValue.parsed,
+    );
+    // check 'string' behavior
+    assertEquals(
+      decode(encodedValue, testValue.column, { decodeStrategy: "string" }),
+      testValue.value,
+    );
+  }
 });
