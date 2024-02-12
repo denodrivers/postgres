@@ -53,7 +53,7 @@ config = {
   host_type: "tcp",
   password: "password",
   options: {
-    "max_index_keys": "32",
+    max_index_keys: "32",
   },
   port: 5432,
   user: "user",
@@ -96,7 +96,7 @@ parsing the options in your connection string as if it was an options object
 
 You can create your own connection string by using the following structure:
 
-```
+```txt
 driver://user:password@host:port/database_name
 
 driver://host:port/database_name?user=user&password=password&application_name=my_app
@@ -126,6 +126,7 @@ of search parameters such as the following:
   - prefer: Attempt to stablish a TLS connection, default to unencrypted if the
     negotiation fails
   - disable: Skip TLS connection altogether
+
 - user: If user is not specified in the url, this will be taken instead
 
 #### Password encoding
@@ -438,13 +439,16 @@ For stronger management and scalability, you can use **pools**:
 
 ```ts
 const POOL_CONNECTIONS = 20;
-const dbPool = new Pool({
-  database: "database",
-  hostname: "hostname",
-  password: "password",
-  port: 5432,
-  user: "user",
-}, POOL_CONNECTIONS);
+const dbPool = new Pool(
+  {
+    database: "database",
+    hostname: "hostname",
+    password: "password",
+    port: 5432,
+    user: "user",
+  },
+  POOL_CONNECTIONS,
+);
 
 const client = await dbPool.connect(); // 19 connections are still available
 await client.queryArray`UPDATE X SET Y = 'Z'`;
@@ -690,6 +694,101 @@ await client
   .queryArray`DELETE FROM ${my_table} WHERE MY_COLUMN = ${my_other_id};`;
 ```
 
+### Result decoding
+
+When a query is executed, the database returns all the data serialized as string
+values. The `deno-postgres` driver automatically takes care of decoding the
+results data of your query into the closest JavaScript compatible data type.
+This makes it easy to work with the data in your applciation using native
+Javascript types. A list of implemented type parsers can be found
+[here](https://github.com/denodrivers/postgres/issues/446).
+
+However, you may have more specific needs or may want to handle decoding
+yourself in your application. The driver provides 2 ways to handle decoding of
+the result data:
+
+#### Decode strategy
+
+You can provide a global decode strategy to the client that will be used to
+decode the result data. This can be done by setting the `decodeStrategy`
+controls option when creating your query client. The following options are
+available:
+
+- `auto` : (**default**) deno-postgres parses the data into JS types or objects
+  (non-implemented type parsers would still return strings).
+- `string` : all values are returned as string, and the user has to take care of
+  parsing
+
+```ts
+{
+  // Will return all values parsed to native types
+  const client = new Client({
+    database: "some_db",
+    user: "some_user",
+    controls: {
+      decodeStrategy: "auto", // or not setting it at all
+    },
+  });
+
+  const result = await client.queryArray(
+    "SELECT ID, NAME, AGE, BIRTHDATE FROM PEOPLE WHERE ID = 1",
+  );
+  console.log(result.rows); // [[1, "Laura", 25, 1996-01-01T00:00:00.000Z ]]
+
+  // versus
+
+  // Will return all values as strings
+  const client = new Client({
+    database: "some_db",
+    user: "some_user",
+    controls: {
+      decodeStrategy: "string",
+    },
+  });
+
+  const result = await client.queryArray(
+    "SELECT ID, NAME, AGE, BIRTHDATE FROM PEOPLE WHERE ID = 1",
+  );
+  console.log(result.rows); // [["1", "Laura", "25", "1996-01-01"]]
+}
+```
+
+#### Custom decoders
+
+You can also provide custom decoders to the client that will be used to decode
+the result data. This can be done by setting the `decoders` controls option in
+the client configuration. This options is a map object where the keys are the
+type names or Oid number and the values are the custom decoder functions.
+
+You can use it with the decode strategy. Custom decoders take precedence over
+the strategy and internal parsers.
+
+```ts
+{
+  // Will return all values as strings, but custom decoders will take precedence
+  const client = new Client({
+    database: "some_db",
+    user: "some_user",
+    controls: {
+      decodeStrategy: "string",
+      decoders: {
+        // Custom decoder for boolean
+        // for some reason, return booleans as an object with a type and value
+        bool: (value: string) => ({
+          value: value === "t",
+          type: "boolean",
+        }),
+      },
+    },
+  });
+
+  const result = await client.queryObject(
+    "SELECT ID, NAME, IS_ACTIVE FROM PEOPLE",
+  );
+  console.log(result.rows[0]); // {id: '1', name: 'Javier',  _bool: { value: false, type: "boolean"}}
+}
+```
+
 ### Specifying result type
 
 Both the `queryArray` and `queryObject` functions have a generic implementation
@@ -722,9 +821,10 @@ intellisense
 }
 
 {
-  const object_result = await client.queryObject<
-    { id: number; name: string }
-  >`SELECT ID, NAME FROM PEOPLE WHERE ID = ${17}`;
+  const object_result = await client.queryObject<{
+    id: number;
+    name: string;
+  }>`SELECT ID, NAME FROM PEOPLE WHERE ID = ${17}`;
   // {id: number, name: string}
   const person = object_result.rows[0];
 }
@@ -741,9 +841,7 @@ interface User {
   name: string;
 }
 
-const result = await client.queryObject<User>(
-  "SELECT ID, NAME FROM PEOPLE",
-);
+const result = await client.queryObject<User>("SELECT ID, NAME FROM PEOPLE");
 
 // User[]
 const users = result.rows;
@@ -791,12 +889,10 @@ To deal with this issue, it's recommended to provide a field list that maps to
 the expected properties we want in the resulting object
 
 ```ts
-const result = await client.queryObject(
-  {
-    text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
-    fields: ["id", "name"],
-  },
-);
+const result = await client.queryObject({
+  text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
+  fields: ["id", "name"],
+});
 
 const users = result.rows; // [{id: 1, name: 'Ca'}, {id: 2, name: 'Jo'}, ...]
 ```
@@ -833,23 +929,19 @@ Other aspects to take into account when using the `fields` argument:
 ```ts
 {
   // This will throw because the property id is duplicated
-  await client.queryObject(
-    {
-      text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
-      fields: ["id", "ID"],
-    },
-  );
+  await client.queryObject({
+    text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
+    fields: ["id", "ID"],
+  });
 }
 
 {
   // This will throw because the returned number of columns don't match the
   // number of defined ones in the function call
-  await client.queryObject(
-    {
-      text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
-      fields: ["id", "name", "something_else"],
-    },
-  );
+  await client.queryObject({
+    text: "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
+    fields: ["id", "name", "something_else"],
+  });
 }
 ```
 
@@ -1078,6 +1170,7 @@ following levels of transaction isolation:
 - Repeatable read: This isolates the transaction in a way that any external
   changes to the data we are reading won't be visible inside the transaction
   until it has finished
+
   ```ts
   const client_1 = await pool.connect();
   const client_2 = await pool.connect();
@@ -1089,18 +1182,18 @@ following levels of transaction isolation:
   await transaction.begin();
   // This locks the current value of IMPORTANT_TABLE
   // Up to this point, all other external changes will be included
-  const { rows: query_1 } = await transaction.queryObject<
-    { password: string }
-  >`SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
+  const { rows: query_1 } = await transaction.queryObject<{
+    password: string;
+  }>`SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
   const password_1 = rows[0].password;
 
   // Concurrent operation executed by a different user in a different part of the code
   await client_2
     .queryArray`UPDATE IMPORTANT_TABLE SET PASSWORD = 'something_else' WHERE ID = ${the_same_id}`;
 
-  const { rows: query_2 } = await transaction.queryObject<
-    { password: string }
-  >`SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
+  const { rows: query_2 } = await transaction.queryObject<{
+    password: string;
+  }>`SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
   const password_2 = rows[0].password;
 
   // Database state is not updated while the transaction is ongoing
@@ -1117,6 +1210,7 @@ following levels of transaction isolation:
   be visible until the transaction has finished. However this also prevents the
   current transaction from making persistent changes if the data they were
   reading at the beginning of the transaction has been modified (recommended)
+
   ```ts
   const client_1 = await pool.connect();
   const client_2 = await pool.connect();
@@ -1128,9 +1222,9 @@ following levels of transaction isolation:
   await transaction.begin();
   // This locks the current value of IMPORTANT_TABLE
   // Up to this point, all other external changes will be included
-  await transaction.queryObject<
-    { password: string }
-  >`SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
+  await transaction.queryObject<{
+    password: string;
+  }>`SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
 
   // Concurrent operation executed by a different user in a different part of the code
   await client_2

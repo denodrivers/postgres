@@ -5,14 +5,18 @@ export {
   TransactionError,
 } from "./client/error.ts";
 export { Pool } from "./pool.ts";
+export { Oid, OidTypes } from "./query/oid.ts";
 
 // TODO
 // Remove the following reexports after https://doc.deno.land
 // supports two level depth exports
+export type { OidKey, OidType } from "./query/oid.ts";
 export type {
   ClientOptions,
   ConnectionOptions,
   ConnectionString,
+  Decoders,
+  DecodeStrategy,
   TLSOptions,
 } from "./connection/connection_params.ts";
 export type { Session } from "./client.ts";

@@ -1,6 +1,7 @@
 import { parseConnectionUri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 import { fromFileUrl, isAbsolute } from "../deps.ts";
+import { OidKey } from "../query/oid.ts";
 
 /**
  * The connection string must match the following URI structure. All parameters but database and user are optional
@@ -91,12 +92,23 @@ export interface TLSOptions {
   caCertificates: string[];
 }
 
+export type DecodeStrategy = "string" | "auto";
+export type Decoders = {
+  [key in number | OidKey]?: DecoderFunction;
+};
+
+/**
+ * A decoder function that takes a string value and returns a parsed value of some type.
+ * the Oid is also passed to the function for reference
+ */
+export type DecoderFunction = (value: string, oid: number) => unknown;
+
 /**
  * Control the behavior for the client instance
  */
 export type ClientControls = {
   /**
-   * The strategy to use when decoding binary fields
+   * The strategy to use when decoding results data
    *
    * `string` : all values are returned as string, and the user has to take care of parsing
    * `auto` : deno-postgres parses the data into JS objects (as many as possible implemented, non-implemented parsers would still return strings)
@@ -107,7 +119,31 @@ export type ClientControls = {
    * - `strict` : deno-postgres parses the data into JS objects, and if a parser is not implemented, it throws an error
    * - `raw` : the data is returned as Uint8Array
    */
-  decodeStrategy?: "string" | "auto";
+  decodeStrategy?: DecodeStrategy;
+
+  /**
+   * A dictionary of functions used to decode (parse) column field values from string to a custom type. These functions will
+   * take precedence over the {@linkcode ClientControls.decodeStrategy}. Each key in the dictionary is the column OID type number, and the value is
+   * the decoder function. You can use the `Oid` object to set the decoder functions.
+   *
+   * @example
+   * ```ts
+   * import dayjs from 'https://esm.sh/dayjs';
+   * import { Oid,Decoders } from '../mod.ts'
+   *
+   * {
+   *   const decoders: Decoders = {
+   *     //   16 = Oid.bool : convert all boolean values to numbers
+   *     '16': (value: string) => value === 't' ? 1 : 0,
+   *     // 1082 = Oid.date : convert all dates to dayjs objects
+   *     1082: (value: string) => dayjs(value),
+   *     //   23 = Oid.int4 : convert all integers to positive numbers
+   *     [Oid.int4]: (value: string) => Math.max(0, parseInt(value || '0', 10)),
+   *   }
+   * }
+   * ```
+   */
+  decoders?: Decoders;
 };
 
 /** The Client database connection options */

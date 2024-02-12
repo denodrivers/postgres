@@ -15,6 +15,7 @@ import {
 import { getMainConfiguration } from "./config.ts";
 import { PoolClient, QueryClient } from "../client.ts";
 import { ClientOptions } from "../connection/connection_params.ts";
+import { Oid } from "../query/oid.ts";
 
 function withClient(
   t: (client: QueryClient) => void | Promise<void>,
@@ -119,7 +120,13 @@ Deno.test(
   withClient(
     async (client) => {
       const result = await client.queryObject(
-        `SELECT ARRAY[1, 2, 3] AS _int_array, 3.14::REAL AS _float, 'DATA' AS _text, '{"test": "foo", "arr": [1,2,3]}'::JSONB AS _json, 'Y'::BOOLEAN AS _bool`,
+        `SELECT
+          'Y'::BOOLEAN AS _bool,
+          3.14::REAL AS _float,
+          ARRAY[1, 2, 3] AS _int_array, 
+          '{"test": "foo", "arr": [1,2,3]}'::JSONB AS _jsonb,
+          'DATA' AS _text
+        ;`,
       );
 
       assertEquals(result.rows, [
@@ -127,7 +134,7 @@ Deno.test(
           _bool: true,
           _float: 3.14,
           _int_array: [1, 2, 3],
-          _json: { test: "foo", arr: [1, 2, 3] },
+          _jsonb: { test: "foo", arr: [1, 2, 3] },
           _text: "DATA",
         },
       ]);
@@ -141,7 +148,13 @@ Deno.test(
   withClient(
     async (client) => {
       const result = await client.queryObject(
-        `SELECT ARRAY[1, 2, 3] AS _int_array, 3.14::REAL AS _float, 'DATA' AS _text, '{"test": "foo", "arr": [1,2,3]}'::JSONB AS _json, 'Y'::BOOLEAN AS _bool`,
+        `SELECT
+          'Y'::BOOLEAN AS _bool,
+          3.14::REAL AS _float,
+          ARRAY[1, 2, 3] AS _int_array, 
+          '{"test": "foo", "arr": [1,2,3]}'::JSONB AS _jsonb,
+          'DATA' AS _text
+        ;`,
       );
 
       assertEquals(result.rows, [
@@ -149,12 +162,125 @@ Deno.test(
           _bool: "t",
           _float: "3.14",
           _int_array: "{1,2,3}",
-          _json: '{"arr": [1, 2, 3], "test": "foo"}',
+          _jsonb: '{"arr": [1, 2, 3], "test": "foo"}',
           _text: "DATA",
         },
       ]);
     },
     { controls: { decodeStrategy: "string" } },
+  ),
+);
+
+Deno.test(
+  "Custom decoders",
+  withClient(
+    async (client) => {
+      const result = await client.queryObject(
+        `SELECT
+          0::BOOLEAN AS _bool,
+          (DATE '2024-01-01' + INTERVAL '2 months')::DATE AS _date,
+          7.90::REAL AS _float,
+          100 AS _int,
+          '{"foo": "a", "bar": [1,2,3], "baz": null}'::JSONB AS _jsonb,
+          'MY_VALUE' AS _text,
+          DATE '2024-10-01' + INTERVAL '2 years' - INTERVAL '2 months' AS _timestamp
+        ;`,
+      );
+
+      assertEquals(result.rows, [
+        {
+          _bool: { boolean: false },
+          _date: new Date("2024-03-03T00:00:00.000Z"),
+          _float: 785,
+          _int: 200,
+          _jsonb: { id: "999", foo: "A", bar: [2, 4, 6], baz: "initial" },
+          _text: ["E", "U", "L", "A", "V", "_", "Y", "M"],
+          _timestamp: { year: 2126, month: "---08" },
+        },
+      ]);
+    },
+    {
+      controls: {
+        decoders: {
+          // convert to object
+          [Oid.bool]: (value: string) => ({ boolean: value === "t" }),
+          // 1082 = date : convert to date and add 2 days
+          "1082": (value: string) => {
+            const d = new Date(value);
+            return new Date(d.setDate(d.getDate() + 2));
+          },
+          // multiply by 100 - 5 = 785
+          float4: (value: string) => parseFloat(value) * 100 - 5,
+          // convert to int and add 100 = 200
+          [Oid.int4]: (value: string) => parseInt(value, 10) + 100,
+          // parse with multiple conditions
+          jsonb: (value: string) => {
+            const obj = JSON.parse(value);
+            obj.foo = obj.foo.toUpperCase();
+            obj.id = "999";
+            obj.bar = obj.bar.map((v: number) => v * 2);
+            if (obj.baz === null) obj.baz = "initial";
+            return obj;
+          },
+          // split string and reverse
+          [Oid.text]: (value: string) => value.split("").reverse(),
+          // 1114 = timestamp : format timestamp into custom object
+          1114: (value: string) => {
+            const d = new Date(value);
+            return {
+              year: d.getFullYear() + 100,
+              month: `---${d.getMonth() + 1 < 10 ? "0" : ""}${
+                d.getMonth() + 1
+              }`,
+            };
+          },
+        },
+      },
+    },
+  ),
+);
+
+Deno.test(
+  "Custom decoder precedence",
+  withClient(
+    async (client) => {
+      const result = await client.queryObject(
+        `SELECT
+          0::BOOLEAN AS _bool,
+          1 AS _int,
+          1::REAL AS _float,
+          'TEST' AS _text
+        ;`,
+      );
+
+      assertEquals(result.rows, [
+        {
+          _bool: "success",
+          _float: "success",
+          _int: "success",
+          _text: "success",
+        },
+      ]);
+    },
+    {
+      controls: {
+        // numeric oid type values take precedence over name
+        decoders: {
+          // bool
+          bool: () => "fail",
+          [16]: () => "success",
+          //int
+          int4: () => "fail",
+          [Oid.int4]: () => "success",
+          // float4
+          float4: () => "fail",
+          "700": () => "success",
+          // text
+          text: () => "fail",
+          25: () => "success",
+        },
+      },
+    },
   ),
 );
 
