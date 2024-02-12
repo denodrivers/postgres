@@ -80,7 +80,7 @@ discuss bugs and features before opening issues.
   - `dvm install 1.40.0 && dvm use 1.40.0`
 
 - You don't need to install Postgres locally on your machine to test the
-  library, it will run as a service in the Docker container when you build it
+  library; it will run as a service in the Docker container when you build it
 
 ### Running the tests
 
