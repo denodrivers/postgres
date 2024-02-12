@@ -1,4 +1,4 @@
-import { Oid, OidType, OidTypes } from "./oid.ts";
+import { Oid, OidTypes, OidValue } from "./oid.ts";
 import { bold, yellow } from "../deps.ts";
 import {
   decodeBigint,
@@ -218,7 +218,7 @@ export function decode(
   if (controls?.decoders) {
     // check if there is a custom decoder by oid (number) or by type name (string)
     const decoderFunc = controls.decoders?.[column.typeOid] ||
-      controls.decoders?.[OidTypes[column.typeOid as OidType]];
+      controls.decoders?.[OidTypes[column.typeOid as OidValue]];
 
     if (decoderFunc) {
       return decoderFunc(strValue, column.typeOid);

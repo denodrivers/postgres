@@ -1,7 +1,7 @@
 import { parseConnectionUri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 import { fromFileUrl, isAbsolute } from "../deps.ts";
-import { OidKey } from "../query/oid.ts";
+import { OidType } from "../query/oid.ts";
 
 /**
  * The connection string must match the following URI structure. All parameters but database and user are optional
@@ -92,9 +92,17 @@ export interface TLSOptions {
   caCertificates: string[];
 }
 
+/**
+ * The strategy to use when decoding results data
+ */
 export type DecodeStrategy = "string" | "auto";
+/**
+ * A dictionary of functions used to decode (parse) column field values from string to a custom type. These functions will
+ * take precedence over the {@linkcode DecodeStrategy}. Each key in the dictionary is the column OID type number or Oid type name,
+ * and the value is the decoder function.
+ */
 export type Decoders = {
-  [key in number | OidKey]?: DecoderFunction;
+  [key in number | OidType]?: DecoderFunction;
 };
 
 /**

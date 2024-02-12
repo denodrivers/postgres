@@ -1,8 +1,10 @@
-export type OidKey = keyof typeof Oid;
-export type OidType = (typeof Oid)[OidKey];
+/** A Postgres Object identifiers (OIDs) type name. */
+export type OidType = keyof typeof Oid;
+/** A Postgres Object identifiers (OIDs) numeric value. */
+export type OidValue = (typeof Oid)[OidType];
 
 /**
- * Oid is a map of OidKey to OidType.
+ * A map of OidType to OidValue.
  */
 export const Oid = {
   bool: 16,
@@ -175,11 +177,10 @@ export const Oid = {
 } as const;
 
 /**
- * OidTypes is a map of OidType to OidKey.
- * Used to decode values and avoid search iteration
+ * A map of OidValue to OidType. Used to decode values and avoid search iteration.
  */
 export const OidTypes: {
-  [key in OidType]: OidKey;
+  [key in OidValue]: OidType;
 } = {
   16: "bool",
   17: "bytea",
