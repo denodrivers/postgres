@@ -108,7 +108,7 @@ export type DecoderFunction = (value: string, oid: number) => unknown;
  */
 export type ClientControls = {
   /**
-   * The strategy to use when decoding binary fields
+   * The strategy to use when decoding results data
    *
    * `string` : all values are returned as string, and the user has to take care of parsing
    * `auto` : deno-postgres parses the data into JS objects (as many as possible implemented, non-implemented parsers would still return strings)
