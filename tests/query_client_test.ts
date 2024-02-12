@@ -204,17 +204,17 @@ Deno.test(
         decoders: {
           // convert to object
           [Oid.bool]: (value: string) => ({ boolean: value === "t" }),
-          // convert to date and add 2 days
-          [Oid.date]: (value: string) => {
+          // 1082 = date : convert to date and add 2 days
+          "1082": (value: string) => {
             const d = new Date(value);
             return new Date(d.setDate(d.getDate() + 2));
           },
           // multiply by 100 - 5 = 785
-          [Oid.float4]: (value: string) => parseFloat(value) * 100 - 5,
+          float4: (value: string) => parseFloat(value) * 100 - 5,
           // convert to int and add 100 = 200
           [Oid.int4]: (value: string) => parseInt(value, 10) + 100,
           // parse with multiple conditions
-          [Oid.jsonb]: (value: string) => {
+          jsonb: (value: string) => {
             const obj = JSON.parse(value);
             obj.foo = obj.foo.toUpperCase();
             obj.id = "999";
@@ -224,8 +224,8 @@ Deno.test(
           },
           // split string and reverse
           [Oid.text]: (value: string) => value.split("").reverse(),
-          // format timestamp into custom object
-          [Oid.timestamp]: (value: string) => {
+          // 1114 = timestamp : format timestamp into custom object
+          1114: (value: string) => {
             const d = new Date(value);
             return {
               year: d.getFullYear() + 100,
@@ -234,6 +234,50 @@ Deno.test(
               }`,
             };
           },
+        },
+      },
+    },
+  ),
+);
+
+Deno.test(
+  "Custom decoder precedence",
+  withClient(
+    async (client) => {
+      const result = await client.queryObject(
+        `SELECT
+          0::BOOLEAN AS _bool,
+          1 AS _int,
+          1::REAL AS _float,
+          'TEST' AS _text
+        ;`,
+      );
+
+      assertEquals(result.rows, [
+        {
+          _bool: "success",
+          _float: "success",
+          _int: "success",
+          _text: "success",
+        },
+      ]);
+    },
+    {
+      controls: {
+        // numeric oid type values take precedence over name
+        decoders: {
+          // bool
+          bool: () => "fail",
+          [16]: () => "success",
+          //int
+          int4: () => "fail",
+          [Oid.int4]: () => "success",
+          // float4
+          float4: () => "fail",
+          "700": () => "success",
+          // text
+          text: () => "fail",
+          25: () => "success",
         },
       },
     },
