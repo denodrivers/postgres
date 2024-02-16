@@ -796,7 +796,7 @@ Deno.test(
 );
 
 Deno.test(
-  "Object query field names aren't transformed when camelcase is disabled",
+  "Object query field names aren't transformed when camel case is disabled",
   withClient(async (client) => {
     const record = {
       pos_x: "100",
@@ -806,7 +806,7 @@ Deno.test(
 
     const { rows: result } = await client.queryObject({
       args: [record.pos_x, record.pos_y, record.prefix_name_suffix],
-      camelcase: false,
+      camelCase: false,
       text: "SELECT $1 AS POS_X, $2 AS POS_Y, $3 AS PREFIX_NAME_SUFFIX",
     });
 
@@ -815,7 +815,7 @@ Deno.test(
 );
 
 Deno.test(
-  "Object query field names are transformed when camelcase is enabled",
+  "Object query field names are transformed when camel case is enabled",
   withClient(async (client) => {
     const record = {
       posX: "100",
@@ -825,7 +825,7 @@ Deno.test(
 
     const { rows: result } = await client.queryObject({
       args: [record.posX, record.posY, record.prefixNameSuffix],
-      camelcase: true,
+      camelCase: true,
       text: "SELECT $1 AS POS_X, $2 AS POS_Y, $3 AS PREFIX_NAME_SUFFIX",
     });
 
@@ -846,13 +846,13 @@ Deno.test(
 );
 
 Deno.test(
-  "Object query explicit fields override camelcase",
+  "Object query explicit fields override camel case",
   withClient(async (client) => {
     const record = { field_1: "A", field_2: "B", field_3: "C" };
 
     const { rows: result } = await client.queryObject({
       args: [record.field_1, record.field_2, record.field_3],
-      camelcase: true,
+      camelCase: true,
       fields: ["field_1", "field_2", "field_3"],
       text: "SELECT $1 AS POS_X, $2 AS POS_Y, $3 AS PREFIX_NAME_SUFFIX",
     });
@@ -888,7 +888,7 @@ Deno.test(
     await assertRejects(
       () =>
         client.queryObject({
-          camelcase: true,
+          camelCase: true,
           text: `SELECT 1 AS "fieldX", 2 AS field_x`,
         }),
       Error,

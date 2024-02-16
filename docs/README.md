@@ -856,14 +856,14 @@ for that such as aliasing every query field that is done to the database, one
 easy built-in solution allows developers to transform the incoming query names
 into the casing of their preference without any extra steps
 
-##### Camelcase
+##### Camel case
 
-To transform a query result into camelcase, you only need to provide the
-`camelcase` option on your query call
+To transform a query result into camel case, you only need to provide the
+`camelCase` option on your query call
 
 ```ts
 const { rows: result } = await client.queryObject({
-  camelcase: true,
+  camelCase: true,
   text: "SELECT FIELD_X, FIELD_Y FROM MY_TABLE",
 });
 
