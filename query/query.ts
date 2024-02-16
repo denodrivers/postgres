@@ -132,19 +132,19 @@ export interface QueryObjectOptions extends QueryOptions {
   // TODO
   // Support multiple case options
   /**
-   * Enabling camelcase will transform any snake case field names coming from the database into camel case ones
+   * Enabling camel case will transform any snake case field names coming from the database into camel case ones
    *
    * Ex: `SELECT 1 AS my_field` will return `{ myField: 1 }`
    *
    * This won't have any effect if you explicitly set the field names with the `fields` parameter
    */
-  camelcase?: boolean;
+  camelCase?: boolean;
   /**
    * This parameter supersedes query column names coming from the databases in the order they were provided.
    * Fields must be unique and be in the range of (a-zA-Z0-9_), otherwise the query will throw before execution.
    * A field can not start with a number, just like JavaScript variables
    *
-   * This setting overrides the camelcase option
+   * This setting overrides the camel case option
    *
    * Ex: `SELECT 'A', 'B' AS my_field` with fields `["field_1", "field_2"]` will return `{ field_1: "A", field_2: "B" }`
    */
@@ -324,7 +324,7 @@ export class QueryObjectResult<
         this.columns = this.query.fields;
       } else {
         let column_names: string[];
-        if (this.query.camelcase) {
+        if (this.query.camelCase) {
           column_names = this.rowDescription.columns.map((column) =>
             snakecaseToCamelcase(column.name)
           );
@@ -380,7 +380,7 @@ export class QueryObjectResult<
  */
 export class Query<T extends ResultType> {
   public args: EncodedArg[];
-  public camelcase?: boolean;
+  public camelCase?: boolean;
   /**
    * The explicitly set fields for the query result, they have been validated beforehand
    * for duplicates and invalid names
@@ -408,7 +408,7 @@ export class Query<T extends ResultType> {
       this.text = config_or_text;
       this.args = args.map(encodeArgument);
     } else {
-      const { camelcase, encoder = encodeArgument, fields } = config_or_text;
+      const { camelCase, encoder = encodeArgument, fields } = config_or_text;
       let { args = [], text } = config_or_text;
 
       // Check that the fields passed are valid and can be used to map
@@ -432,7 +432,7 @@ export class Query<T extends ResultType> {
         this.fields = fields;
       }
 
-      this.camelcase = camelcase;
+      this.camelCase = camelCase;
 
       if (!Array.isArray(args)) {
         [text, args] = objectQueryToQueryArgs(text, args);
