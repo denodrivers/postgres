@@ -119,7 +119,7 @@ export type ClientControls = {
   /**
    * Debugging options
    */
-  debug: DebugControls;
+  debug?: DebugControls;
   /**
    * The strategy to use when decoding results data
    *
