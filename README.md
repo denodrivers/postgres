@@ -12,7 +12,15 @@ A lightweight PostgreSQL driver for Deno focused on developer experience.
 [node-postgres](https://github.com/brianc/node-postgres) and
 [pq](https://github.com/lib/pq).
 
-## Example
+## Documentation
+
+The documentation is available on the deno-postgres website
+[https://deno-postgres.com/](https://deno-postgres.com/)
+
+Join the [Discord](https://discord.gg/HEdTCvZUSf) as well! It's a good place to
+discuss bugs and features before opening issues.
+
+## Examples
 
 ```ts
 // deno run --allow-net --allow-read mod.ts
@@ -32,8 +40,8 @@ await client.connect();
 }
 
 {
-  const result = await client
-    .queryArray`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
+  const result =
+    await client.queryArray`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
   console.log(result.rows); // [[1, 'Carlos']]
 }
 
@@ -43,24 +51,13 @@ await client.connect();
 }
 
 {
-  const result = await client
-    .queryObject`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
+  const result =
+    await client.queryObject`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
   console.log(result.rows); // [{id: 1, name: 'Carlos'}]
 }
 
 await client.end();
 ```
-
-For more examples, visit the documentation available at
-[https://deno-postgres.com/](https://deno-postgres.com/)
-
-## Documentation
-
-The documentation is available on the deno-postgres website
-[https://deno-postgres.com/](https://deno-postgres.com/)
-
-Join the [Discord](https://discord.gg/HEdTCvZUSf) as well! It's a good place to
-discuss bugs and features before opening issues.
 
 ## Contributing
 
@@ -155,6 +152,14 @@ This situation will stabilize as `std` and `deno-postgres` approach version 1.0.
 | 1.16.0        | 0.14.0             | 0.14.3             |                      |
 | 1.17.0        | 0.15.0             | 0.17.1             |                      |
 | 1.40.0        | 0.17.2             |                    | Now available on JSR |
+
+## Breaking changes
+
+Although the `deno-driver` is pretty stable and robust, it is a WIP and we're still exploring the design. Expect some breaking changes as we reach version 1.0 and enhance the feature set. PLease check the Releases for more info on breaking changes. Please reach out if there are any undocumented breaking changes.
+
+## Found issues?
+
+Please file an issue with any problems with the driver in this repository's issue section. If you would like to help, please look at the issues as well. You can pick up one of them and try to implement it.
 
 ## Contributing guidelines
 

@@ -30,6 +30,7 @@ import {
   bold,
   BufReader,
   BufWriter,
+  cyan,
   delay,
   joinPath,
   yellow,
@@ -68,6 +69,7 @@ import {
   INCOMING_TLS_MESSAGES,
 } from "./message_code.ts";
 import { hashMd5Password } from "./auth.ts";
+import { isDebugOptionEnabled } from "../debug.ts";
 
 // Work around unstable limitation
 type ConnectOptions =
@@ -98,6 +100,14 @@ function assertSuccessfulAuthentication(auth_message: Message) {
 
 function logNotice(notice: Notice) {
   console.error(`${bold(yellow(notice.severity))}: ${notice.message}`);
+}
+
+function logQuery(query: string) {
+  console.error(`${bold(cyan("QUERY"))}: ${query}`);
+}
+
+function logResults(rows: unknown[]) {
+  console.error(`${bold("RESULTS")}: ${rows}`);
 }
 
 const decoder = new TextDecoder();
@@ -695,7 +705,14 @@ export class Connection {
           break;
         case INCOMING_QUERY_MESSAGES.NOTICE_WARNING: {
           const notice = parseNoticeMessage(current_message);
-          logNotice(notice);
+          if (
+            isDebugOptionEnabled(
+              "notices",
+              this.#connection_params.controls?.debug,
+            )
+          ) {
+            logNotice(notice);
+          }
           result.warnings.push(notice);
           break;
         }
@@ -819,6 +836,12 @@ export class Connection {
   /**
    * https://www.postgresql.org/docs/14/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
    */
+  async #preparedQuery(
+    query: Query<ResultType.ARRAY>,
+  ): Promise<QueryArrayResult>;
+  async #preparedQuery(
+    query: Query<ResultType.OBJECT>,
+  ): Promise<QueryObjectResult>;
   async #preparedQuery<T extends ResultType>(
     query: Query<T>,
   ): Promise<QueryResult> {
@@ -872,7 +895,14 @@ export class Connection {
           break;
         case INCOMING_QUERY_MESSAGES.NOTICE_WARNING: {
           const notice = parseNoticeMessage(current_message);
-          logNotice(notice);
+          if (
+            isDebugOptionEnabled(
+              "notices",
+              this.#connection_params.controls?.debug,
+            )
+          ) {
+            logNotice(notice);
+          }
           result.warnings.push(notice);
           break;
         }
@@ -911,11 +941,23 @@ export class Connection {
 
     await this.#queryLock.pop();
     try {
-      if (query.args.length === 0) {
-        return await this.#simpleQuery(query);
-      } else {
-        return await this.#preparedQuery(query);
+      if (
+        isDebugOptionEnabled("queries", this.#connection_params.controls?.debug)
+      ) {
+        logQuery(query.text);
       }
+      let result: QueryArrayResult | QueryObjectResult;
+      if (query.args.length === 0) {
+        result = await this.#simpleQuery(query);
+      } else {
+        result = await this.#preparedQuery(query);
+      }
+      if (
+        isDebugOptionEnabled("results", this.#connection_params.controls?.debug)
+      ) {
+        logResults(result.rows);
+      }
+      return result;
     } catch (e) {
       if (e instanceof ConnectionError) {
         await this.end();

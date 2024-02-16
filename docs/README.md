@@ -1393,3 +1393,37 @@ await transaction.queryArray`INSERT INTO DONT_DELETE_ME VALUES (2)`; // Still in
 await transaction.commit();
 // Transaction ends, client gets unlocked
 ```
+
+## Debugging
+
+The driver can provide different types of logs if as needed. By default, logs
+are disabled to keep your environment as uncluttered as possible. Logging can be
+enabled by using the `debug` option in the Client `controls` parameter. Pass
+`true` to enable all logs, or turn on logs granulary by enabling the following
+options:
+
+- `queries` : Logs all SQL queries executed by the client
+- `notices` : Logs database notices
+- `results` : Logs the result of the queries
+
+```ts
+{
+  const client = new Client({
+    ...
+    controls: {
+      // enable all logs
+      debug: true,
+    },
+  });
+
+  const client = new Client({
+    ...
+    controls: {
+      // only enable logging of SQL query statements
+      debug: {
+        queries: true,
+      },
+    },
+  });
+}
+```
