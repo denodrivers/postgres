@@ -2,6 +2,7 @@ import { parseConnectionUri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 import { fromFileUrl, isAbsolute } from "../deps.ts";
 import { OidType } from "../query/oid.ts";
+import { DebugControls } from "../debug.ts";
 
 /**
  * The connection string must match the following URI structure. All parameters but database and user are optional
@@ -115,6 +116,10 @@ export type DecoderFunction = (value: string, oid: number) => unknown;
  * Control the behavior for the client instance
  */
 export type ClientControls = {
+  /**
+   * Debugging options
+   */
+  debug?: DebugControls;
   /**
    * The strategy to use when decoding results data
    *

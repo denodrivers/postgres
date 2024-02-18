@@ -6,7 +6,11 @@ export { BufWriter } from "https://deno.land/std@0.214.0/io/buf_writer.ts";
 export { copy } from "https://deno.land/std@0.214.0/bytes/copy.ts";
 export { crypto } from "https://deno.land/std@0.214.0/crypto/crypto.ts";
 export { delay } from "https://deno.land/std@0.214.0/async/delay.ts";
-export { bold, yellow } from "https://deno.land/std@0.214.0/fmt/colors.ts";
+export {
+  bold,
+  rgb24,
+  yellow,
+} from "https://deno.land/std@0.214.0/fmt/colors.ts";
 export {
   fromFileUrl,
   isAbsolute,

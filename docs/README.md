@@ -1393,3 +1393,60 @@ await transaction.queryArray`INSERT INTO DONT_DELETE_ME VALUES (2)`; // Still in
 await transaction.commit();
 // Transaction ends, client gets unlocked
 ```
+
+## Debugging
+
+The driver can provide different types of logs if as needed. By default, logs
+are disabled to keep your environment as uncluttered as possible. Logging can be
+enabled by using the `debug` option in the Client `controls` parameter. Pass
+`true` to enable all logs, or turn on logs granulary by enabling the following
+options:
+
+- `queries` : Logs all SQL queries executed by the client
+- `notices` : Logs database messages (INFO, NOTICE, WARNING))
+- `results` : Logs the result of the queries
+
+### Example
+
+```ts
+// debug_test.ts
+import { Client } from "./mod.ts";
+
+const client = new Client({
+  user: "postgres",
+  database: "postgres",
+  hostname: "localhost",
+  port: 5432,
+  password: "postgres",
+  controls: {
+    // the same as `debug: true`
+    debug: {
+      queries: true,
+      notices: true,
+      results: true,
+    },
+  },
+});
+
+await client.connect();
+
+const result = await client.queryObject`SELECT public.get_some_user()`;
+
+await client.end();
+```
+
+```sql
+-- example database function that raises messages
+CREATE OR REPLACE FUNCTION public.get_uuid()
+  RETURNS uuid LANGUAGE plpgsql
+AS $function$
+  BEGIN
+    RAISE INFO 'This function generates a random UUID :)';
+    RAISE NOTICE 'A UUID takes up 128 bits in memory.';
+    RAISE WARNING 'UUIDs must follow a specific format and lenght in order to be valid!';
+    RETURN gen_random_uuid();
+  END;
+$function$;;
+```
+
+![debug-output](debug-output.png)
