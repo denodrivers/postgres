@@ -14,7 +14,7 @@ A lightweight PostgreSQL driver for Deno focused on developer experience.
 
 ## Documentation
 
-The documentation is available on the deno-postgres website
+The documentation is available on the `deno-postgres` website
 [https://deno-postgres.com/](https://deno-postgres.com/)
 
 Join the [Discord](https://discord.gg/HEdTCvZUSf) as well! It's a good place to
@@ -155,7 +155,7 @@ This situation will stabilize as `std` and `deno-postgres` approach version 1.0.
 
 ## Breaking changes
 
-Although `deno-postgres` is pretty stable and robust, it is a WIP, and we're
+Although `deno-postgres` is reasonably stable and robust, it is a WIP, and we're
 still exploring the design. Expect some breaking changes as we reach version 1.0
 and enhance the feature set. Please check the Releases for more info on breaking
 changes. Please reach out if there are any undocumented breaking changes.
