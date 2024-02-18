@@ -1,8 +1,8 @@
 /**
- * Controls debugging behavior. If set to `true`, all debug options are enabled.  
+ * Controls debugging behavior. If set to `true`, all debug options are enabled.
  * If set to `false`, all debug options are disabled. Can also be an object with
  * specific debug options to enable.
- *  
+ *
  * {@default false}
  */
 export type DebugControls = DebugOptions | boolean;

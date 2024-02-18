@@ -162,9 +162,12 @@ changes. Please reach out if there are any undocumented breaking changes.
 
 ## Found issues?
 
-Please [file an issue](https://github.com/denodrivers/postgres/issues/new/choose) with any problems with the driver in this repository's
-issue section. If you would like to help, please look at the [issues](https://github.com/denodrivers/postgres/issues) as well. You
-can pick up one of them and try to implement it.
+Please
+[file an issue](https://github.com/denodrivers/postgres/issues/new/choose) with
+any problems with the driver in this repository's issue section. If you would
+like to help, please look at the
+[issues](https://github.com/denodrivers/postgres/issues) as well. You can pick
+up one of them and try to implement it.
 
 ## Contributing guidelines
 
