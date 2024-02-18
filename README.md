@@ -155,15 +155,15 @@ This situation will stabilize as `std` and `deno-postgres` approach version 1.0.
 
 ## Breaking changes
 
-Although the `deno-driver` is pretty stable and robust, it is a WIP and we're
+Although `deno-postgres` is pretty stable and robust, it is a WIP, and we're
 still exploring the design. Expect some breaking changes as we reach version 1.0
-and enhance the feature set. PLease check the Releases for more info on breaking
+and enhance the feature set. Please check the Releases for more info on breaking
 changes. Please reach out if there are any undocumented breaking changes.
 
 ## Found issues?
 
-Please file an issue with any problems with the driver in this repository's
-issue section. If you would like to help, please look at the issues as well. You
+Please [file an issue](https://github.com/denodrivers/postgres/issues/new/choose) with any problems with the driver in this repository's
+issue section. If you would like to help, please look at the [issues](https://github.com/denodrivers/postgres/issues) as well. You
 can pick up one of them and try to implement it.
 
 ## Contributing guidelines
