@@ -791,9 +791,10 @@ the strategy and internal decoders.
 ```
 
 The driver takes care of parsing the related `array` OID types automatically.
-For example, if a custom decoder is defined for the `int4` type, it will be applied
-when parsing `int4[]` arrays. If needed, you can have separate custom decoders for the
-array and non-array types by defining another custom decoders for the array type itself.
+For example, if a custom decoder is defined for the `int4` type, it will be
+applied when parsing `int4[]` arrays. If needed, you can have separate custom
+decoders for the array and non-array types by defining another custom decoders
+for the array type itself.
 
 ```ts
 {
