@@ -2,6 +2,7 @@ export * from "../deps.ts";
 export {
   assert,
   assertEquals,
+  assertInstanceOf,
   assertNotEquals,
   assertObjectMatch,
   assertRejects,

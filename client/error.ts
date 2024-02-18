@@ -36,11 +36,17 @@ export class PostgresError extends Error {
   public fields: Notice;
 
   /**
+   * The query that caused the error
+   */
+  public query: string | undefined;
+
+  /**
    * Create a new PostgresError
    */
-  constructor(fields: Notice) {
+  constructor(fields: Notice, query?: string) {
     super(fields.message);
     this.fields = fields;
+    this.query = query;
     this.name = "PostgresError";
   }
 }

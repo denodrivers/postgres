@@ -694,7 +694,15 @@ export class Connection {
     while (current_message.type !== INCOMING_QUERY_MESSAGES.READY) {
       switch (current_message.type) {
         case ERROR_MESSAGE:
-          error = new PostgresError(parseNoticeMessage(current_message));
+          error = new PostgresError(
+            parseNoticeMessage(current_message),
+            isDebugOptionEnabled(
+                "queryInError",
+                this.#connection_params.controls?.debug,
+              )
+              ? query.text
+              : undefined,
+          );
           break;
         case INCOMING_QUERY_MESSAGES.COMMAND_COMPLETE: {
           result.handleCommandComplete(
@@ -881,7 +889,15 @@ export class Connection {
     while (current_message.type !== INCOMING_QUERY_MESSAGES.READY) {
       switch (current_message.type) {
         case ERROR_MESSAGE: {
-          error = new PostgresError(parseNoticeMessage(current_message));
+          error = new PostgresError(
+            parseNoticeMessage(current_message),
+            isDebugOptionEnabled(
+                "queryInError",
+                this.#connection_params.controls?.debug,
+              )
+              ? query.text
+              : undefined,
+          );
           break;
         }
         case INCOMING_QUERY_MESSAGES.BIND_COMPLETE:
