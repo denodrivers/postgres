@@ -23,7 +23,7 @@ docker-compose run tests
 If you have Docker installed then you can run the following to set up a running
 container that is compatible with the tests:
 
-```
+```sh
 docker run --rm --env POSTGRES_USER=test --env POSTGRES_PASSWORD=test \
   --env POSTGRES_DB=deno_postgres -p 5432:5432 postgres:12-alpine
 ```
