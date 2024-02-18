@@ -1,7 +1,7 @@
 # Testing
 
-To run tests, we recommend using Docker. With Docker, there is no
-need to modify any configuration, just run the build and test commands.
+To run tests, we recommend using Docker. With Docker, there is no need to modify
+any configuration, just run the build and test commands.
 
 If running tests on your host, prepare your configuration file by copying
 `config.example.json` into `config.json` and updating it appropriately based on
