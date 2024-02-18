@@ -3,7 +3,7 @@ import { ConnectionParamsError } from "../client/error.ts";
 import { fromFileUrl, isAbsolute } from "../deps.ts";
 import { OidType } from "../query/oid.ts";
 import { DebugControls } from "../debug.ts";
-import { ParseArrayFunc } from "../query/array_parser.ts";
+import { ParseArrayFunction } from "../query/array_parser.ts";
 
 /**
  * The connection string must match the following URI structure. All parameters but database and user are optional
@@ -117,7 +117,7 @@ export type Decoders = {
 export type DecoderFunction = (
   value: string,
   oid: number,
-  parseArray: ParseArrayFunc,
+  parseArray: ParseArrayFunction,
 ) => unknown;
 
 /**
