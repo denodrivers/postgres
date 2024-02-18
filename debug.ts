@@ -8,12 +8,14 @@
 export type DebugControls = DebugOptions | boolean;
 
 type DebugOptions = {
-  /** Log queries */
+  /** Log all queries */
   queries?: boolean;
-  /** Log INFO, NOTICE, and WARNING raised database messages */
+  /** Log all INFO, NOTICE, and WARNING raised database messages */
   notices?: boolean;
-  /** Log results */
+  /** Log all results */
   results?: boolean;
+  /** Include the SQL query that caused an error in the PostgresError object */
+  queryInError?: boolean;
 };
 
 export const isDebugOptionEnabled = (

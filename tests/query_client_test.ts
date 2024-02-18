@@ -8,6 +8,7 @@ import {
 import {
   assert,
   assertEquals,
+  assertInstanceOf,
   assertObjectMatch,
   assertRejects,
   assertThrows,
@@ -278,6 +279,43 @@ Deno.test(
           // text
           text: () => "fail",
           25: () => "success",
+        },
+      },
+    },
+  ),
+);
+
+Deno.test(
+  "Debug query not in error",
+  withClient(async (client) => {
+    const invalid_query = "SELECT this_has $ 'syntax_error';";
+    try {
+      await client.queryObject(invalid_query);
+    } catch (error) {
+      assertInstanceOf(error, PostgresError);
+      assertEquals(error.message, 'syntax error at or near "$"');
+      assertEquals(error.query, undefined);
+    }
+  }),
+);
+
+Deno.test(
+  "Debug query in error",
+  withClient(
+    async (client) => {
+      const invalid_query = "SELECT this_has $ 'syntax_error';";
+      try {
+        await client.queryObject(invalid_query);
+      } catch (error) {
+        assertInstanceOf(error, PostgresError);
+        assertEquals(error.message, 'syntax error at or near "$"');
+        assertEquals(error.query, invalid_query);
+      }
+    },
+    {
+      controls: {
+        debug: {
+          queryInError: true,
         },
       },
     },

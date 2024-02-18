@@ -1403,8 +1403,10 @@ enabled by using the `debug` option in the Client `controls` parameter. Pass
 options:
 
 - `queries` : Logs all SQL queries executed by the client
-- `notices` : Logs database messages (INFO, NOTICE, WARNING))
-- `results` : Logs the result of the queries
+- `notices` : Logs all database messages (INFO, NOTICE, WARNING))
+- `results` : Logs all the result of the queries
+- `queryInError` : Includes the SQL query that caused an error in the
+  PostgresError object
 
 ### Example
 
@@ -1419,7 +1421,6 @@ const client = new Client({
   port: 5432,
   password: "postgres",
   controls: {
-    // the same as `debug: true`
     debug: {
       queries: true,
       notices: true,
@@ -1430,7 +1431,7 @@ const client = new Client({
 
 await client.connect();
 
-const result = await client.queryObject`SELECT public.get_some_user()`;
+await client.queryObject`SELECT public.get_uuid()`;
 
 await client.end();
 ```
