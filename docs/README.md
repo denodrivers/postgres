@@ -1403,27 +1403,49 @@ enabled by using the `debug` option in the Client `controls` parameter. Pass
 options:
 
 - `queries` : Logs all SQL queries executed by the client
-- `notices` : Logs database notices
+- `notices` : Logs database messages (INFO, NOTICE, WARNING))
 - `results` : Logs the result of the queries
 
-```ts
-{
-  const client = new Client({
-    ...
-    controls: {
-      // enable all logs
-      debug: true,
-    },
-  });
+### Example
 
-  const client = new Client({
-    ...
-    controls: {
-      // only enable logging of SQL query statements
-      debug: {
-        queries: true,
-      },
+```ts
+import { Client } from "./mod.ts";
+
+const client = new Client({
+  user: "postgres",
+  database: "postgres",
+  hostname: "localhost",
+  port: 5432,
+  password: "postgres",
+  controls: {
+    // the same as `debug: true`
+    debug: {
+      queries: true,
+      notices: true,
+      results: true,
     },
-  });
-}
+  },
+});
+
+await client.connect();
+
+const result = await client.queryObject`SELECT public.get_some_user()`;
+
+await client.end();
 ```
+
+```sql
+-- example database function that raises messages
+CREATE OR REPLACE FUNCTION public.get_uuid()
+  RETURNS uuid LANGUAGE plpgsql
+AS $function$
+  BEGIN
+    RAISE INFO 'This function generates a random UUID :)';
+    RAISE NOTICE 'A UUID takes up 128 bits in memory.';
+    RAISE WARNING 'UUIDs must follow a specific format and lenght in order to be valid!';
+    RETURN gen_random_uuid();
+  END;
+$function$;;
+```
+
+![debug-output](debug-output.png)
