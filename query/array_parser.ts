@@ -6,6 +6,16 @@ type AllowedSeparators = "," | ";";
 type ArrayResult<T> = Array<T | null | ArrayResult<T>>;
 type Transformer<T> = (value: string) => T;
 
+export type ParseArrayFunction = typeof parseArray;
+
+/**
+ * Parse a string into an array of values using the provided transform function.
+ *
+ * @param source The string to parse
+ * @param transform A function to transform each value in the array
+ * @param separator The separator used to split the string into values
+ * @returns
+ */
 export function parseArray<T>(
   source: string,
   transform: Transformer<T>,

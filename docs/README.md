@@ -758,10 +758,10 @@ available:
 You can also provide custom decoders to the client that will be used to decode
 the result data. This can be done by setting the `decoders` controls option in
 the client configuration. This option is a map object where the keys are the
-type names or Oid numbers and the values are the custom decoder functions.
+type names or OID numbers and the values are the custom decoder functions.
 
 You can use it with the decode strategy. Custom decoders take precedence over
-the strategy and internal parsers.
+the strategy and internal decoders.
 
 ```ts
 {
@@ -785,7 +785,37 @@ the strategy and internal parsers.
   const result = await client.queryObject(
     "SELECT ID, NAME, IS_ACTIVE FROM PEOPLE",
   );
-  console.log(result.rows[0]); // {id: '1', name: 'Javier',  is_active: { value: false, type: "boolean"}}
+  console.log(result.rows[0]);
+  // {id: '1', name: 'Javier',  is_active: { value: false, type: "boolean"}}
+}
+```
+
+The driver takes care of parsing the related `array` OID types automatically.
+For example, if a custom decoder is defined for the `int4` type, it will be
+applied when parsing `int4[]` arrays. If needed, you can have separate custom
+decoders for the array and non-array types by defining another custom decoders
+for the array type itself.
+
+```ts
+{
+  const client = new Client({
+    database: "some_db",
+    user: "some_user",
+    controls: {
+      decodeStrategy: "string",
+      decoders: {
+        // Custom decoder for int4 (OID 23 = int4)
+        // convert to int and multiply by 100
+        23: (value: string) => parseInt(value, 10) * 100,
+      },
+    },
+  });
+
+  const result = await client.queryObject(
+    "SELECT ARRAY[ 2, 2, 3, 1 ] AS scores, 8 final_score;",
+  );
+  console.log(result.rows[0]);
+  // { scores: [ 200, 200, 300, 100 ], final_score: 800 }
 }
 ```
 
