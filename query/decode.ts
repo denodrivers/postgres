@@ -1,4 +1,4 @@
-import { Oid, OidTypes, OidValue } from "./oid.ts";
+import { Oid, OidType, OidTypes, OidValue } from "./oid.ts";
 import { bold, yellow } from "../deps.ts";
 import {
   decodeBigint,
@@ -36,6 +36,7 @@ import {
   decodeTidArray,
 } from "./decoders.ts";
 import { ClientControls } from "../connection/connection_params.ts";
+import { parseArray } from "./array_parser.ts";
 
 export class Column {
   constructor(
@@ -216,12 +217,29 @@ export function decode(
 
   // check if there is a custom decoder
   if (controls?.decoders) {
+    const oidType = OidTypes[column.typeOid as OidValue];
     // check if there is a custom decoder by oid (number) or by type name (string)
     const decoderFunc = controls.decoders?.[column.typeOid] ||
-      controls.decoders?.[OidTypes[column.typeOid as OidValue]];
+      controls.decoders?.[oidType];
 
     if (decoderFunc) {
-      return decoderFunc(strValue, column.typeOid);
+      return decoderFunc(strValue, column.typeOid, parseArray);
+    } // if no custom decoder is found and the oid is for an array type, check if there is
+    // a decoder for the base type and use that with the array parser
+    else if (oidType.includes("_array")) {
+      const baseOidType = oidType.replace("_array", "") as OidType;
+      // check if the base type is in the Oid object
+      if (baseOidType in Oid) {
+        // check if there is a custom decoder for the base type by oid (number) or by type name (string)
+        const decoderFunc = controls.decoders?.[Oid[baseOidType]] ||
+          controls.decoders?.[baseOidType];
+        if (decoderFunc) {
+          return parseArray(
+            strValue,
+            (value: string) => decoderFunc(value, column.typeOid, parseArray),
+          );
+        }
+      }
     }
   }
 

@@ -3,6 +3,7 @@ import { ConnectionParamsError } from "../client/error.ts";
 import { fromFileUrl, isAbsolute } from "../deps.ts";
 import { OidType } from "../query/oid.ts";
 import { DebugControls } from "../debug.ts";
+import { ParseArrayFunc } from "../query/array_parser.ts";
 
 /**
  * The connection string must match the following URI structure. All parameters but database and user are optional
@@ -108,9 +109,16 @@ export type Decoders = {
 
 /**
  * A decoder function that takes a string value and returns a parsed value of some type.
- * the Oid is also passed to the function for reference
+ *
+ * @param value The string value to parse
+ * @param oid The OID of the column type the value is from
+ * @param parseArray A helper function that parses SQL array-formatted strings and parses each array value using a transform function.
  */
-export type DecoderFunction = (value: string, oid: number) => unknown;
+export type DecoderFunction = (
+  value: string,
+  oid: number,
+  parseArray: ParseArrayFunc,
+) => unknown;
 
 /**
  * Control the behavior for the client instance

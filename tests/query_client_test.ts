@@ -242,6 +242,79 @@ Deno.test(
 );
 
 Deno.test(
+  "Custom decoders with arrays",
+  withClient(
+    async (client) => {
+      const result = await client.queryObject(
+        `SELECT 
+        ARRAY[true, false, true] AS _bool_array,
+        ARRAY['2024-01-01'::date, '2024-01-02'::date, '2024-01-03'::date] AS _date_array,
+        ARRAY[1.5:: REAL, 2.5::REAL, 3.5::REAL] AS _float_array,
+        ARRAY[10, 20, 30] AS _int_array,
+        ARRAY[
+          '{"key1": "value1", "key2": "value2"}'::jsonb,
+          '{"key3": "value3", "key4": "value4"}'::jsonb,
+          '{"key5": "value5", "key6": "value6"}'::jsonb
+        ] AS _jsonb_array,
+        ARRAY['string1', 'string2', 'string3'] AS _text_array
+        ;`,
+      );
+
+      assertEquals(result.rows, [
+        {
+          _bool_array: [
+            { boolean: true },
+            { boolean: false },
+            { boolean: true },
+          ],
+          _date_array: [
+            new Date("2024-01-11T00:00:00.000Z"),
+            new Date("2024-01-12T00:00:00.000Z"),
+            new Date("2024-01-13T00:00:00.000Z"),
+          ],
+          _float_array: [15, 25, 35],
+          _int_array: [110, 120, 130],
+          _jsonb_array: [
+            { key1: "value1", key2: "value2" },
+            { key3: "value3", key4: "value4" },
+            { key5: "value5", key6: "value6" },
+          ],
+          _text_array: ["string1_!", "string2_!", "string3_!"],
+        },
+      ]);
+    },
+    {
+      controls: {
+        decoders: {
+          // convert to object
+          [Oid.bool]: (value: string) => ({ boolean: value === "t" }),
+          // 1082 = date : convert to date and add 10 days
+          "1082": (value: string) => {
+            const d = new Date(value);
+            return new Date(d.setDate(d.getDate() + 10));
+          },
+          // multiply by 20, should not be used!
+          float4: (value: string) => parseFloat(value) * 20,
+          // multiply by 10
+          float4_array: (value: string, _, parseArray) =>
+            parseArray(value, (v) => parseFloat(v) * 10),
+          // return 0, should not be used!
+          [Oid.int4]: () => 0,
+          // add 100
+          [Oid.int4_array]: (value: string, _, parseArray) =>
+            parseArray(value, (v) => parseInt(v, 10) + 100),
+          // split string and reverse, should not be used!
+          [Oid.text]: (value: string) => value.split("").reverse(),
+          // 1009 = text_array : append "_!" to each string
+          1009: (value: string, _, parseArray) =>
+            parseArray(value, (v) => `${v}_!`),
+        },
+      },
+    },
+  ),
+);
+
+Deno.test(
   "Custom decoder precedence",
   withClient(
     async (client) => {
