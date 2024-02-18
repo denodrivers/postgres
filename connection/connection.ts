@@ -30,9 +30,9 @@ import {
   bold,
   BufReader,
   BufWriter,
-  cyan,
   delay,
   joinPath,
+  rgb24,
   yellow,
 } from "../deps.ts";
 import { DeferredStack } from "../utils/deferred.ts";
@@ -99,15 +99,25 @@ function assertSuccessfulAuthentication(auth_message: Message) {
 }
 
 function logNotice(notice: Notice) {
-  console.error(`${bold(yellow(notice.severity))}: ${notice.message}`);
+  if (notice.severity === "INFO") {
+    console.info(
+      `[ ${bold(rgb24(notice.severity, 0xff99ff))} ] : ${notice.message}`,
+    );
+  } else if (notice.severity === "NOTICE") {
+    console.info(`[ ${bold(yellow(notice.severity))} ] : ${notice.message}`);
+  } else if (notice.severity === "WARNING") {
+    console.warn(
+      `[ ${bold(rgb24(notice.severity, 0xff9900))} ] : ${notice.message}`,
+    );
+  }
 }
 
 function logQuery(query: string) {
-  console.error(`${bold(cyan("QUERY"))}: ${query}`);
+  console.info(`[ ${bold(rgb24("QUERY", 0x00ccff))} ] : ${query}`);
 }
 
 function logResults(rows: unknown[]) {
-  console.error(`${bold("RESULTS")}: ${rows}`);
+  console.info(`[ ${bold(rgb24("RESULTS", 0x00cc00))} ] :`, rows);
 }
 
 const decoder = new TextDecoder();

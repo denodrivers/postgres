@@ -10,7 +10,7 @@ export type DebugControls = DebugOptions | boolean;
 type DebugOptions = {
   /** Log queries */
   queries?: boolean;
-  /** Log notices */
+  /** Log INFO, NOTICE, and WARNING raised database messages */
   notices?: boolean;
   /** Log results */
   results?: boolean;
