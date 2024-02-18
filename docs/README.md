@@ -1409,6 +1409,7 @@ options:
 ### Example
 
 ```ts
+// debug_test.ts
 import { Client } from "./mod.ts";
 
 const client = new Client({
