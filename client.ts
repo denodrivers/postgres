@@ -515,4 +515,8 @@ export class PoolClient extends QueryClient {
     // Cleanup all session related metadata
     this.resetSessionMetadata();
   }
+
+  [Symbol.dispose]() {
+    this.release();
+  }
 }
