@@ -20,7 +20,7 @@ export function parseArray<T>(
   source: string,
   transform: Transformer<T>,
   separator: AllowedSeparators = ",",
-) {
+): ArrayResult<T> {
   return new ArrayParser(source, transform, separator).parse();
 }
 

@@ -140,3 +140,15 @@ Deno.test(
     );
   }),
 );
+
+Deno.test(
+  "Pool client will be released after `using` block",
+  testPool(async (POOL) => {
+    const initialPoolAvailable = POOL.available;
+    {
+      using _client = await POOL.connect();
+      assertEquals(POOL.available, initialPoolAvailable - 1);
+    }
+    assertEquals(POOL.available, initialPoolAvailable);
+  }),
+);
