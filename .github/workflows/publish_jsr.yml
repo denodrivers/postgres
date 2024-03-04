@@ -22,12 +22,15 @@ jobs:
 
       - name: Set up Deno
         uses: denoland/setup-deno@v1
+        
+      - name: Check Format
+        run: deno fmt --check
 
       - name: Convert to JSR package
         run: deno run -A tools/convert_to_jsr.ts
 
-      - name: Format
-        run: deno fmt --check
+      - name: Format converted code
+        run: deno fmt
       
       - name: Lint
         run: deno lint
