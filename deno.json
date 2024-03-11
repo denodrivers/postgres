@@ -1,6 +1,6 @@
 {
   "lock": false,
   "name": "@bartlomieju/postgres",
-  "version": "0.19.2",
+  "version": "0.19.3",
   "exports": "./mod.ts"
 }

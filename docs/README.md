@@ -450,9 +450,12 @@ const dbPool = new Pool(
   POOL_CONNECTIONS,
 );
 
-const client = await dbPool.connect(); // 19 connections are still available
-await client.queryArray`UPDATE X SET Y = 'Z'`;
-client.release(); // This connection is now available for use again
+// Note the `using` keyword in block scope
+{
+  using client = await dbPool.connect();
+  // 19 connections are still available
+  await client.queryArray`UPDATE X SET Y = 'Z'`;
+} // This connection is now available for use again
 ```
 
 The number of pools is up to you, but a pool of 20 is good for small
@@ -515,9 +518,9 @@ await client_3.release();
 
 #### Pools made simple
 
-The following example is a simple abstraction over pools that allows you to
-execute one query and release the used client after returning the result in a
-single function call
+Because of `using` keyword there is no need for manually releasing pool client.
+
+Legacy code like this
 
 ```ts
 async function runQuery(query: string) {
@@ -532,7 +535,27 @@ async function runQuery(query: string) {
 }
 
 await runQuery("SELECT ID, NAME FROM USERS"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
-await runQuery("SELECT ID, NAME FROM USERS WHERE ID = '1'"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+await runQuery("SELECT ID, NAME FROM USERS WHERE ID = '1'"); // [{id: 1, name: 'Carlos'}]
+```
+
+Can now be written simply as
+
+```ts
+async function runQuery(query: string) {
+  using client = await pool.connect();
+  return await client.queryObject(query);
+}
+
+await runQuery("SELECT ID, NAME FROM USERS"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+await runQuery("SELECT ID, NAME FROM USERS WHERE ID = '1'"); // [{id: 1, name: 'Carlos'}]
+```
+
+But you can release pool client manually if you wish
+
+```ts
+const client = await dbPool.connect(); // note the `const` instead of `using` keyword
+await client.queryArray`UPDATE X SET Y = 'Z'`;
+client.release(); // This connection is now available for use again
 ```
 
 ## Executing queries
