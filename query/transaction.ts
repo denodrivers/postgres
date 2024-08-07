@@ -1,4 +1,4 @@
-import { type QueryClient } from "../client.ts";
+import type { QueryClient } from "../client.ts";
 import {
   Query,
   type QueryArguments,
@@ -218,7 +218,7 @@ export class Transaction {
       );
     }
 
-    let isolation_level;
+    let isolation_level: string;
     switch (this.#isolation_level) {
       case "read_committed": {
         isolation_level = "READ COMMITTED";
@@ -238,7 +238,7 @@ export class Transaction {
         );
     }
 
-    let permissions;
+    let permissions: string;
     if (this.#read_only) {
       permissions = "READ ONLY";
     } else {
@@ -257,9 +257,8 @@ export class Transaction {
     } catch (e) {
       if (e instanceof PostgresError) {
         throw new TransactionError(this.name, e);
-      } else {
-        throw e;
       }
+      throw e;
     }
 
     this.#updateClientLock(this.name);
@@ -312,9 +311,8 @@ export class Transaction {
       } catch (e) {
         if (e instanceof PostgresError) {
           throw new TransactionError(this.name, e);
-        } else {
-          throw e;
         }
+        throw e;
       }
     }
 
@@ -467,9 +465,8 @@ export class Transaction {
       if (e instanceof PostgresError) {
         await this.commit();
         throw new TransactionError(this.name, e);
-      } else {
-        throw e;
       }
+      throw e;
     }
   }
 
@@ -565,9 +562,8 @@ export class Transaction {
       if (e instanceof PostgresError) {
         await this.commit();
         throw new TransactionError(this.name, e);
-      } else {
-        throw e;
       }
+      throw e;
     }
   }
 
@@ -701,9 +697,8 @@ export class Transaction {
       if (e instanceof PostgresError) {
         await this.commit();
         throw new TransactionError(this.name, e);
-      } else {
-        throw e;
       }
+      throw e;
     }
 
     this.#resetTransaction();
@@ -792,9 +787,8 @@ export class Transaction {
         if (e instanceof PostgresError) {
           await this.commit();
           throw new TransactionError(this.name, e);
-        } else {
-          throw e;
         }
+        throw e;
       }
     } else {
       savepoint = new Savepoint(
@@ -813,9 +807,8 @@ export class Transaction {
         if (e instanceof PostgresError) {
           await this.commit();
           throw new TransactionError(this.name, e);
-        } else {
-          throw e;
         }
+        throw e;
       }
       this.#savepoints.push(savepoint);
     }

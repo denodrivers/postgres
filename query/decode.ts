@@ -1,5 +1,6 @@
 import { bold, yellow } from "@std/fmt/colors";
-import { Oid, OidType, OidTypes, OidValue } from "./oid.ts";
+import type { OidType, OidValue } from "./oid.ts";
+import { Oid, OidTypes } from "./oid.ts";
 import {
   decodeBigint,
   decodeBigintArray,
@@ -35,7 +36,7 @@ import {
   decodeTid,
   decodeTidArray,
 } from "./decoders.ts";
-import { ClientControls } from "../connection/connection_params.ts";
+import type { ClientControls } from "../connection/connection_params.ts";
 import { parseArray } from "./array_parser.ts";
 
 export class Column {
@@ -198,10 +199,9 @@ function decodeText(value: string, typeOid: number) {
     }
   } catch (_e) {
     console.error(
-      bold(yellow(`Error decoding type Oid ${typeOid} value`)) +
-        _e.message +
-        "\n" +
-        bold("Defaulting to null."),
+      `${
+        bold(yellow(`Error decoding type Oid ${typeOid} value`))
+      }${_e.message}\n${bold("Defaulting to null.")}`,
     );
     // If an error occurred during decoding, return null
     return null;
@@ -224,9 +224,9 @@ export function decode(
 
     if (decoderFunc) {
       return decoderFunc(strValue, column.typeOid, parseArray);
-    } // if no custom decoder is found and the oid is for an array type, check if there is
+    }
     // a decoder for the base type and use that with the array parser
-    else if (oidType?.includes("_array")) {
+    if (oidType?.includes("_array")) {
       const baseOidType = oidType.replace("_array", "") as OidType;
       // check if the base type is in the Oid object
       if (baseOidType in Oid) {
@@ -251,9 +251,9 @@ export function decode(
   // else, default to 'auto' mode, which uses the typeOid to determine the decoding strategy
   if (column.format === Format.BINARY) {
     return decodeBinary();
-  } else if (column.format === Format.TEXT) {
-    return decodeText(strValue, column.typeOid);
-  } else {
-    throw new Error(`Unknown column format: ${column.format}`);
   }
+  if (column.format === Format.TEXT) {
+    return decodeText(strValue, column.typeOid);
+  }
+  throw new Error(`Unknown column format: ${column.format}`);
 }
