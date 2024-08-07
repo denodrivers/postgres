@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows, fromFileUrl } from "./test_deps.ts";
+import { assertEquals, assertThrows, fromFileUrl } from "@std/assert";
 import { createParams } from "../connection/connection_params.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 

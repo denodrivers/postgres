@@ -1,4 +1,4 @@
-import { bold, yellow } from "../deps.ts";
+import { bold, yellow } from "@std/fmt/colors";
 
 export function readInt16BE(buffer: Uint8Array, offset: number): number {
   offset = offset >>> 0;

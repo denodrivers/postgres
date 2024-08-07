@@ -26,15 +26,10 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {
-  bold,
-  BufReader,
-  BufWriter,
-  delay,
-  joinPath,
-  rgb24,
-  yellow,
-} from "../deps.ts";
+import { BufReader, BufWriter } from "@std/io";
+import { delay } from "@std/async";
+import { bold, rgb24, yellow } from "@std/fmt/colors";
+import { join as joinPath } from "@std/path";
 import { DeferredStack } from "../utils/deferred.ts";
 import { getSocketName, readUInt32BE } from "../utils/utils.ts";
 import { PacketWriter } from "./packet.ts";

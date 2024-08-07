@@ -1,9 +1,6 @@
-import {
-  assertEquals,
-  assertRejects,
-  copyStream,
-  joinPath,
-} from "./test_deps.ts";
+import { join as joinPath } from "@std/path";
+import { assertEquals, assertRejects } from "@std/assert";
+import { copy as copyStream } from "@std/io";
 import {
   getClearConfiguration,
   getClearSocketConfiguration,

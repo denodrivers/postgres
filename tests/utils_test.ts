@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "./test_deps.ts";
+import { assertEquals, assertThrows } from "@std/assert";
 import { parseConnectionUri, Uri } from "../utils/utils.ts";
 import { DeferredAccessStack, DeferredStack } from "../utils/deferred.ts";
 

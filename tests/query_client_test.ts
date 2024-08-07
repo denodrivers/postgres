@@ -1,18 +1,18 @@
 import {
-  Client,
-  ConnectionError,
-  Pool,
-  PostgresError,
-  TransactionError,
-} from "../mod.ts";
-import {
   assert,
   assertEquals,
   assertInstanceOf,
   assertObjectMatch,
   assertRejects,
   assertThrows,
-} from "./test_deps.ts";
+} from "@std/assert";
+import {
+  Client,
+  ConnectionError,
+  Pool,
+  PostgresError,
+  TransactionError,
+} from "../mod.ts";
 import { getMainConfiguration } from "./config.ts";
 import { PoolClient, QueryClient } from "../client.ts";
 import { ClientOptions } from "../connection/connection_params.ts";
@@ -124,7 +124,7 @@ Deno.test(
         `SELECT
           'Y'::BOOLEAN AS _bool,
           3.14::REAL AS _float,
-          ARRAY[1, 2, 3] AS _int_array, 
+          ARRAY[1, 2, 3] AS _int_array,
           '{"test": "foo", "arr": [1,2,3]}'::JSONB AS _jsonb,
           'DATA' AS _text
         ;`,
@@ -152,7 +152,7 @@ Deno.test(
         `SELECT
           'Y'::BOOLEAN AS _bool,
           3.14::REAL AS _float,
-          ARRAY[1, 2, 3] AS _int_array, 
+          ARRAY[1, 2, 3] AS _int_array,
           '{"test": "foo", "arr": [1,2,3]}'::JSONB AS _jsonb,
           'DATA' AS _text
         ;`,
@@ -246,7 +246,7 @@ Deno.test(
   withClient(
     async (client) => {
       const result = await client.queryObject(
-        `SELECT 
+        `SELECT
         ARRAY[true, false, true] AS _bool_array,
         ARRAY['2024-01-01'::date, '2024-01-02'::date, '2024-01-03'::date] AS _date_array,
         ARRAY[1.5:: REAL, 2.5::REAL, 3.5::REAL] AS _float_array,

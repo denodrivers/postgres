@@ -1,5 +1,5 @@
+import { bold, yellow } from "@std/fmt/colors";
 import { Oid, OidType, OidTypes, OidValue } from "./oid.ts";
-import { bold, yellow } from "../deps.ts";
 import {
   decodeBigint,
   decodeBigintArray,

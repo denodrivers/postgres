@@ -1,4 +1,4 @@
-import { parseDate } from "../deps.ts";
+import { parse as parseDate } from "@std/datetime";
 import { parseArray } from "./array_parser.ts";
 import type {
   Box,

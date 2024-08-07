@@ -1,4 +1,4 @@
-import { base64 } from "../deps.ts";
+import { decodeBase64, encodeBase64 } from "@std/encoding";
 
 /** Number of random bytes used to generate a nonce */
 const defaultNonceSize = 16;
@@ -132,7 +132,7 @@ function escape(str: string): string {
 }
 
 function generateRandomNonce(size: number): string {
-  return base64.encodeBase64(crypto.getRandomValues(new Uint8Array(size)));
+  return encodeBase64(crypto.getRandomValues(new Uint8Array(size)));
 }
 
 function parseScramAttributes(message: string): Record<string, string> {
@@ -221,7 +221,7 @@ export class Client {
         throw new Error(Reason.BadSalt);
       }
       try {
-        salt = base64.decodeBase64(attrs.s);
+        salt = decodeBase64(attrs.s);
       } catch {
         throw new Error(Reason.BadSalt);
       }
@@ -261,7 +261,7 @@ export class Client {
 
       this.#auth_message += "," + responseWithoutProof;
 
-      const proof = base64.encodeBase64(
+      const proof = encodeBase64(
         computeScramProof(
           await computeScramSignature(
             this.#auth_message,
@@ -294,7 +294,7 @@ export class Client {
         throw new Error(attrs.e ?? Reason.Rejected);
       }
 
-      const verifier = base64.encodeBase64(
+      const verifier = encodeBase64(
         await computeScramSignature(
           this.#auth_message,
           this.#key_signatures.server,

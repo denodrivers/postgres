@@ -1,4 +1,6 @@
-import { assertEquals, base64, formatDate, parseDate } from "./test_deps.ts";
+import { decodeBase64, encodeBase64 } from "@std/encoding";
+import { format as formatDate, parse as parseDate } from "@std/datetime";
+import { assertEquals } from "@std/assert";
 import { getMainConfiguration } from "./config.ts";
 import { generateSimpleClientTest } from "./helpers.ts";
 import type {
@@ -34,7 +36,7 @@ function generateRandomPoint(max_value = 100): Point {
 
 const CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 function randomBase64(): string {
-  return base64.encodeBase64(
+  return encodeBase64(
     Array.from(
       { length: Math.ceil(Math.random() * 256) },
       () => CHARS[Math.floor(Math.random() * CHARS.length)],
@@ -671,7 +673,7 @@ Deno.test(
       `SELECT decode('${base64_string}','base64')`,
     );
 
-    assertEquals(result.rows[0][0], base64.decodeBase64(base64_string));
+    assertEquals(result.rows[0][0], decodeBase64(base64_string));
   }),
 );
 
@@ -691,7 +693,7 @@ Deno.test(
 
     assertEquals(
       result.rows[0][0],
-      strings.map(base64.decodeBase64),
+      strings.map(decodeBase64),
     );
   }),
 );

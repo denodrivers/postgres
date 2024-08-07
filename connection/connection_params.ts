@@ -1,6 +1,6 @@
 import { parseConnectionUri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
-import { fromFileUrl, isAbsolute } from "../deps.ts";
+import { fromFileUrl, isAbsolute } from "@std/path";
 import { OidType } from "../query/oid.ts";
 import { DebugControls } from "../debug.ts";
 import { ParseArrayFunction } from "../query/array_parser.ts";
