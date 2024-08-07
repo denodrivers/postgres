@@ -6,6 +6,7 @@ import {
   assertRejects,
   assertThrows,
 } from "@std/assert";
+import type { QueryResult } from "../mod.ts";
 import {
   Client,
   ConnectionError,
@@ -14,8 +15,8 @@ import {
   TransactionError,
 } from "../mod.ts";
 import { getMainConfiguration } from "./config.ts";
-import { PoolClient, QueryClient } from "../client.ts";
-import { ClientOptions } from "../connection/connection_params.ts";
+import type { PoolClient, QueryClient } from "../client.ts";
+import type { ClientOptions } from "../connection/connection_params.ts";
 import { Oid } from "../query/oid.ts";
 
 function withClient(
@@ -34,7 +35,7 @@ function withClient(
 
   async function poolWrapper() {
     const pool = new Pool(getMainConfiguration(config), 1);
-    let client;
+    let client: PoolClient | undefined;
     try {
       client = await pool.connect();
       await t(client);
@@ -65,7 +66,8 @@ function withClientGenerator(
           clients.push(client);
           client_count++;
           return client;
-        } else throw new Error("Max client size exceeded");
+        }
+        throw new Error("Max client size exceeded");
       });
     } finally {
       for (const client of clients) {
@@ -211,9 +213,9 @@ Deno.test(
             return new Date(d.setDate(d.getDate() + 2));
           },
           // multiply by 100 - 5 = 785
-          float4: (value: string) => parseFloat(value) * 100 - 5,
+          float4: (value: string) => Number.parseFloat(value) * 100 - 5,
           // convert to int and add 100 = 200
-          [Oid.int4]: (value: string) => parseInt(value, 10) + 100,
+          [Oid.int4]: (value: string) => Number.parseInt(value, 10) + 100,
           // parse with multiple conditions
           jsonb: (value: string) => {
             const obj = JSON.parse(value);
@@ -294,15 +296,15 @@ Deno.test(
             return new Date(d.setDate(d.getDate() + 10));
           },
           // multiply by 20, should not be used!
-          float4: (value: string) => parseFloat(value) * 20,
+          float4: (value: string) => Number.parseFloat(value) * 20,
           // multiply by 10
           float4_array: (value: string, _, parseArray) =>
-            parseArray(value, (v) => parseFloat(v) * 10),
+            parseArray(value, (v) => Number.parseFloat(v) * 10),
           // return 0, should not be used!
           [Oid.int4]: () => 0,
           // add 100
           [Oid.int4_array]: (value: string, _, parseArray) =>
-            parseArray(value, (v) => parseInt(v, 10) + 100),
+            parseArray(value, (v) => Number.parseInt(v, 10) + 100),
           // split string and reverse, should not be used!
           [Oid.text]: (value: string) => value.split("").reverse(),
           // 1009 = text_array : append "_!" to each string
@@ -596,7 +598,7 @@ Deno.test(
     const item_1 = "Test;Azer";
     const item_2 = "123;456";
 
-    const { rows: result_1 } = await client.queryArray(`SELECT ARRAY[$1, $2]`, [
+    const { rows: result_1 } = await client.queryArray("SELECT ARRAY[$1, $2]", [
       item_1,
       item_2,
     ]);
@@ -705,7 +707,7 @@ Deno.test(
     );
 
     const { rows: result } = await client.queryObject<{ res: number }>({
-      text: `SELECT 1`,
+      text: "SELECT 1",
       fields: ["res"],
     });
     assertEquals(result[0].res, 1);
@@ -820,7 +822,7 @@ Deno.test(
     await client
       .queryArray`INSERT INTO METADATA VALUES (100), (200), (300), (400), (500), (600)`;
 
-    let result;
+    let result: QueryResult;
 
     // simple select
     result = await client.queryArray(
@@ -1087,7 +1089,7 @@ Deno.test(
 
 Deno.test(
   "Object query throws when multiple query results don't have the same number of rows",
-  withClient(async function (client) {
+  withClient(async (client) => {
     await assertRejects(
       () =>
         client.queryObject<{ result: number }>({

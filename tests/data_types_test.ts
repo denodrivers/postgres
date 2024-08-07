@@ -142,7 +142,7 @@ Deno.test(
   "name",
   testClient(async (client) => {
     const name = "some";
-    const result = await client.queryArray(`SELECT $1::name`, [name]);
+    const result = await client.queryArray("SELECT $1::name", [name]);
     assertEquals(result.rows[0], [name]);
   }),
 );
@@ -160,7 +160,7 @@ Deno.test(
 Deno.test(
   "oid",
   testClient(async (client) => {
-    const result = await client.queryArray(`SELECT 1::oid`);
+    const result = await client.queryArray("SELECT 1::oid");
     assertEquals(result.rows[0][0], "1");
   }),
 );
@@ -168,7 +168,7 @@ Deno.test(
 Deno.test(
   "oid array",
   testClient(async (client) => {
-    const result = await client.queryArray(`SELECT ARRAY[1::oid, 452, 1023]`);
+    const result = await client.queryArray("SELECT ARRAY[1::oid, 452, 1023]");
     assertEquals(result.rows[0][0], ["1", "452", "1023"]);
   }),
 );
@@ -349,7 +349,7 @@ Deno.test(
     const user = getMainConfiguration().user;
 
     const result = await client.queryArray(
-      `SELECT ($1)::regrole`,
+      "SELECT ($1)::regrole",
       [user],
     );
 
@@ -363,7 +363,7 @@ Deno.test(
     const user = getMainConfiguration().user;
 
     const result = await client.queryArray(
-      `SELECT ARRAY[($1)::regrole]`,
+      "SELECT ARRAY[($1)::regrole]",
       [user],
     );
 
@@ -447,7 +447,7 @@ Deno.test(
   "numeric",
   testClient(async (client) => {
     const number = "1234567890.1234567890";
-    const result = await client.queryArray(`SELECT $1::numeric`, [number]);
+    const result = await client.queryArray("SELECT $1::numeric", [number]);
     assertEquals(result.rows[0][0], number);
   }),
 );
@@ -457,7 +457,7 @@ Deno.test(
   testClient(async (client) => {
     const numeric = ["1234567890.1234567890", "6107693.123123124"];
     const result = await client.queryArray(
-      `SELECT ARRAY[$1::numeric, $2]`,
+      "SELECT ARRAY[$1::numeric, $2]",
       [numeric[0], numeric[1]],
     );
     assertEquals(result.rows[0][0], numeric);
@@ -498,13 +498,13 @@ Deno.test(
   "char",
   testClient(async (client) => {
     await client.queryArray(
-      `CREATE TEMP TABLE CHAR_TEST (X CHARACTER(2));`,
+      "CREATE TEMP TABLE CHAR_TEST (X CHARACTER(2));",
     );
     await client.queryArray(
       `INSERT INTO CHAR_TEST (X) VALUES ('A');`,
     );
     const result = await client.queryArray(
-      `SELECT X FROM CHAR_TEST`,
+      "SELECT X FROM CHAR_TEST",
     );
     assertEquals(result.rows[0][0], "A ");
   }),
@@ -574,7 +574,7 @@ Deno.test(
   "uuid",
   testClient(async (client) => {
     const uuid_text = "c4792ecb-c00a-43a2-bd74-5b0ed551c599";
-    const result = await client.queryArray(`SELECT $1::uuid`, [uuid_text]);
+    const result = await client.queryArray("SELECT $1::uuid", [uuid_text]);
     assertEquals(result.rows[0][0], uuid_text);
   }),
 );
@@ -719,7 +719,7 @@ Deno.test(
     ]);
 
     const result2 = await client.queryArray(
-      `SELECT array[ array[ point(1,2), point(3.5, 4.1) ], array[ point(25, 50), point(-10, -17.5) ] ]`,
+      "SELECT array[ array[ point(1,2), point(3.5, 4.1) ], array[ point(25, 50), point(-10, -17.5) ] ]",
     );
     assertEquals(result2.rows[0], [
       [
@@ -757,7 +757,7 @@ Deno.test(
       [date],
     );
 
-    assertEquals(result.rows[0], [new Date(date), Infinity]);
+    assertEquals(result.rows[0], [new Date(date), Number.POSITIVE_INFINITY]);
   }),
 );
 
@@ -787,7 +787,10 @@ Deno.test(
       [timestamp],
     );
 
-    assertEquals(result.rows[0], [new Date(timestamp), Infinity]);
+    assertEquals(result.rows[0], [
+      new Date(timestamp),
+      Number.POSITIVE_INFINITY,
+    ]);
   }),
 );
 
@@ -800,7 +803,7 @@ Deno.test(
     ];
 
     const result = await client.queryArray<[[Timestamp, Timestamp]]>(
-      `SELECT ARRAY[$1::TIMESTAMPTZ, $2]`,
+      "SELECT ARRAY[$1::TIMESTAMPTZ, $2]",
       timestamps,
     );
 
@@ -934,7 +937,7 @@ Deno.test(
 
     assertEquals(result.rows[0], [
       parseDate(date_text, "yyyy-MM-dd"),
-      Infinity,
+      Number.POSITIVE_INFINITY,
     ]);
   }),
 );

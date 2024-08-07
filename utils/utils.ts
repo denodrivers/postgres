@@ -93,7 +93,7 @@ export function parseConnectionUri(uri: string): Uri {
     }
   } catch (_e) {
     console.error(
-      bold(yellow("Failed to decode URL host") + "\nDefaulting to raw host"),
+      bold(`${yellow("Failed to decode URL host")}\nDefaulting to raw host`),
     );
   }
 
@@ -108,8 +108,9 @@ export function parseConnectionUri(uri: string): Uri {
   } catch (_e) {
     console.error(
       bold(
-        yellow("Failed to decode URL password") +
-          "\nDefaulting to raw password",
+        `${
+          yellow("Failed to decode URL password")
+        }\nDefaulting to raw password`,
       ),
     );
   }

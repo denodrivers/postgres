@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from "@std/assert";
-import { parseConnectionUri, Uri } from "../utils/utils.ts";
+import type { Uri } from "../utils/utils.ts";
+import { parseConnectionUri } from "../utils/utils.ts";
 import { DeferredAccessStack, DeferredStack } from "../utils/deferred.ts";
 
 class LazilyInitializedObject {
@@ -67,7 +68,7 @@ const dns_examples: Partial<Uri>[] = [
   },
 ];
 
-Deno.test("Parses connection string into config", async function (context) {
+Deno.test("Parses connection string into config", async (context) => {
   for (
     const {
       driver,
@@ -136,7 +137,7 @@ Deno.test("Throws on invalid parameters", () => {
   );
 });
 
-Deno.test("Parses connection string params into param object", function () {
+Deno.test("Parses connection string params into param object", () => {
   const params = {
     param_1: "asd",
     param_2: "xyz",

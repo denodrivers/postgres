@@ -1,4 +1,4 @@
-import {
+import type {
   ClientConfiguration,
   ClientOptions,
 } from "../connection/connection_params.ts";
