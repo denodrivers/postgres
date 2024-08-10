@@ -225,6 +225,7 @@ export function decode(
     if (decoderFunc) {
       return decoderFunc(strValue, column.typeOid, parseArray);
     }
+    // if no custom decoder is found and the oid is for an array type, check if there is
     // a decoder for the base type and use that with the array parser
     if (oidType?.includes("_array")) {
       const baseOidType = oidType.replace("_array", "") as OidType;
