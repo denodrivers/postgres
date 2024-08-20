@@ -1,5 +1,3 @@
-version: '3.8'
-
 x-database-env:
   &database-env
   POSTGRES_DB: "postgres"

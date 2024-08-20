@@ -1,9 +1,5 @@
-import {
-  assertEquals,
-  assertRejects,
-  copyStream,
-  joinPath,
-} from "./test_deps.ts";
+import { assertEquals, assertRejects } from "jsr:@std/assert@1.0.10";
+import { join as joinPath } from "@std/path";
 import {
   getClearConfiguration,
   getClearSocketConfiguration,
@@ -36,10 +32,8 @@ function createProxy(
         outbound.close();
         aborted = true;
       });
-      await Promise.all([
-        copyStream(conn, outbound),
-        copyStream(outbound, conn),
-      ]).catch(() => {});
+      await conn.readable.pipeTo(outbound.writable, { preventClose: true });
+      await outbound.readable.pipeTo(conn.writable, { preventClose: true });
 
       if (!aborted) {
         conn.close();
@@ -186,6 +180,7 @@ Deno.test("Skips TLS connection when TLS disabled", async () => {
   }
 });
 
+// TODO(jersey): fix the error on this test
 Deno.test("Aborts TLS connection when certificate is untrusted", async () => {
   // Force TLS but don't provide CA
   const client = new Client({
@@ -214,6 +209,7 @@ Deno.test("Aborts TLS connection when certificate is untrusted", async () => {
   }
 });
 
+// TODO(jersey): this should not fail or reject
 Deno.test("Defaults to unencrypted when certificate is invalid and TLS is not enforced", async () => {
   // Remove CA, request tls and disable enforce
   const client = new Client({
@@ -399,7 +395,7 @@ Deno.test("Closes connection on bad TLS availability verification", async functi
     await client.connect();
   } catch (e) {
     if (
-      e instanceof Error ||
+      e instanceof Error &&
       e.message.startsWith("Could not check if server accepts SSL connections")
     ) {
       bad_tls_availability_message = true;
@@ -564,6 +560,7 @@ Deno.test("Attempts reconnection on disconnection", async function () {
   }
 });
 
+// TODO(jersey): fix error so that it's a connectionerror
 Deno.test("Attempts reconnection on socket disconnection", async () => {
   const client = new Client(getMd5SocketConfiguration());
   await client.connect();

@@ -1,4 +1,3 @@
-import { parseDate } from "../deps.ts";
 import { parseArray } from "./array_parser.ts";
 import type {
   Box,
@@ -64,7 +63,7 @@ export function decodeBox(value: string): Box {
       b: decodePoint(b),
     };
   } catch (e) {
-    throw new Error(`Invalid Box: "${value}" : ${e.message}`);
+    throw new Error(`Invalid Box: "${value}" : ${(e as Error).message}`);
   }
 }
 
@@ -93,8 +92,8 @@ function decodeByteaEscape(byteaStr: string): Uint8Array {
       bytes.push(byteaStr.charCodeAt(i));
       ++i;
     } else {
-      if (/[0-7]{3}/.test(byteaStr.substr(i + 1, 3))) {
-        bytes.push(parseInt(byteaStr.substr(i + 1, 3), 8));
+      if (/[0-7]{3}/.test(byteaStr.substring(i + 1, i + 4))) {
+        bytes.push(parseInt(byteaStr.substring(i + 1, i + 4), 8));
         i += 4;
       } else {
         let backslashes = 1;
@@ -140,7 +139,7 @@ export function decodeCircle(value: string): Circle {
       radius: radius,
     };
   } catch (e) {
-    throw new Error(`Invalid Circle: "${value}" : ${e.message}`);
+    throw new Error(`Invalid Circle: "${value}" : ${(e as Error).message}`);
   }
 }
 
@@ -157,7 +156,7 @@ export function decodeDate(dateStr: string): Date | number {
     return Number(-Infinity);
   }
 
-  return parseDate(dateStr, "yyyy-MM-dd");
+  return new Date(dateStr);
 }
 
 export function decodeDateArray(value: string) {
@@ -249,13 +248,13 @@ export function decodeLine(value: string): Line {
     );
   }
 
-  equationConsts.forEach((c) => {
+  for (const c of equationConsts) {
     if (Number.isNaN(parseFloat(c))) {
       throw new Error(
         `Invalid Line: "${value}". Line constant "${c}" must be a valid number.`,
       );
     }
-  });
+  }
 
   const [a, b, c] = equationConsts;
 
@@ -287,7 +286,9 @@ export function decodeLineSegment(value: string): LineSegment {
       b: decodePoint(b),
     };
   } catch (e) {
-    throw new Error(`Invalid Line Segment: "${value}" : ${e.message}`);
+    throw new Error(
+      `Invalid Line Segment: "${value}" : ${(e as Error).message}`,
+    );
   }
 }
 
@@ -304,7 +305,7 @@ export function decodePath(value: string): Path {
     try {
       return decodePoint(point);
     } catch (e) {
-      throw new Error(`Invalid Path: "${value}" : ${e.message}`);
+      throw new Error(`Invalid Path: "${value}" : ${(e as Error).message}`);
     }
   });
 }
@@ -348,7 +349,7 @@ export function decodePolygon(value: string): Polygon {
   try {
     return decodePath(value);
   } catch (e) {
-    throw new Error(`Invalid Polygon: "${value}" : ${e.message}`);
+    throw new Error(`Invalid Polygon: "${value}" : ${(e as Error).message}`);
   }
 }
 

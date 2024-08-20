@@ -22,16 +22,15 @@ jobs:
 
       - name: Set up Deno
         uses: denoland/setup-deno@v1
-        
+        with:
+          deno-version: v2.x
+
       - name: Check Format
         run: deno fmt --check
 
-      - name: Convert to JSR package
-        run: deno run -A tools/convert_to_jsr.ts
-
-      - name: Format converted code
+      - name: Format
         run: deno fmt
-      
+
       - name: Lint
         run: deno lint
 
@@ -39,10 +38,10 @@ jobs:
         run: deno test --doc client.ts mod.ts pool.ts client/ connection/ query/ utils/
 
       - name: Build tests container
-        run: docker-compose build tests
-      
+        run: docker compose build tests
+
       - name: Run tests
-        run: docker-compose run tests
+        run: docker compose run tests
 
       - name: Publish (dry run)
         if: startsWith(github.ref, 'refs/tags/') == false

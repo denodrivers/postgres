@@ -1,4 +1,5 @@
-import { assertEquals, delay } from "./test_deps.ts";
+import { assertEquals } from "jsr:@std/assert@1.0.10";
+import { delay } from "@std/async/delay";
 import { getMainConfiguration } from "./config.ts";
 import { generatePoolClientTest } from "./helpers.ts";
 

@@ -1,6 +1,6 @@
 name: ci
 
-on: [ push, pull_request, release ]
+on: [push, pull_request, release]
 
 jobs:
   code_quality:
@@ -12,11 +12,11 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.x
-      
+          deno-version: v2.x
+
       - name: Format
         run: deno fmt --check
-      
+
       - name: Lint
         run: deno lint
 
@@ -30,16 +30,16 @@ jobs:
         uses: actions/checkout@master
 
       - name: Build tests container
-        run: docker-compose build tests
-      
+        run: docker compose build tests
+
       - name: Run tests
-        run: docker-compose run tests
+        run: docker compose run tests
 
       - name: Run tests without typechecking
         id: no_typecheck
         uses: mathiasvr/command-output@v2.0.0
         with:
-          run: docker-compose run no_check_tests
+          run: docker compose run no_check_tests
         continue-on-error: true
 
       - name: Report no typechecking tests status
@@ -51,7 +51,7 @@ jobs:
       no_typecheck_status: ${{ steps.no_typecheck_status.outputs.status }}
 
   report_warnings:
-    needs: [ code_quality, test ]
+    needs: [code_quality, test]
     runs-on: ubuntu-latest
     steps:
       - name: Set no-typecheck fail comment

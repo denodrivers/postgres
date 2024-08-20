@@ -1,4 +1,4 @@
-import { type Notice } from "../connection/message.ts";
+import type { Notice } from "../connection/message.ts";
 
 /**
  * A connection error
@@ -20,7 +20,7 @@ export class ConnectionParamsError extends Error {
   /**
    * Create a new ConnectionParamsError
    */
-  constructor(message: string, cause?: Error) {
+  constructor(message: string, cause?: unknown) {
     super(message, { cause });
     this.name = "ConnectionParamsError";
   }
