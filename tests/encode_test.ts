@@ -1,4 +1,4 @@
-import { assertEquals } from "./test_deps.ts";
+import { assertEquals } from "@std/assert";
 import { encodeArgument } from "../query/encode.ts";
 
 // internally `encodeArguments` uses `getTimezoneOffset` to encode Date
@@ -10,12 +10,12 @@ function resetTimezoneOffset() {
 }
 
 function overrideTimezoneOffset(offset: number) {
-  Date.prototype.getTimezoneOffset = function () {
+  Date.prototype.getTimezoneOffset = () => {
     return offset;
   };
 }
 
-Deno.test("encodeDatetime", function () {
+Deno.test("encodeDatetime", () => {
   // GMT
   overrideTimezoneOffset(0);
 
@@ -35,33 +35,33 @@ Deno.test("encodeDatetime", function () {
   resetTimezoneOffset();
 });
 
-Deno.test("encodeUndefined", function () {
+Deno.test("encodeUndefined", () => {
   assertEquals(encodeArgument(undefined), null);
 });
 
-Deno.test("encodeNull", function () {
+Deno.test("encodeNull", () => {
   assertEquals(encodeArgument(null), null);
 });
 
-Deno.test("encodeBoolean", function () {
+Deno.test("encodeBoolean", () => {
   assertEquals(encodeArgument(true), "true");
   assertEquals(encodeArgument(false), "false");
 });
 
-Deno.test("encodeNumber", function () {
+Deno.test("encodeNumber", () => {
   assertEquals(encodeArgument(1), "1");
   assertEquals(encodeArgument(1.2345), "1.2345");
 });
 
-Deno.test("encodeString", function () {
+Deno.test("encodeString", () => {
   assertEquals(encodeArgument("deno-postgres"), "deno-postgres");
 });
 
-Deno.test("encodeObject", function () {
+Deno.test("encodeObject", () => {
   assertEquals(encodeArgument({ x: 1 }), '{"x":1}');
 });
 
-Deno.test("encodeUint8Array", function () {
+Deno.test("encodeUint8Array", () => {
   const buf1 = new Uint8Array([1, 2, 3]);
   const buf2 = new Uint8Array([2, 10, 500]);
   const buf3 = new Uint8Array([11]);
@@ -71,20 +71,20 @@ Deno.test("encodeUint8Array", function () {
   assertEquals("\\x0b", encodeArgument(buf3));
 });
 
-Deno.test("encodeArray", function () {
+Deno.test("encodeArray", () => {
   const array = [null, "postgres", 1, ["foo", "bar"]];
   const encodedArray = encodeArgument(array);
 
   assertEquals(encodedArray, '{NULL,"postgres","1",{"foo","bar"}}');
 });
 
-Deno.test("encodeObjectArray", function () {
+Deno.test("encodeObjectArray", () => {
   const array = [{ x: 1 }, { y: 2 }];
   const encodedArray = encodeArgument(array);
   assertEquals(encodedArray, '{"{\\"x\\":1}","{\\"y\\":2}"}');
 });
 
-Deno.test("encodeDateArray", function () {
+Deno.test("encodeDateArray", () => {
   overrideTimezoneOffset(0);
 
   const array = [new Date(2019, 1, 10, 20, 30, 40, 5)];

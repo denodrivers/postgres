@@ -26,15 +26,10 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {
-  bold,
-  BufReader,
-  BufWriter,
-  delay,
-  joinPath,
-  rgb24,
-  yellow,
-} from "../deps.ts";
+import { BufReader, BufWriter } from "@std/io";
+import { delay } from "@std/async";
+import { bold, rgb24, yellow } from "@std/fmt/colors";
+import { join as joinPath } from "@std/path";
 import { DeferredStack } from "../utils/deferred.ts";
 import { getSocketName, readUInt32BE } from "../utils/utils.ts";
 import { PacketWriter } from "./packet.ts";
@@ -54,7 +49,7 @@ import {
   type QueryResult,
   ResultType,
 } from "../query/query.ts";
-import { type ClientConfiguration } from "./connection_params.ts";
+import type { ClientConfiguration } from "./connection_params.ts";
 import * as scram from "./scram.ts";
 import {
   ConnectionError,
@@ -129,7 +124,7 @@ const encoder = new TextEncoder();
 export class Connection {
   #bufReader!: BufReader;
   #bufWriter!: BufWriter;
-  #conn!: Deno.Conn;
+  #conn!: Deno.TcpConn | Deno.TlsConn;
   connected = false;
   #connection_params: ClientConfiguration;
   #message_header = new Uint8Array(5);
@@ -295,7 +290,7 @@ export class Connection {
   }
 
   async #openTlsConnection(
-    connection: Deno.Conn,
+    connection: Deno.TcpConn,
     options: { hostname: string; caCerts: string[] },
   ) {
     this.#conn = await Deno.startTls(connection, options);
@@ -354,7 +349,7 @@ export class Connection {
         // https://www.postgresql.org/docs/14/protocol-flow.html#id-1.10.5.7.11
         if (accepts_tls) {
           try {
-            await this.#openTlsConnection(this.#conn, {
+            await this.#openTlsConnection(this.#conn as Deno.TcpConn, {
               hostname,
               caCerts: caCertificates,
             });
@@ -362,10 +357,11 @@ export class Connection {
           } catch (e) {
             if (!tls_enforced) {
               console.error(
-                bold(yellow("TLS connection failed with message: ")) +
-                  e.message +
-                  "\n" +
-                  bold("Defaulting to non-encrypted connection"),
+                `${
+                  bold(yellow("TLS connection failed with message:"))
+                } ${e.message}\n${
+                  bold("Defaulting to non-encrypted connection")
+                }`,
               );
               await this.#openConnection({ hostname, port, transport: "tcp" });
               this.#tls = false;
@@ -384,7 +380,7 @@ export class Connection {
     }
 
     try {
-      let startup_response;
+      let startup_response: Message | undefined;
       try {
         startup_response = await this.#sendStartupMessage();
       } catch (e) {
@@ -396,18 +392,16 @@ export class Connection {
               "The certificate used to secure the TLS connection is invalid: " +
                 e.message,
             );
-          } else {
-            console.error(
-              bold(yellow("TLS connection failed with message: ")) +
-                e.message +
-                "\n" +
-                bold("Defaulting to non-encrypted connection"),
-            );
-            await this.#openConnection({ hostname, port, transport: "tcp" });
-            this.#tls = false;
-            this.#transport = "tcp";
-            startup_response = await this.#sendStartupMessage();
           }
+          console.error(
+            `${
+              bold(yellow("TLS connection failed with message:"))
+            } ${e.message}\n${bold("Defaulting to non-encrypted connection")}`,
+          );
+          await this.#openConnection({ hostname, port, transport: "tcp" });
+          this.#tls = false;
+          this.#transport = "tcp";
+          startup_response = await this.#sendStartupMessage();
         } else {
           throw e;
         }
@@ -784,16 +778,16 @@ export class Connection {
     if (hasBinaryArgs) {
       this.#packetWriter.addInt16(query.args.length);
 
-      query.args.forEach((arg) => {
+      for (const arg of query.args) {
         this.#packetWriter.addInt16(arg instanceof Uint8Array ? 1 : 0);
-      });
+      }
     } else {
       this.#packetWriter.addInt16(0);
     }
 
     this.#packetWriter.addInt16(query.args.length);
 
-    query.args.forEach((arg) => {
+    for (const arg of query.args) {
       if (arg === null || typeof arg === "undefined") {
         this.#packetWriter.addInt32(-1);
       } else if (arg instanceof Uint8Array) {
@@ -804,7 +798,7 @@ export class Connection {
         this.#packetWriter.addInt32(byteLength);
         this.#packetWriter.addString(arg);
       }
-    });
+    }
 
     this.#packetWriter.addInt16(0);
     const buffer = this.#packetWriter.flush(0x42);

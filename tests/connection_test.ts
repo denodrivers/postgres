@@ -1,9 +1,6 @@
-import {
-  assertEquals,
-  assertRejects,
-  copyStream,
-  joinPath,
-} from "./test_deps.ts";
+import { join as joinPath } from "@std/path";
+import { assertEquals, assertRejects } from "@std/assert";
+import { copy as copyStream } from "@std/io";
 import {
   getClearConfiguration,
   getClearSocketConfiguration,
@@ -232,7 +229,7 @@ Deno.test("Defaults to unencrypted when certificate is invalid and TLS is not en
   }
 });
 
-Deno.test("Handles bad authentication correctly", async function () {
+Deno.test("Handles bad authentication correctly", async () => {
   const badConnectionData = getMainConfiguration();
   badConnectionData.password += getRandomString();
   const client = new Client(badConnectionData);
@@ -252,7 +249,7 @@ Deno.test("Handles bad authentication correctly", async function () {
 
 // This test requires current user database connection permissions
 // on "pg_hba.conf" set to "all"
-Deno.test("Startup error when database does not exist", async function () {
+Deno.test("Startup error when database does not exist", async () => {
   const badConnectionData = getMainConfiguration();
   badConnectionData.database += getRandomString();
   const client = new Client(badConnectionData);
@@ -364,7 +361,7 @@ Deno.test("Attempts to guess socket route", async () => {
   );
 });
 
-Deno.test("Closes connection on bad TLS availability verification", async function () {
+Deno.test("Closes connection on bad TLS availability verification", async () => {
   const server = new Worker(
     new URL("./workers/postgres_server.ts", import.meta.url).href,
     {
@@ -504,14 +501,14 @@ async function mockReconnection(attempts: number) {
   );
 }
 
-Deno.test("Attempts reconnection on connection startup", async function () {
+Deno.test("Attempts reconnection on connection startup", async () => {
   await mockReconnection(5);
   await mockReconnection(0);
 });
 
 // This test ensures a failed query that is disconnected after execution but before
 // status report is only executed one (regression test)
-Deno.test("Attempts reconnection on disconnection", async function () {
+Deno.test("Attempts reconnection on disconnection", async () => {
   const client = new Client({
     ...getMainConfiguration(),
     connection: {
@@ -586,7 +583,7 @@ Deno.test("Attempts reconnection on socket disconnection", async () => {
 // TODO
 // Find a way to unlink the socket to simulate unexpected socket disconnection
 
-Deno.test("Attempts reconnection when connection is lost", async function () {
+Deno.test("Attempts reconnection when connection is lost", async () => {
   const cfg = getMainConfiguration();
   const listener = Deno.listen({ hostname: "127.0.0.1", port: 0 });
 
@@ -624,7 +621,7 @@ Deno.test("Attempts reconnection when connection is lost", async function () {
   await proxy;
 });
 
-Deno.test("Doesn't attempt reconnection when attempts are set to zero", async function () {
+Deno.test("Doesn't attempt reconnection when attempts are set to zero", async () => {
   const client = new Client({
     ...getMainConfiguration(),
     connection: { attempts: 0 },

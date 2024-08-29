@@ -1,4 +1,4 @@
-import { parseDate } from "../deps.ts";
+import { parse as parseDate } from "@std/datetime";
 import { parseArray } from "./array_parser.ts";
 import type {
   Box,
@@ -75,9 +75,8 @@ export function decodeBoxArray(value: string) {
 export function decodeBytea(byteaStr: string): Uint8Array {
   if (HEX_PREFIX_REGEX.test(byteaStr)) {
     return decodeByteaHex(byteaStr);
-  } else {
-    return decodeByteaEscape(byteaStr);
   }
+  return decodeByteaEscape(byteaStr);
 }
 
 export function decodeByteaArray(value: string) {
@@ -94,7 +93,7 @@ function decodeByteaEscape(byteaStr: string): Uint8Array {
       ++i;
     } else {
       if (/[0-7]{3}/.test(byteaStr.substr(i + 1, 3))) {
-        bytes.push(parseInt(byteaStr.substr(i + 1, 3), 8));
+        bytes.push(Number.parseInt(byteaStr.substr(i + 1, 3), 8));
         i += 4;
       } else {
         let backslashes = 1;
@@ -118,7 +117,7 @@ function decodeByteaHex(byteaStr: string): Uint8Array {
   const bytesStr = byteaStr.slice(2);
   const bytes = new Uint8Array(bytesStr.length / 2);
   for (let i = 0, j = 0; i < bytesStr.length; i += 2, j++) {
-    bytes[j] = parseInt(bytesStr[i] + bytesStr[i + 1], HEX);
+    bytes[j] = Number.parseInt(bytesStr[i] + bytesStr[i + 1], HEX);
   }
   return bytes;
 }
@@ -128,7 +127,7 @@ export function decodeCircle(value: string): Circle {
     .substring(1, value.length - 1)
     .split(/,(?![^(]*\))/) as [string, Float8];
 
-  if (Number.isNaN(parseFloat(radius))) {
+  if (Number.isNaN(Number.parseFloat(radius))) {
     throw new Error(
       `Invalid Circle: "${value}". Circle radius "${radius}" must be a valid number.`,
     );
@@ -152,9 +151,10 @@ export function decodeDate(dateStr: string): Date | number {
   // there are special `infinity` and `-infinity`
   // cases representing out-of-range dates
   if (dateStr === "infinity") {
-    return Number(Infinity);
-  } else if (dateStr === "-infinity") {
-    return Number(-Infinity);
+    return Number(Number.POSITIVE_INFINITY);
+  }
+  if (dateStr === "-infinity") {
+    return Number(Number.NEGATIVE_INFINITY);
   }
 
   return parseDate(dateStr, "yyyy-MM-dd");
@@ -178,16 +178,16 @@ export function decodeDatetime(dateStr: string): number | Date {
 
   const isBC = BC_RE.test(dateStr);
 
-  const year = parseInt(matches[1], 10) * (isBC ? -1 : 1);
+  const year = Number.parseInt(matches[1], 10) * (isBC ? -1 : 1);
   // remember JS dates are 0-based
-  const month = parseInt(matches[2], 10) - 1;
-  const day = parseInt(matches[3], 10);
-  const hour = parseInt(matches[4], 10);
-  const minute = parseInt(matches[5], 10);
-  const second = parseInt(matches[6], 10);
+  const month = Number.parseInt(matches[2], 10) - 1;
+  const day = Number.parseInt(matches[3], 10);
+  const hour = Number.parseInt(matches[4], 10);
+  const minute = Number.parseInt(matches[5], 10);
+  const second = Number.parseInt(matches[6], 10);
   // ms are written as .007
   const msMatch = matches[7];
-  const ms = msMatch ? 1000 * parseFloat(msMatch) : 0;
+  const ms = msMatch ? 1000 * Number.parseFloat(msMatch) : 0;
 
   let date: Date;
 
@@ -213,7 +213,7 @@ export function decodeDatetimeArray(value: string) {
 }
 
 export function decodeInt(value: string): number {
-  return parseInt(value, 10);
+  return Number.parseInt(value, 10);
 }
 
 export function decodeIntArray(value: string) {
@@ -221,7 +221,7 @@ export function decodeIntArray(value: string) {
 }
 
 export function decodeFloat(value: string): number {
-  return parseFloat(value);
+  return Number.parseFloat(value);
 }
 
 export function decodeFloatArray(value: string) {
@@ -249,13 +249,13 @@ export function decodeLine(value: string): Line {
     );
   }
 
-  equationConsts.forEach((c) => {
-    if (Number.isNaN(parseFloat(c))) {
+  for (const c of equationConsts) {
+    if (Number.isNaN(Number.parseFloat(c))) {
       throw new Error(
         `Invalid Line: "${value}". Line constant "${c}" must be a valid number.`,
       );
     }
-  });
+  }
 
   const [a, b, c] = equationConsts;
 
@@ -326,10 +326,12 @@ export function decodePoint(value: string): Point {
 
   const [x, y] = coordinates;
 
-  if (Number.isNaN(parseFloat(x)) || Number.isNaN(parseFloat(y))) {
+  if (
+    Number.isNaN(Number.parseFloat(x)) || Number.isNaN(Number.parseFloat(y))
+  ) {
     throw new Error(
       `Invalid Point: "${value}". Coordinate "${
-        Number.isNaN(parseFloat(x)) ? x : y
+        Number.isNaN(Number.parseFloat(x)) ? x : y
       }" must be a valid number.`,
     );
   }
@@ -393,9 +395,9 @@ function decodeTimezoneOffset(dateStr: string): null | number {
   // offsets and vice-versa
   const sign = type === "-" ? 1 : -1;
 
-  const hours = parseInt(matches[2], 10);
-  const minutes = parseInt(matches[3] || "0", 10);
-  const seconds = parseInt(matches[4] || "0", 10);
+  const hours = Number.parseInt(matches[2], 10);
+  const minutes = Number.parseInt(matches[3] || "0", 10);
+  const seconds = Number.parseInt(matches[4] || "0", 10);
 
   const offset = hours * 3600 + minutes * 60 + seconds;
 

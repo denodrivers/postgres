@@ -1,4 +1,5 @@
-import { assertEquals, assertThrows, fromFileUrl } from "./test_deps.ts";
+import { fromFileUrl } from "@std/path";
+import { assertEquals, assertThrows } from "@std/assert";
 import { createParams } from "../connection/connection_params.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 
@@ -53,7 +54,7 @@ function withEnv(
   };
 }
 
-Deno.test("Parses connection string", function () {
+Deno.test("Parses connection string", () => {
   const p = createParams(
     "postgres://some_user@some_host:10101/deno_postgres",
   );
@@ -65,7 +66,7 @@ Deno.test("Parses connection string", function () {
   assertEquals(p.user, "some_user");
 });
 
-Deno.test("Parses connection string with socket host", function () {
+Deno.test("Parses connection string with socket host", () => {
   const socket = "/var/run/postgresql";
 
   const p = createParams(
@@ -79,7 +80,7 @@ Deno.test("Parses connection string with socket host", function () {
   assertEquals(p.user, "some_user");
 });
 
-Deno.test('Parses connection string with "postgresql" as driver', function () {
+Deno.test('Parses connection string with "postgresql" as driver', () => {
   const p = createParams(
     "postgresql://some_user@some_host:10101/deno_postgres",
   );
@@ -90,7 +91,7 @@ Deno.test('Parses connection string with "postgresql" as driver', function () {
   assertEquals(p.port, 10101);
 });
 
-Deno.test("Parses connection string without port", function () {
+Deno.test("Parses connection string without port", () => {
   const p = createParams(
     "postgres://some_user@some_host/deno_postgres",
   );
@@ -101,7 +102,7 @@ Deno.test("Parses connection string without port", function () {
   assertEquals(p.port, 5432);
 });
 
-Deno.test("Parses connection string with application name", function () {
+Deno.test("Parses connection string with application name", () => {
   const p = createParams(
     "postgres://some_user@some_host:10101/deno_postgres?application_name=test_app",
   );
@@ -122,7 +123,7 @@ Deno.test("Parses connection string with reserved URL parameters", () => {
   assertEquals(p.user, "some_user");
 });
 
-Deno.test("Parses connection string with sslmode required", function () {
+Deno.test("Parses connection string with sslmode required", () => {
   const p = createParams(
     "postgres://some_user@some_host:10101/deno_postgres?sslmode=require",
   );
@@ -176,7 +177,7 @@ Deno.test("Throws on connection string with invalid options", () => {
   assertThrows(
     () =>
       createParams(
-        `postgres://some_user@some_host:10101/deno_postgres?options=z`,
+        "postgres://some_user@some_host:10101/deno_postgres?options=z",
       ),
     Error,
     `Value "z" is not a valid options argument`,
@@ -216,7 +217,7 @@ Deno.test("Throws on connection string with invalid options", () => {
   );
 });
 
-Deno.test("Throws on connection string with invalid driver", function () {
+Deno.test("Throws on connection string with invalid driver", () => {
   assertThrows(
     () =>
       createParams(
@@ -227,7 +228,7 @@ Deno.test("Throws on connection string with invalid driver", function () {
   );
 });
 
-Deno.test("Throws on connection string with invalid port", function () {
+Deno.test("Throws on connection string with invalid port", () => {
   assertThrows(
     () =>
       createParams(
@@ -238,7 +239,7 @@ Deno.test("Throws on connection string with invalid port", function () {
   );
 });
 
-Deno.test("Throws on connection string with invalid ssl mode", function () {
+Deno.test("Throws on connection string with invalid ssl mode", () => {
   assertThrows(
     () =>
       createParams(
@@ -249,7 +250,7 @@ Deno.test("Throws on connection string with invalid ssl mode", function () {
   );
 });
 
-Deno.test("Parses connection options", function () {
+Deno.test("Parses connection options", () => {
   const p = createParams({
     user: "some_user",
     hostname: "some_host",
@@ -264,7 +265,7 @@ Deno.test("Parses connection options", function () {
   assertEquals(p.port, 10101);
 });
 
-Deno.test("Throws on invalid tls options", function () {
+Deno.test("Throws on invalid tls options", () => {
   assertThrows(
     () =>
       createParams({
@@ -493,7 +494,7 @@ Deno.test("Throws when host is a URL and host type is socket", () => {
   }
 
   if (!(error.cause instanceof Error)) {
-    throw new Error(`Expected cause for error`);
+    throw new Error("Expected cause for error");
   }
 
   const expected_message = "The provided host is not a file path";

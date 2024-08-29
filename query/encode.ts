@@ -91,15 +91,18 @@ export type EncodedArg = null | string | Uint8Array;
 export function encodeArgument(value: unknown): EncodedArg {
   if (value === null || typeof value === "undefined") {
     return null;
-  } else if (value instanceof Uint8Array) {
-    return encodeBytes(value);
-  } else if (value instanceof Date) {
-    return encodeDate(value);
-  } else if (value instanceof Array) {
-    return encodeArray(value);
-  } else if (value instanceof Object) {
-    return JSON.stringify(value);
-  } else {
-    return String(value);
   }
+  if (value instanceof Uint8Array) {
+    return encodeBytes(value);
+  }
+  if (value instanceof Date) {
+    return encodeDate(value);
+  }
+  if (Array.isArray(value)) {
+    return encodeArray(value);
+  }
+  if (value instanceof Object) {
+    return JSON.stringify(value);
+  }
+  return String(value);
 }

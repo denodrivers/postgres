@@ -1,9 +1,9 @@
 import { parseConnectionUri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
-import { fromFileUrl, isAbsolute } from "../deps.ts";
-import { OidType } from "../query/oid.ts";
-import { DebugControls } from "../debug.ts";
-import { ParseArrayFunction } from "../query/array_parser.ts";
+import { fromFileUrl, isAbsolute } from "@std/path";
+import type { OidType } from "../query/oid.ts";
+import type { DebugControls } from "../debug.ts";
+import type { ParseArrayFunction } from "../query/array_parser.ts";
 
 /**
  * The connection string must match the following URI structure. All parameters but database and user are optional

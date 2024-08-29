@@ -22,7 +22,8 @@ export class DeferredStack<T> {
   async pop(): Promise<T> {
     if (this.#elements.length > 0) {
       return this.#elements.pop()!;
-    } else if (this.#size < this.#max_size && this.#creator) {
+    }
+    if (this.#size < this.#max_size && this.#creator) {
       this.#size++;
       return await this.#creator();
     }

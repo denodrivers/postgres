@@ -1,4 +1,4 @@
-import { type Notice } from "../connection/message.ts";
+import type { Notice } from "../connection/message.ts";
 
 /**
  * A connection error
