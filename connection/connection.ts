@@ -393,7 +393,8 @@ export class Connection {
         if (e instanceof Deno.errors.InvalidData && tls_enabled) {
           if (tls_enforced) {
             throw new Error(
-              "The certificate used to secure the TLS connection is invalid.",
+              "The certificate used to secure the TLS connection is invalid: " +
+                e.message,
             );
           } else {
             console.error(
