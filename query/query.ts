@@ -38,7 +38,8 @@ export type CommandType =
   | "SELECT"
   | "MOVE"
   | "FETCH"
-  | "COPY";
+  | "COPY"
+  | "CREATE";
 
 /** Type of a query result */
 export enum ResultType {
