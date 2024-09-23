@@ -355,6 +355,7 @@ export class Connection {
         if (accepts_tls) {
           try {
             // TODO: handle connection type without casting
+            // https://github.com/denoland/deno/issues/10200
             await this.#openTlsConnection(this.#conn as Deno.TcpConn, {
               hostname,
               caCerts: caCertificates,
