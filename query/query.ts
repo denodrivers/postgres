@@ -1,7 +1,7 @@
 import { encodeArgument, type EncodedArg } from "./encode.ts";
 import { type Column, decode } from "./decode.ts";
-import { type Notice } from "../connection/message.ts";
-import { type ClientControls } from "../connection/connection_params.ts";
+import type { Notice } from "../connection/message.ts";
+import type { ClientControls } from "../connection/connection_params.ts";
 
 // TODO
 // Limit the type of parameters that can be passed

@@ -1,4 +1,4 @@
-import { Oid, OidType, OidTypes, OidValue } from "./oid.ts";
+import { Oid, type OidType, OidTypes, type OidValue } from "./oid.ts";
 import { bold, yellow } from "../deps.ts";
 import {
   decodeBigint,
@@ -35,7 +35,7 @@ import {
   decodeTid,
   decodeTidArray,
 } from "./decoders.ts";
-import { ClientControls } from "../connection/connection_params.ts";
+import type { ClientControls } from "../connection/connection_params.ts";
 import { parseArray } from "./array_parser.ts";
 
 export class Column {

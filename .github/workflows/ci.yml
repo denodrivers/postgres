@@ -30,16 +30,16 @@ jobs:
         uses: actions/checkout@master
 
       - name: Build tests container
-        run: docker-compose build tests
+        run: docker compose build tests
       
       - name: Run tests
-        run: docker-compose run tests
+        run: docker compose run tests
 
       - name: Run tests without typechecking
         id: no_typecheck
         uses: mathiasvr/command-output@v2.0.0
         with:
-          run: docker-compose run no_check_tests
+          run: docker compose run no_check_tests
         continue-on-error: true
 
       - name: Report no typechecking tests status
