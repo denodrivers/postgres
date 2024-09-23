@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows } from "./test_deps.ts";
-import { parseConnectionUri, Uri } from "../utils/utils.ts";
+import { parseConnectionUri, type Uri } from "../utils/utils.ts";
 import { DeferredAccessStack, DeferredStack } from "../utils/deferred.ts";
 
 class LazilyInitializedObject {

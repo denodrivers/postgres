@@ -54,7 +54,7 @@ import {
   type QueryResult,
   ResultType,
 } from "../query/query.ts";
-import { type ClientConfiguration } from "./connection_params.ts";
+import type { ClientConfiguration } from "./connection_params.ts";
 import * as scram from "./scram.ts";
 import {
   ConnectionError,
@@ -295,7 +295,7 @@ export class Connection {
   }
 
   async #openTlsConnection(
-    connection: Deno.Conn,
+    connection: Deno.TcpConn,
     options: { hostname: string; caCerts: string[] },
   ) {
     this.#conn = await Deno.startTls(connection, options);
@@ -354,7 +354,9 @@ export class Connection {
         // https://www.postgresql.org/docs/14/protocol-flow.html#id-1.10.5.7.11
         if (accepts_tls) {
           try {
-            await this.#openTlsConnection(this.#conn, {
+            // TODO: handle connection type without castinggaa
+            // https://github.com/denoland/deno/issues/10200
+            await this.#openTlsConnection(this.#conn as Deno.TcpConn, {
               hostname,
               caCerts: caCertificates,
             });

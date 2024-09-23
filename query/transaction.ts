@@ -1,4 +1,4 @@
-import { type QueryClient } from "../client.ts";
+import type { QueryClient } from "../client.ts";
 import {
   Query,
   type QueryArguments,
