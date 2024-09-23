@@ -86,8 +86,8 @@ result assertions.
 
 To run the tests, run the following commands:
 
-1. `docker-compose build tests`
-2. `docker-compose run tests`
+1. `docker compose build tests`
+2. `docker compose run tests`
 
 The build step will check linting and formatting as well and report it to the
 command line

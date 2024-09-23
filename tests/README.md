@@ -16,8 +16,8 @@ From within the project directory, run:
 deno test --allow-read --allow-net --allow-env
 
 # run in docker container
-docker-compose build --no-cache
-docker-compose run tests
+docker compose build --no-cache
+docker compose run tests
 ```
 
 ## Docker Configuration
