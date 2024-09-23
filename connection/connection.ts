@@ -54,7 +54,7 @@ import {
   type QueryResult,
   ResultType,
 } from "../query/query.ts";
-import { type ClientConfiguration } from "./connection_params.ts";
+import type { ClientConfiguration } from "./connection_params.ts";
 import * as scram from "./scram.ts";
 import {
   ConnectionError,

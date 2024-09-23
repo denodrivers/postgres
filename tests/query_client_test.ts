@@ -14,8 +14,8 @@ import {
   assertThrows,
 } from "./test_deps.ts";
 import { getMainConfiguration } from "./config.ts";
-import { PoolClient, QueryClient } from "../client.ts";
-import { ClientOptions } from "../connection/connection_params.ts";
+import type { PoolClient, QueryClient } from "../client.ts";
+import type { ClientOptions } from "../connection/connection_params.ts";
 import { Oid } from "../query/oid.ts";
 
 function withClient(
