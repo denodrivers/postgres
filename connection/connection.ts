@@ -354,7 +354,7 @@ export class Connection {
         // https://www.postgresql.org/docs/14/protocol-flow.html#id-1.10.5.7.11
         if (accepts_tls) {
           try {
-            // TODO: handle connection type without casting
+            // TODO: handle connection type without castinggaa
             // https://github.com/denoland/deno/issues/10200
             await this.#openTlsConnection(this.#conn as Deno.TcpConn, {
               hostname,
