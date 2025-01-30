@@ -46,8 +46,8 @@ jobs:
 
       - name: Publish (dry run)
         if: startsWith(github.ref, 'refs/tags/') == false
-        run: deno publish --dry-run
+        run: deno publish --dry-run --allow-dirty
 
       - name: Publish (real)
         if: startsWith(github.ref, 'refs/tags/')
-        run: deno publish
+        run: deno publish --allow-dirty
