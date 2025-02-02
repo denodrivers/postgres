@@ -1,4 +1,5 @@
-import { assertEquals, assertThrows, fromFileUrl } from "./test_deps.ts";
+import { assertEquals, assertThrows } from "jsr:@std/assert@1.0.10";
+import { fromFileUrl } from "@std/path";
 import { createParams } from "../connection/connection_params.ts";
 import { ConnectionParamsError } from "../client/error.ts";
 

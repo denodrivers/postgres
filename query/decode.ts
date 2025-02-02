@@ -1,5 +1,5 @@
 import { Oid, type OidType, OidTypes, type OidValue } from "./oid.ts";
-import { bold, yellow } from "../deps.ts";
+import { bold, yellow } from "@std/fmt/colors";
 import {
   decodeBigint,
   decodeBigintArray,
@@ -196,10 +196,10 @@ function decodeText(value: string, typeOid: number) {
         // them as they see fit
         return value;
     }
-  } catch (_e) {
+  } catch (e) {
     console.error(
       bold(yellow(`Error decoding type Oid ${typeOid} value`)) +
-        _e.message +
+        (e instanceof Error ? e.message : e) +
         "\n" +
         bold("Defaulting to null."),
     );

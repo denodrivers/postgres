@@ -1,4 +1,4 @@
-import { assertEquals } from "./test_deps.ts";
+import { assertEquals } from "jsr:@std/assert@1.0.10";
 import { encodeArgument } from "../query/encode.ts";
 
 // internally `encodeArguments` uses `getTimezoneOffset` to encode Date

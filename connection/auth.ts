@@ -1,9 +1,10 @@
-import { crypto, hex } from "../deps.ts";
+import { crypto } from "@std/crypto/crypto";
+import { encodeHex } from "@std/encoding/hex";
 
 const encoder = new TextEncoder();
 
 async function md5(bytes: Uint8Array): Promise<string> {
-  return hex.encodeHex(await crypto.subtle.digest("MD5", bytes));
+  return encodeHex(await crypto.subtle.digest("MD5", bytes));
 }
 
 // AuthenticationMD5Password

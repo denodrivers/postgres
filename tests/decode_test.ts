@@ -17,7 +17,7 @@ import {
   decodePoint,
   decodeTid,
 } from "../query/decoders.ts";
-import { assertEquals, assertThrows } from "./test_deps.ts";
+import { assertEquals, assertThrows } from "jsr:@std/assert@1.0.10";
 import { Oid } from "../query/oid.ts";
 
 Deno.test("decodeBigint", function () {

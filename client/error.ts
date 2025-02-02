@@ -20,7 +20,7 @@ export class ConnectionParamsError extends Error {
   /**
    * Create a new ConnectionParamsError
    */
-  constructor(message: string, cause?: Error) {
+  constructor(message: string, cause?: unknown) {
     super(message, { cause });
     this.name = "ConnectionParamsError";
   }

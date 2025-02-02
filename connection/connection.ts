@@ -26,15 +26,9 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import {
-  bold,
-  BufReader,
-  BufWriter,
-  delay,
-  joinPath,
-  rgb24,
-  yellow,
-} from "../deps.ts";
+import { join as joinPath } from "@std/path";
+import { bold, rgb24, yellow } from "@std/fmt/colors";
+import { delay } from "@std/async/delay";
 import { DeferredStack } from "../utils/deferred.ts";
 import { getSocketName, readUInt32BE } from "../utils/utils.ts";
 import { PacketWriter } from "./packet.ts";
@@ -127,8 +121,6 @@ const encoder = new TextEncoder();
 // - Refactor properties to not be lazily initialized
 //   or to handle their undefined value
 export class Connection {
-  #bufReader!: BufReader;
-  #bufWriter!: BufWriter;
   #conn!: Deno.Conn;
   connected = false;
   #connection_params: ClientConfiguration;
@@ -142,6 +134,7 @@ export class Connection {
   #secretKey?: number;
   #tls?: boolean;
   #transport?: "tcp" | "socket";
+  #connWritable!: WritableStreamDefaultWriter<Uint8Array>;
 
   get pid(): number | undefined {
     return this.#pid;
@@ -166,12 +159,31 @@ export class Connection {
   }
 
   /**
+   * Read p.length bytes into the buffer
+   */
+  async #readFull(p: Uint8Array): Promise<void> {
+    let bytes_read = 0;
+    while (bytes_read < p.length) {
+      const read_result = await this.#conn.read(p.subarray(bytes_read));
+      if (read_result === null) {
+        if (bytes_read === 0) {
+          return;
+        } else {
+          throw new ConnectionError("Failed to read bytes from socket");
+        }
+      }
+      bytes_read += read_result;
+    }
+  }
+
+  /**
    * Read single message sent by backend
    */
   async #readMessage(): Promise<Message> {
     // Clear buffer before reading the message type
     this.#message_header.fill(0);
-    await this.#bufReader.readFull(this.#message_header);
+    await this.#readFull(this.#message_header);
+
     const type = decoder.decode(this.#message_header.slice(0, 1));
     // TODO
     // Investigate if the ascii terminator is the best way to check for a broken
@@ -187,7 +199,7 @@ export class Connection {
     }
     const length = readUInt32BE(this.#message_header, 1) - 4;
     const body = new Uint8Array(length);
-    await this.#bufReader.readFull(body);
+    await this.#readFull(body);
 
     return new Message(type, length, body);
   }
@@ -197,8 +209,7 @@ export class Connection {
     writer.clear();
     writer.addInt32(8).addInt32(80877103).join();
 
-    await this.#bufWriter.write(writer.flush());
-    await this.#bufWriter.flush();
+    await this.#connWritable.write(writer.flush());
 
     const response = new Uint8Array(1);
     await this.#conn.read(response);
@@ -254,8 +265,7 @@ export class Connection {
 
     const finalBuffer = writer.addInt32(bodyLength).add(bodyBuffer).join();
 
-    await this.#bufWriter.write(finalBuffer);
-    await this.#bufWriter.flush();
+    await this.#connWritable.write(finalBuffer);
 
     return await this.#readMessage();
   }
@@ -264,8 +274,7 @@ export class Connection {
     // @ts-expect-error This will throw in runtime if the options passed to it are socket related and deno is running
     // on stable
     this.#conn = await Deno.connect(options);
-    this.#bufWriter = new BufWriter(this.#conn);
-    this.#bufReader = new BufReader(this.#conn);
+    this.#connWritable = this.#conn.writable.getWriter();
   }
 
   async #openSocketConnection(path: string, port: number) {
@@ -299,8 +308,7 @@ export class Connection {
     options: { hostname: string; caCerts: string[] },
   ) {
     this.#conn = await Deno.startTls(connection, options);
-    this.#bufWriter = new BufWriter(this.#conn);
-    this.#bufReader = new BufReader(this.#conn);
+    this.#connWritable = this.#conn.writable.getWriter();
   }
 
   #resetConnectionMetadata() {
@@ -338,7 +346,7 @@ export class Connection {
       this.#tls = undefined;
       this.#transport = "socket";
     } else {
-      // A BufWriter needs to be available in order to check if the server accepts TLS connections
+      // A writer needs to be available in order to check if the server accepts TLS connections
       await this.#openConnection({ hostname, port, transport: "tcp" });
       this.#tls = false;
       this.#transport = "tcp";
@@ -365,7 +373,7 @@ export class Connection {
             if (!tls_enforced) {
               console.error(
                 bold(yellow("TLS connection failed with message: ")) +
-                  e.message +
+                  (e instanceof Error ? e.message : e) +
                   "\n" +
                   bold("Defaulting to non-encrypted connection"),
               );
@@ -468,7 +476,7 @@ export class Connection {
     let reconnection_attempts = 0;
     const max_reconnections = this.#connection_params.connection.attempts;
 
-    let error: Error | undefined;
+    let error: unknown | undefined;
     // If no connection has been established and the reconnection attempts are
     // set to zero, attempt to connect at least once
     if (!is_reconnection && this.#connection_params.connection.attempts === 0) {
@@ -566,8 +574,7 @@ export class Connection {
     const password = this.#connection_params.password || "";
     const buffer = this.#packetWriter.addCString(password).flush(0x70);
 
-    await this.#bufWriter.write(buffer);
-    await this.#bufWriter.flush();
+    await this.#connWritable.write(buffer);
 
     return this.#readMessage();
   }
@@ -588,8 +595,7 @@ export class Connection {
     );
     const buffer = this.#packetWriter.addCString(password).flush(0x70);
 
-    await this.#bufWriter.write(buffer);
-    await this.#bufWriter.flush();
+    await this.#connWritable.write(buffer);
 
     return this.#readMessage();
   }
@@ -616,8 +622,7 @@ export class Connection {
     this.#packetWriter.addCString("SCRAM-SHA-256");
     this.#packetWriter.addInt32(clientFirstMessage.length);
     this.#packetWriter.addString(clientFirstMessage);
-    this.#bufWriter.write(this.#packetWriter.flush(0x70));
-    this.#bufWriter.flush();
+    this.#connWritable.write(this.#packetWriter.flush(0x70));
 
     const maybe_sasl_continue = await this.#readMessage();
     switch (maybe_sasl_continue.type) {
@@ -644,8 +649,7 @@ export class Connection {
 
     this.#packetWriter.clear();
     this.#packetWriter.addString(await client.composeResponse());
-    this.#bufWriter.write(this.#packetWriter.flush(0x70));
-    this.#bufWriter.flush();
+    this.#connWritable.write(this.#packetWriter.flush(0x70));
 
     const maybe_sasl_final = await this.#readMessage();
     switch (maybe_sasl_final.type) {
@@ -681,8 +685,7 @@ export class Connection {
 
     const buffer = this.#packetWriter.addCString(query.text).flush(0x51);
 
-    await this.#bufWriter.write(buffer);
-    await this.#bufWriter.flush();
+    await this.#connWritable.write(buffer);
 
     let result;
     if (query.result_type === ResultType.ARRAY) {
@@ -691,7 +694,7 @@ export class Connection {
       result = new QueryObjectResult(query);
     }
 
-    let error: Error | undefined;
+    let error: unknown | undefined;
     let current_message = await this.#readMessage();
 
     // Process messages until ready signal is sent
@@ -771,7 +774,7 @@ export class Connection {
       .addCString(query.text)
       .addInt16(0)
       .flush(0x50);
-    await this.#bufWriter.write(buffer);
+    await this.#connWritable.write(buffer);
   }
 
   async #appendArgumentsToMessage<T extends ResultType>(query: Query<T>) {
@@ -788,16 +791,16 @@ export class Connection {
     if (hasBinaryArgs) {
       this.#packetWriter.addInt16(query.args.length);
 
-      query.args.forEach((arg) => {
+      for (const arg of query.args) {
         this.#packetWriter.addInt16(arg instanceof Uint8Array ? 1 : 0);
-      });
+      }
     } else {
       this.#packetWriter.addInt16(0);
     }
 
     this.#packetWriter.addInt16(query.args.length);
 
-    query.args.forEach((arg) => {
+    for (const arg of query.args) {
       if (arg === null || typeof arg === "undefined") {
         this.#packetWriter.addInt32(-1);
       } else if (arg instanceof Uint8Array) {
@@ -808,11 +811,11 @@ export class Connection {
         this.#packetWriter.addInt32(byteLength);
         this.#packetWriter.addString(arg);
       }
-    });
+    }
 
     this.#packetWriter.addInt16(0);
     const buffer = this.#packetWriter.flush(0x42);
-    await this.#bufWriter.write(buffer);
+    await this.#connWritable.write(buffer);
   }
 
   /**
@@ -823,7 +826,7 @@ export class Connection {
     this.#packetWriter.clear();
 
     const buffer = this.#packetWriter.addCString("P").flush(0x44);
-    await this.#bufWriter.write(buffer);
+    await this.#connWritable.write(buffer);
   }
 
   async #appendExecuteToMessage() {
@@ -833,14 +836,14 @@ export class Connection {
       .addCString("") // unnamed portal
       .addInt32(0)
       .flush(0x45);
-    await this.#bufWriter.write(buffer);
+    await this.#connWritable.write(buffer);
   }
 
   async #appendSyncToMessage() {
     this.#packetWriter.clear();
 
     const buffer = this.#packetWriter.flush(0x53);
-    await this.#bufWriter.write(buffer);
+    await this.#connWritable.write(buffer);
   }
 
   // TODO
@@ -878,8 +881,6 @@ export class Connection {
     // The execute response contains the portal in which the query will be run and how many rows should it return
     await this.#appendExecuteToMessage();
     await this.#appendSyncToMessage();
-    // send all messages to backend
-    await this.#bufWriter.flush();
 
     let result;
     if (query.result_type === ResultType.ARRAY) {
@@ -888,7 +889,7 @@ export class Connection {
       result = new QueryObjectResult(query);
     }
 
-    let error: Error | undefined;
+    let error: unknown | undefined;
     let current_message = await this.#readMessage();
 
     while (current_message.type !== INCOMING_QUERY_MESSAGES.READY) {
@@ -1002,9 +1003,9 @@ export class Connection {
   async end(): Promise<void> {
     if (this.connected) {
       const terminationMessage = new Uint8Array([0x58, 0x00, 0x00, 0x00, 0x04]);
-      await this.#bufWriter.write(terminationMessage);
+      await this.#connWritable.write(terminationMessage);
       try {
-        await this.#bufWriter.flush();
+        await this.#connWritable.ready;
       } catch (_e) {
         // This steps can fail if the underlying connection was closed ungracefully
       } finally {

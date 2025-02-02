@@ -89,7 +89,7 @@ class ArrayParser<T> {
         this.dimension++;
         if (this.dimension > 1) {
           parser = new ArrayParser(
-            this.source.substr(this.position - 1),
+            this.source.substring(this.position - 1),
             this.transform,
             this.separator,
           );

@@ -155,7 +155,7 @@ export interface QueryObjectOptions extends QueryOptions {
 /**
  * This class is used to handle the result of a query
  */
-export class QueryResult {
+export abstract class QueryResult {
   /**
    * Type of query executed for this result
    */
@@ -225,9 +225,7 @@ export class QueryResult {
    *
    * This function can throw on validation, so any errors must be handled in the message loop accordingly
    */
-  insertRow(_row: Uint8Array[]): void {
-    throw new Error("No implementation for insertRow is defined");
-  }
+  abstract insertRow(_row: Uint8Array[]): void;
 }
 
 /**

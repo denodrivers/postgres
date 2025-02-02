@@ -50,24 +50,23 @@ function escapeArrayElement(value: unknown): string {
 function encodeArray(array: Array<unknown>): string {
   let encodedArray = "{";
 
-  array.forEach((element, index) => {
+  for (let index = 0; index < array.length; index++) {
     if (index > 0) {
       encodedArray += ",";
     }
 
+    const element = array[index];
     if (element === null || typeof element === "undefined") {
       encodedArray += "NULL";
     } else if (Array.isArray(element)) {
       encodedArray += encodeArray(element);
     } else if (element instanceof Uint8Array) {
-      // TODO
-      // Should it be encoded as bytea?
-      throw new Error("Can't encode array of buffers.");
+      encodedArray += encodeBytes(element);
     } else {
       const encodedElement = encodeArgument(element);
       encodedArray += escapeArrayElement(encodedElement as string);
     }
-  });
+  }
 
   encodedArray += "}";
   return encodedArray;
@@ -91,15 +90,18 @@ export type EncodedArg = null | string | Uint8Array;
 export function encodeArgument(value: unknown): EncodedArg {
   if (value === null || typeof value === "undefined") {
     return null;
-  } else if (value instanceof Uint8Array) {
-    return encodeBytes(value);
-  } else if (value instanceof Date) {
-    return encodeDate(value);
-  } else if (value instanceof Array) {
-    return encodeArray(value);
-  } else if (value instanceof Object) {
-    return JSON.stringify(value);
-  } else {
-    return String(value);
   }
+  if (value instanceof Uint8Array) {
+    return encodeBytes(value);
+  }
+  if (value instanceof Date) {
+    return encodeDate(value);
+  }
+  if (value instanceof Array) {
+    return encodeArray(value);
+  }
+  if (value instanceof Object) {
+    return JSON.stringify(value);
+  }
+  return String(value);
 }
