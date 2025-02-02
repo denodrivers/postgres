@@ -373,7 +373,7 @@ export class Connection {
             if (!tls_enforced) {
               console.error(
                 bold(yellow("TLS connection failed with message: ")) +
-                  (e as Error).message +
+                  (e instanceof Error ? e.message : e) +
                   "\n" +
                   bold("Defaulting to non-encrypted connection"),
               );

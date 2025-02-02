@@ -63,7 +63,9 @@ export function decodeBox(value: string): Box {
       b: decodePoint(b),
     };
   } catch (e) {
-    throw new Error(`Invalid Box: "${value}" : ${(e as Error).message}`);
+    throw new Error(
+      `Invalid Box: "${value}" : ${(e instanceof Error ? e.message : e)}`,
+    );
   }
 }
 
@@ -139,7 +141,9 @@ export function decodeCircle(value: string): Circle {
       radius: radius,
     };
   } catch (e) {
-    throw new Error(`Invalid Circle: "${value}" : ${(e as Error).message}`);
+    throw new Error(
+      `Invalid Circle: "${value}" : ${(e instanceof Error ? e.message : e)}`,
+    );
   }
 }
 
@@ -287,7 +291,9 @@ export function decodeLineSegment(value: string): LineSegment {
     };
   } catch (e) {
     throw new Error(
-      `Invalid Line Segment: "${value}" : ${(e as Error).message}`,
+      `Invalid Line Segment: "${value}" : ${(e instanceof Error
+        ? e.message
+        : e)}`,
     );
   }
 }
@@ -305,7 +311,9 @@ export function decodePath(value: string): Path {
     try {
       return decodePoint(point);
     } catch (e) {
-      throw new Error(`Invalid Path: "${value}" : ${(e as Error).message}`);
+      throw new Error(
+        `Invalid Path: "${value}" : ${(e instanceof Error ? e.message : e)}`,
+      );
     }
   });
 }
@@ -349,7 +357,9 @@ export function decodePolygon(value: string): Polygon {
   try {
     return decodePath(value);
   } catch (e) {
-    throw new Error(`Invalid Polygon: "${value}" : ${(e as Error).message}`);
+    throw new Error(
+      `Invalid Polygon: "${value}" : ${(e instanceof Error ? e.message : e)}`,
+    );
   }
 }
 
