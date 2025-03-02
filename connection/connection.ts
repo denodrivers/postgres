@@ -449,6 +449,8 @@ export class Connection {
           }
           case INCOMING_AUTHENTICATION_MESSAGES.PARAMETER_STATUS:
             break;
+          case INCOMING_AUTHENTICATION_MESSAGES.NOTICE:
+            break;
           default:
             throw new Error(`Unknown response for startup: ${message.type}`);
         }

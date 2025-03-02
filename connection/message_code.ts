@@ -24,6 +24,7 @@ export const INCOMING_AUTHENTICATION_MESSAGES = {
   BACKEND_KEY: "K",
   PARAMETER_STATUS: "S",
   READY: "Z",
+  NOTICE: "N",
 } as const;
 
 export const INCOMING_TLS_MESSAGES = {
