@@ -420,7 +420,7 @@ export function createParams(
   try {
     pgEnv = getPgEnv();
   } catch (e) {
-    if (e instanceof Deno.errors.PermissionDenied) {
+    if (e instanceof Deno.errors.PermissionDenied || ('NotCapable' in Deno.errors && e instanceof Deno.errors.NotCapable)) {
       has_env_access = false;
     } else {
       throw e;

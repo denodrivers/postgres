@@ -164,15 +164,22 @@ export class Connection {
   async #readFull(p: Uint8Array): Promise<void> {
     let bytes_read = 0;
     while (bytes_read < p.length) {
-      const read_result = await this.#conn.read(p.subarray(bytes_read));
-      if (read_result === null) {
-        if (bytes_read === 0) {
-          return;
-        } else {
-          throw new ConnectionError("Failed to read bytes from socket");
+      try {
+        const read_result = await this.#conn.read(p.subarray(bytes_read));
+        if (read_result === null) {
+          if (bytes_read === 0) {
+            return;
+          } else {
+            throw new ConnectionError("Failed to read bytes from socket");
+          }
         }
+        bytes_read += read_result;
+      } catch (e) {
+        if (e instanceof Deno.errors.ConnectionReset) {
+          throw new ConnectionError("The session was terminated unexpectedly");
+        }
+        throw e;
       }
-      bytes_read += read_result;
     }
   }
 
@@ -400,7 +407,7 @@ export class Connection {
       } catch (e) {
         // Make sure to close the connection before erroring or reseting
         this.#closeConnection();
-        if (e instanceof Deno.errors.InvalidData && tls_enabled) {
+        if ((e instanceof Deno.errors.InvalidData || e instanceof Deno.errors.BadResource) && tls_enabled) {
           if (tls_enforced) {
             throw new Error(
               "The certificate used to secure the TLS connection is invalid: " +

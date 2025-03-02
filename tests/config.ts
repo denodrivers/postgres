@@ -15,7 +15,7 @@ let DEV_MODE: string | undefined;
 try {
   DEV_MODE = Deno.env.get("DENO_POSTGRES_DEVELOPMENT");
 } catch (e) {
-  if (e instanceof Deno.errors.PermissionDenied) {
+  if (e instanceof Deno.errors.PermissionDenied || ('NotCapable' in Deno.errors && e instanceof Deno.errors.NotCapable)) {
     throw new Error(
       "You need to provide ENV access in order to run the test suite",
     );

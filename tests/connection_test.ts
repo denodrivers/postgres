@@ -180,7 +180,6 @@ Deno.test("Skips TLS connection when TLS disabled", async () => {
   }
 });
 
-// TODO(jersey): fix the error on this test
 Deno.test("Aborts TLS connection when certificate is untrusted", async () => {
   // Force TLS but don't provide CA
   const client = new Client({
@@ -209,7 +208,6 @@ Deno.test("Aborts TLS connection when certificate is untrusted", async () => {
   }
 });
 
-// TODO(jersey): this should not fail or reject
 Deno.test("Defaults to unencrypted when certificate is invalid and TLS is not enforced", async () => {
   // Remove CA, request tls and disable enforce
   const client = new Client({
@@ -560,7 +558,6 @@ Deno.test("Attempts reconnection on disconnection", async function () {
   }
 });
 
-// TODO(jersey): fix error so that it's a connectionerror
 Deno.test("Attempts reconnection on socket disconnection", async () => {
   const client = new Client(getMd5SocketConfiguration());
   await client.connect();
@@ -587,25 +584,35 @@ Deno.test("Attempts reconnection when connection is lost", async function () {
   const cfg = getMainConfiguration();
   const listener = Deno.listen({ hostname: "127.0.0.1", port: 0 });
 
+  console.log("a")
+
   const { aborter, proxy } = createProxy(listener, {
     hostname: cfg.hostname,
-    port: Number(cfg.port),
+    port: cfg.port,
   });
+
+  console.log("b")
 
   const client = new Client({
     ...cfg,
     hostname: "127.0.0.1",
-    port: (listener.addr as Deno.NetAddr).port,
+    port: listener.addr.port,
     tls: {
       enabled: false,
     },
   });
 
+  console.log("c")
+
   await client.queryObject("SELECT 1");
+
+  console.log("d")
 
   // This closes ongoing connections. The original connection is now dead, so
   // a new connection should be established.
   aborter.abort();
+
+  console.log("e")
 
   await assertRejects(
     () => client.queryObject("SELECT 1"),
@@ -613,12 +620,21 @@ Deno.test("Attempts reconnection when connection is lost", async function () {
     "The session was terminated unexpectedly",
   );
 
+  console.log("f")
+
   // Make sure the connection was reestablished once the server comes back online
   await client.queryObject("SELECT 1");
   await client.end();
 
+  console.log("g")
+
   listener.close();
+
+  console.log("h")
+
   await proxy;
+
+  console.log("i")
 });
 
 Deno.test("Doesn't attempt reconnection when attempts are set to zero", async function () {
