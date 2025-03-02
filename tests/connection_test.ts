@@ -584,14 +584,14 @@ Deno.test("Attempts reconnection when connection is lost", async function () {
   const cfg = getMainConfiguration();
   const listener = Deno.listen({ hostname: "127.0.0.1", port: 0 });
 
-  console.log("a")
+  console.log("a");
 
   const { aborter, proxy } = createProxy(listener, {
     hostname: cfg.hostname,
     port: cfg.port,
   });
 
-  console.log("b")
+  console.log("b");
 
   const client = new Client({
     ...cfg,
@@ -602,17 +602,17 @@ Deno.test("Attempts reconnection when connection is lost", async function () {
     },
   });
 
-  console.log("c")
+  console.log("c");
 
   await client.queryObject("SELECT 1");
 
-  console.log("d")
+  console.log("d");
 
   // This closes ongoing connections. The original connection is now dead, so
   // a new connection should be established.
   aborter.abort();
 
-  console.log("e")
+  console.log("e");
 
   await assertRejects(
     () => client.queryObject("SELECT 1"),
@@ -620,21 +620,21 @@ Deno.test("Attempts reconnection when connection is lost", async function () {
     "The session was terminated unexpectedly",
   );
 
-  console.log("f")
+  console.log("f");
 
   // Make sure the connection was reestablished once the server comes back online
   await client.queryObject("SELECT 1");
   await client.end();
 
-  console.log("g")
+  console.log("g");
 
   listener.close();
 
-  console.log("h")
+  console.log("h");
 
   await proxy;
 
-  console.log("i")
+  console.log("i");
 });
 
 Deno.test("Doesn't attempt reconnection when attempts are set to zero", async function () {

@@ -423,7 +423,10 @@ export function createParams(
     // In Deno v1, Deno permission errors resulted in a Deno.errors.PermissionDenied exception. In Deno v2, a new
     // Deno.errors.NotCapable exception was added to replace this. The "in" check makes this code safe for both Deno
     // 1 and Deno 2
-    if (e instanceof Deno.errors.PermissionDenied || ('NotCapable' in Deno.errors && e instanceof Deno.errors.NotCapable)) {
+    if (
+      e instanceof Deno.errors.PermissionDenied ||
+      ("NotCapable" in Deno.errors && e instanceof Deno.errors.NotCapable)
+    ) {
       has_env_access = false;
     } else {
       throw e;

@@ -407,7 +407,10 @@ export class Connection {
       } catch (e) {
         // Make sure to close the connection before erroring or reseting
         this.#closeConnection();
-        if ((e instanceof Deno.errors.InvalidData || e instanceof Deno.errors.BadResource) && tls_enabled) {
+        if (
+          (e instanceof Deno.errors.InvalidData ||
+            e instanceof Deno.errors.BadResource) && tls_enabled
+        ) {
           if (tls_enforced) {
             throw new Error(
               "The certificate used to secure the TLS connection is invalid: " +
