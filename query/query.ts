@@ -15,13 +15,14 @@ import type { ClientControls } from "../connection/connection_params.ts";
  * They will take the position according to the order in which they were provided
  *
  * ```ts
- * import { Client } from "https://deno.land/x/postgres/mod.ts";
+ * import { Client } from "jsr:@db/postgres";
  * const my_client = new Client();
  *
- * await my_client.queryArray("SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2", [
- *   10, // $1
- *   20, // $2
+ * await my_client.queryArray("SELECT ID, NAME FROM CLIENTS WHERE NAME = $1", [
+ *   "John", // $1
  * ]);
+ * 
+ * await my_client.end();
  * ```
  */
 

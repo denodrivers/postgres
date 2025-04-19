@@ -60,26 +60,36 @@ export class Savepoint {
    * Releasing a savepoint will remove it's last instance in the transaction
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
+   * await transaction.begin();
    * const savepoint = await transaction.savepoint("n1");
    * await savepoint.release();
-   * transaction.rollback(savepoint); // Error, can't rollback because the savepoint was released
+   * 
+   * try {
+   *   await transaction.rollback(savepoint); // Error, can't rollback because the savepoint was released
+   * } catch (e) {
+   *   console.log(e);
+   * }
+   * 
+   * await client.end();
    * ```
    *
    * It will also allow you to set the savepoint to the position it had before the last update
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
-   * const transaction = client.createTransaction("transaction");
+   * const transaction = client.createTransaction("transaction1");
    *
+   * await transaction.begin();
    * const savepoint = await transaction.savepoint("n1");
    * await savepoint.update();
    * await savepoint.release(); // This drops the update of the last statement
-   * transaction.rollback(savepoint); // Will rollback to the first instance of the savepoint
+   * await transaction.rollback(savepoint); // Will rollback to the first instance of the savepoint
+   * await client.end();
    * ```
    *
    * This function will throw if there are no savepoint instances to drop
@@ -97,29 +107,33 @@ export class Savepoint {
    * Updating a savepoint will update its position in the transaction execution
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
-   * const transaction = client.createTransaction("transaction");
+   * const transaction = client.createTransaction("transaction1");
    *
-   * const my_value = "some value";
+   * await transaction.begin();
    *
    * const savepoint = await transaction.savepoint("n1");
-   * transaction.queryArray`INSERT INTO MY_TABLE (X) VALUES (${my_value})`;
+   * transaction.queryArray`DELETE FROM CLIENTS`;
    * await savepoint.update(); // Rolling back will now return you to this point on the transaction
+   * await client.end();
    * ```
    *
    * You can also undo a savepoint update by using the `release` method
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
-   * const transaction = client.createTransaction("transaction");
+   * const transaction = client.createTransaction("transaction1");
    *
+   * await transaction.begin();
+   * 
    * const savepoint = await transaction.savepoint("n1");
-   * transaction.queryArray`DELETE FROM VERY_IMPORTANT_TABLE`;
+   * transaction.queryArray`DELETE FROM CLIENTS`;
    * await savepoint.update(); // Oops, shouldn't have updated the savepoint
    * await savepoint.release(); // This will undo the last update and return the savepoint to the first instance
    * await transaction.rollback(); // Will rollback before the table was deleted
+   * await client.end();
    * ```
    */
   async update() {
@@ -197,13 +211,14 @@ export class Transaction {
    * The begin method will officially begin the transaction, and it must be called before
    * any query or transaction operation is executed in order to lock the session
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction_name");
    *
    * await transaction.begin(); // Session is locked, transaction operations are now safe
    * // Important operations
    * await transaction.commit(); // Session is unlocked, external operations can now take place
+   * await client.end();
    * ```
    * https://www.postgresql.org/docs/14/sql-begin.html
    */
@@ -272,27 +287,31 @@ export class Transaction {
    * current transaction and end the current transaction
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
    * await transaction.begin();
    * // Important operations
    * await transaction.commit(); // Will terminate the transaction and save all changes
+   * await client.end();
    * ```
    *
    * The commit method allows you to specify a "chain" option, that allows you to both commit the current changes and
    * start a new with the same transaction parameters in a single statement
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
-   * const transaction = client.createTransaction("transaction");
+   * const transaction = client.createTransaction("transaction1");
+   * 
+   * await transaction.begin();
    *
    * // Transaction operations I want to commit
    * await transaction.commit({ chain: true }); // All changes are saved, following statements will be executed inside a transaction
-   * await transaction.queryArray`DELETE SOMETHING FROM SOMEWHERE`; // Still inside the transaction
+   * await transaction.queryArray`DELETE FROM CLIENTS`; // Still inside the transaction
    * await transaction.commit(); // The transaction finishes for good
+   * await client.end();
    * ```
    *
    * https://www.postgresql.org/docs/14/sql-commit.html
@@ -344,14 +363,19 @@ export class Transaction {
    * the snapshot state between two transactions
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client_1 = new Client();
    * const client_2 = new Client();
    * const transaction_1 = client_1.createTransaction("transaction");
    *
+   * await transaction_1.begin();
+   * 
    * const snapshot = await transaction_1.getSnapshot();
    * const transaction_2 = client_2.createTransaction("new_transaction", { isolation_level: "repeatable_read", snapshot });
    * // transaction_2 now shares the same starting state that transaction_1 had
+   * 
+   * await client_1.end();
+   * await client_2.end();
    * ```
    * https://www.postgresql.org/docs/14/functions-admin.html#FUNCTIONS-SNAPSHOT-SYNCHRONIZATION
    */
@@ -369,36 +393,48 @@ export class Transaction {
    * It supports a generic interface in order to type the entries retrieved by the query
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
+   * 
+   * await transaction.begin();
    *
    * const {rows} = await transaction.queryArray(
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<unknown[]>
+   * 
+   * await client.end();
    * ```
    *
    * You can pass type arguments to the query in order to hint TypeScript what the return value will be
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
+   * 
+   * await transaction.begin();
    *
    * const { rows } = await transaction.queryArray<[number, string]>(
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<[number, string]>
+   * 
+   * await client.end();
    * ```
    *
    * It also allows you to execute prepared stamements with template strings
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
    *
+   * await transaction.begin();
+   * 
    * const id = 12;
    * // Array<[number, string]>
    * const { rows } = await transaction.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
+   * 
+   * await client.end();
    * ```
    */
   async queryArray<T extends Array<unknown>>(
@@ -409,12 +445,13 @@ export class Transaction {
    * Use the configuration object for more advance options to execute the query
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const my_client = new Client();
    * const { rows } = await my_client.queryArray<[number, string]>({
    *   text: "SELECT ID, NAME FROM CLIENTS",
    *   name: "select_clients",
    * }); // Array<[number, string]>
+   * await my_client.end();
    * ```
    */
   async queryArray<T extends Array<unknown>>(
@@ -424,12 +461,14 @@ export class Transaction {
    * Execute prepared statements with template strings
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const my_client = new Client();
    *
    * const id = 12;
    * // Array<[number, string]>
    * const {rows} = await my_client.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
+   * 
+   * await my_client.end();
    * ```
    */
   async queryArray<T extends Array<unknown>>(
@@ -474,7 +513,7 @@ export class Transaction {
    * Executed queries and retrieve the data as object entries. It supports a generic in order to type the entries retrieved by the query
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const my_client = new Client();
    *
    * const { rows: rows1 } = await my_client.queryObject(
@@ -484,6 +523,8 @@ export class Transaction {
    * const { rows: rows2 } = await my_client.queryObject<{id: number, name: string}>(
    *   "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<{id: number, name: string}>
+   * 
+   * await my_client.end();
    * ```
    */
   async queryObject<T>(
@@ -494,7 +535,7 @@ export class Transaction {
    * Use the configuration object for more advance options to execute the query
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const my_client = new Client();
    *
    * const { rows: rows1 } = await my_client.queryObject(
@@ -507,6 +548,8 @@ export class Transaction {
    *   fields: ["personal_id", "complete_name"],
    * });
    * console.log(rows2); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
+   * 
+   * await my_client.end();
    * ```
    */
   async queryObject<T>(
@@ -516,11 +559,12 @@ export class Transaction {
    * Execute prepared statements with template strings
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const my_client = new Client();
    * const id = 12;
    * // Array<{id: number, name: string}>
    * const { rows } = await my_client.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
+   * await my_client.end();
    * ```
    */
   async queryObject<T>(
@@ -574,12 +618,15 @@ export class Transaction {
    * Calling a rollback without arguments will terminate the current transaction and undo all changes.
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
+   * 
+   * await transaction.begin();
    *
    * // Very very important operations that went very, very wrong
    * await transaction.rollback(); // Like nothing ever happened
+   * await client.end();
    * ```
    *
    * https://www.postgresql.org/docs/14/sql-rollback.html
@@ -589,13 +636,15 @@ export class Transaction {
    * Savepoints can be used to rollback specific changes part of a transaction.
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
-   * const transaction = client.createTransaction("transaction");
+   * const transaction = client.createTransaction("transaction1");
+   * 
+   * await transaction.begin();
    *
    * // Important operations I don't want to rollback
    * const savepoint = await transaction.savepoint("before_disaster");
-   * await transaction.queryArray`UPDATE MY_TABLE SET X = 0`; // Oops, update without where
+   * await transaction.queryArray`DELETE FROM CLIENTS`; // Oops, deleted the wrong thing
    *
    * // These are all the same, everything that happened between the savepoint and the rollback gets undone
    * await transaction.rollback(savepoint);
@@ -603,6 +652,7 @@ export class Transaction {
    * await transaction.rollback({ savepoint: 'before_disaster'})
    *
    * await transaction.commit(); // Commits all other changes
+   * await client.end();
    * ```
    */
   async rollback(
@@ -612,14 +662,17 @@ export class Transaction {
    * The `chain` option allows you to undo the current transaction and restart it with the same parameters in a single statement
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
-   * const transaction = client.createTransaction("transaction");
+   * const transaction = client.createTransaction("transaction2");
+   * 
+   * await transaction.begin();
    *
    * // Transaction operations I want to undo
    * await transaction.rollback({ chain: true }); // All changes are undone, but the following statements will be executed inside a transaction as well
-   * await transaction.queryArray`DELETE SOMETHING FROM SOMEWHERE`; // Still inside the transaction
+   * await transaction.queryArray`DELETE FROM CLIENTS`; // Still inside the transaction
    * await transaction.commit(); // The transaction finishes for good
+   * await client.end();
    * ```
    */
   async rollback(options?: { chain?: boolean }): Promise<void>;
@@ -720,42 +773,51 @@ export class Transaction {
    *
    * A savepoint can be easily created like this
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
+   * 
+   * await transaction.begin();
    *
    * const savepoint = await transaction.savepoint("MY_savepoint"); // returns a `Savepoint` with name "my_savepoint"
    * await transaction.rollback(savepoint);
    * await savepoint.release(); // The savepoint will be removed
+   * await client.end();
    * ```
    * All savepoints can have multiple positions in a transaction, and you can change or update
    * this positions by using the `update` and `release` methods
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
-   * const transaction = client.createTransaction("transaction");
+   * const transaction = client.createTransaction("transaction1");
+   * 
+   * await transaction.begin();
    *
    * const savepoint = await transaction.savepoint("n1");
-   * await transaction.queryArray`INSERT INTO MY_TABLE VALUES (${'A'}, ${2})`;
+   * await transaction.queryArray`DELETE FROM CLIENTS`;
    * await savepoint.update(); // The savepoint will continue from here
-   * await transaction.queryArray`DELETE FROM MY_TABLE`;
-   * await transaction.rollback(savepoint); // The transaction will rollback before the delete, but after the insert
+   * await transaction.queryArray`DELETE FROM CLIENTS`;
+   * await transaction.rollback(savepoint); // The transaction will rollback before the secpmd delete
    * await savepoint.release(); // The last savepoint will be removed, the original one will remain
-   * await transaction.rollback(savepoint); // It rolls back before the insert
+   * await transaction.rollback(savepoint); // It rolls back before the delete
    * await savepoint.release(); // All savepoints are released
+   * await client.end();
    * ```
    *
    * Creating a new savepoint with an already used name will return you a reference to
    * the original savepoint
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
-   * const transaction = client.createTransaction("transaction");
+   * const transaction = client.createTransaction("transaction2");
+   * 
+   * await transaction.begin();
    *
    * const savepoint_a = await transaction.savepoint("a");
-   * await transaction.queryArray`DELETE FROM MY_TABLE`;
+   * await transaction.queryArray`DELETE FROM CLIENTS`;
    * const savepoint_b = await transaction.savepoint("a"); // They will be the same savepoint, but the savepoint will be updated to this position
    * await transaction.rollback(savepoint_a); // Rolls back to savepoint_b
+   * await client.end();
    * ```
    * https://www.postgresql.org/docs/14/sql-savepoint.html
    */

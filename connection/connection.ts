@@ -28,7 +28,6 @@
 
 import { join as joinPath } from "@std/path";
 import { bold, rgb24, yellow } from "@std/fmt/colors";
-import { delay } from "@std/async/delay";
 import { DeferredStack } from "../utils/deferred.ts";
 import { getSocketName, readUInt32BE } from "../utils/utils.ts";
 import { PacketWriter } from "./packet.ts";
@@ -510,7 +509,7 @@ export class Connection {
           }
 
           if (interval > 0) {
-            await delay(interval);
+            await new Promise((resolve)=>setTimeout(resolve, interval));
           }
         }
         try {

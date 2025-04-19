@@ -24,7 +24,7 @@ discuss bugs and features before opening issues.
 
 ```ts
 // deno run --allow-net --allow-read mod.ts
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+import { Client } from "jsr:@db/postgres";
 
 const client = new Client({
   user: "user",

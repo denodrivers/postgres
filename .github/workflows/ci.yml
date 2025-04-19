@@ -50,24 +50,14 @@ jobs:
       no_typecheck: ${{ steps.no_typecheck.outputs.stdout }}
       no_typecheck_status: ${{ steps.no_typecheck_status.outputs.status }}
 
-  report_warnings:
-    needs: [code_quality, test]
+  test_docs:
     runs-on: ubuntu-latest
     steps:
-      - name: Set no-typecheck fail comment
-        if: ${{ needs.test.outputs.no_typecheck_status != 'success' && github.event_name == 'push' }}
-        uses: peter-evans/commit-comment@v3
-        with:
-          body: |
-            # No typecheck tests failure
+      - name: Clone repo
+        uses: actions/checkout@master
 
-            This error was most likely caused by incorrect type stripping from the SWC crate
+      - name: Build tests container
+        run: docker compose build tests
 
-            Please report the following failure to https://github.com/denoland/deno with a reproduction of the current commit
-
-            <details>
-              <summary>Failure log</summary>
-              <pre><code>
-            ${{ needs.test.outputs.no_typecheck }}
-              </code></pre>
-            </details>
+      - name: Run doc tests
+        run: docker compose run doc_tests

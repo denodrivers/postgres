@@ -11,7 +11,7 @@ experience. It provides abstractions for most common operations such as typed
 queries, prepared statements, connection pools, and transactions.
 
 ```ts
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+import { Client } from "jsr:@db/postgres";
 
 const client = new Client({
   user: "user",
@@ -38,7 +38,7 @@ All `deno-postgres` clients provide the following options to authenticate and
 manage your connections
 
 ```ts
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+import { Client } from "jsr:@db/postgres";
 
 let config;
 
@@ -381,7 +381,7 @@ https://www.postgresql.org/docs/14/libpq-envars.html)
 
 ```ts
 // PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env database.js
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+import { Client } from "jsr:@db/postgres";
 
 const client = new Client();
 await client.connect();
@@ -1133,7 +1133,7 @@ try{
   savepoint = await transaction.savepoint("1");
 }catch(e){
   // We validate the error was not related to transaction execution
-  if(!(e instance of TransactionError)){
+  if(!(e instanceof TransactionError)){
     // We create a good savepoint we can use
     savepoint = await transaction.savepoint("a_valid_name");
   }else{
@@ -1465,7 +1465,7 @@ options:
 
 ```ts
 // debug_test.ts
-import { Client } from "./mod.ts";
+import { Client } from "jsr:@db/postgres";
 
 const client = new Client({
   user: "postgres",
