@@ -20,8 +20,17 @@ jobs:
       - name: Lint
         run: deno lint
 
-      - name: Documentation tests
-        run: deno test --doc client.ts mod.ts pool.ts client/ connection/ query/ utils/
+  test_docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@master
+
+      - name: Build tests container
+        run: docker compose build tests
+
+      - name: Run doc tests
+        run: docker compose run doc_tests
 
   test:
     runs-on: ubuntu-latest
@@ -36,28 +45,4 @@ jobs:
         run: docker compose run tests
 
       - name: Run tests without typechecking
-        id: no_typecheck
-        uses: mathiasvr/command-output@v2.0.0
-        with:
-          run: docker compose run no_check_tests
-        continue-on-error: true
-
-      - name: Report no typechecking tests status
-        id: no_typecheck_status
-        if: steps.no_typecheck.outcome == 'success'
-        run: echo "name=status::success" >> $GITHUB_OUTPUT
-    outputs:
-      no_typecheck: ${{ steps.no_typecheck.outputs.stdout }}
-      no_typecheck_status: ${{ steps.no_typecheck_status.outputs.status }}
-
-  test_docs:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone repo
-        uses: actions/checkout@master
-
-      - name: Build tests container
-        run: docker compose build tests
-
-      - name: Run doc tests
-        run: docker compose run doc_tests
+        run: docker compose run no_check_tests
