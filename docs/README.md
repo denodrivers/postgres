@@ -1127,16 +1127,16 @@ const transaction = client.createTransaction("abortable");
 await transaction.begin();
 
 let savepoint;
-try{
+try {
   // Oops, savepoints can't start with a number
   // Validation error, transaction won't be ended
   savepoint = await transaction.savepoint("1");
-}catch(e){
+} catch (e) {
   // We validate the error was not related to transaction execution
-  if(!(e instanceof TransactionError)){
+  if (!(e instanceof TransactionError)) {
     // We create a good savepoint we can use
     savepoint = await transaction.savepoint("a_valid_name");
-  }else{
+  } else {
     throw e;
   }
 }

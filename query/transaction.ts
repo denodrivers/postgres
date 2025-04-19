@@ -67,13 +67,13 @@ export class Savepoint {
    * await transaction.begin();
    * const savepoint = await transaction.savepoint("n1");
    * await savepoint.release();
-   * 
+   *
    * try {
    *   await transaction.rollback(savepoint); // Error, can't rollback because the savepoint was released
    * } catch (e) {
    *   console.log(e);
    * }
-   * 
+   *
    * await client.end();
    * ```
    *
@@ -127,7 +127,7 @@ export class Savepoint {
    * const transaction = client.createTransaction("transaction1");
    *
    * await transaction.begin();
-   * 
+   *
    * const savepoint = await transaction.savepoint("n1");
    * transaction.queryArray`DELETE FROM CLIENTS`;
    * await savepoint.update(); // Oops, shouldn't have updated the savepoint
@@ -304,7 +304,7 @@ export class Transaction {
    * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction1");
-   * 
+   *
    * await transaction.begin();
    *
    * // Transaction operations I want to commit
@@ -369,11 +369,11 @@ export class Transaction {
    * const transaction_1 = client_1.createTransaction("transaction");
    *
    * await transaction_1.begin();
-   * 
+   *
    * const snapshot = await transaction_1.getSnapshot();
    * const transaction_2 = client_2.createTransaction("new_transaction", { isolation_level: "repeatable_read", snapshot });
    * // transaction_2 now shares the same starting state that transaction_1 had
-   * 
+   *
    * await client_1.end();
    * await client_2.end();
    * ```
@@ -396,13 +396,13 @@ export class Transaction {
    * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
-   * 
+   *
    * await transaction.begin();
    *
    * const {rows} = await transaction.queryArray(
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<unknown[]>
-   * 
+   *
    * await client.end();
    * ```
    *
@@ -411,13 +411,13 @@ export class Transaction {
    * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
-   * 
+   *
    * await transaction.begin();
    *
    * const { rows } = await transaction.queryArray<[number, string]>(
    *  "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<[number, string]>
-   * 
+   *
    * await client.end();
    * ```
    *
@@ -429,11 +429,11 @@ export class Transaction {
    * const transaction = client.createTransaction("transaction");
    *
    * await transaction.begin();
-   * 
+   *
    * const id = 12;
    * // Array<[number, string]>
    * const { rows } = await transaction.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
-   * 
+   *
    * await client.end();
    * ```
    */
@@ -467,7 +467,7 @@ export class Transaction {
    * const id = 12;
    * // Array<[number, string]>
    * const {rows} = await my_client.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
-   * 
+   *
    * await my_client.end();
    * ```
    */
@@ -523,7 +523,7 @@ export class Transaction {
    * const { rows: rows2 } = await my_client.queryObject<{id: number, name: string}>(
    *   "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<{id: number, name: string}>
-   * 
+   *
    * await my_client.end();
    * ```
    */
@@ -548,7 +548,7 @@ export class Transaction {
    *   fields: ["personal_id", "complete_name"],
    * });
    * console.log(rows2); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
-   * 
+   *
    * await my_client.end();
    * ```
    */
@@ -621,7 +621,7 @@ export class Transaction {
    * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
-   * 
+   *
    * await transaction.begin();
    *
    * // Very very important operations that went very, very wrong
@@ -639,7 +639,7 @@ export class Transaction {
    * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction1");
-   * 
+   *
    * await transaction.begin();
    *
    * // Important operations I don't want to rollback
@@ -665,7 +665,7 @@ export class Transaction {
    * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction2");
-   * 
+   *
    * await transaction.begin();
    *
    * // Transaction operations I want to undo
@@ -776,7 +776,7 @@ export class Transaction {
    * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction");
-   * 
+   *
    * await transaction.begin();
    *
    * const savepoint = await transaction.savepoint("MY_savepoint"); // returns a `Savepoint` with name "my_savepoint"
@@ -790,7 +790,7 @@ export class Transaction {
    * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction1");
-   * 
+   *
    * await transaction.begin();
    *
    * const savepoint = await transaction.savepoint("n1");
@@ -810,7 +810,7 @@ export class Transaction {
    * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("transaction2");
-   * 
+   *
    * await transaction.begin();
    *
    * const savepoint_a = await transaction.savepoint("a");

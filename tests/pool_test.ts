@@ -11,7 +11,7 @@ Deno.test(
       assertEquals(POOL.available, 10);
       const client = await POOL.connect();
       const p = client.queryArray("SELECT pg_sleep(0.1) is null, -1 AS id");
-      await new Promise((resolve)=>setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 1));
       assertEquals(POOL.available, 9);
       assertEquals(POOL.size, 10);
       await p;
@@ -28,7 +28,7 @@ Deno.test(
         return query;
       });
       const qsPromises = Promise.all(qsThunks);
-      await new Promise((resolve)=>setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 1));
       assertEquals(POOL.available, 0);
       const qs = await qsPromises;
       assertEquals(POOL.available, 10);
@@ -52,7 +52,7 @@ Deno.test(
 
       const client_2 = await POOL.connect();
       const p = client_2.queryArray("SELECT pg_sleep(0.1) is null, -1 AS id");
-      await new Promise((resolve)=>setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 1));
       assertEquals(POOL.size, size);
       assertEquals(POOL.available, size - 1);
       assertEquals(await POOL.initialized(), 0);
@@ -75,7 +75,7 @@ Deno.test(
         },
       );
       const qsPromises = Promise.all(qsThunks);
-      await new Promise((resolve)=>setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 1));
       assertEquals(POOL.available, 0);
       assertEquals(await POOL.initialized(), 0);
       const qs = await qsPromises;

@@ -509,7 +509,7 @@ export class Connection {
           }
 
           if (interval > 0) {
-            await new Promise((resolve)=>setTimeout(resolve, interval));
+            await new Promise((resolve) => setTimeout(resolve, interval));
           }
         }
         try {

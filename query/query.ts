@@ -21,7 +21,7 @@ import type { ClientControls } from "../connection/connection_params.ts";
  * await my_client.queryArray("SELECT ID, NAME FROM CLIENTS WHERE NAME = $1", [
  *   "John", // $1
  * ]);
- * 
+ *
  * await my_client.end();
  * ```
  */

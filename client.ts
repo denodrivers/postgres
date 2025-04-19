@@ -124,7 +124,7 @@ export abstract class QueryClient {
    * const transaction = client.createTransaction("cool_transaction");
    *
    * await transaction.begin();
-   * 
+   *
    * try {
    *   try {
    *     await transaction.queryArray`SELECT []`; // Invalid syntax, transaction aborted, changes won't be applied
@@ -134,7 +134,7 @@ export abstract class QueryClient {
    * } catch (e) {
    *   console.log(e);
    * }
-   * 
+   *
    * await client.end();
    * ```
    *
@@ -147,14 +147,14 @@ export abstract class QueryClient {
    * const transaction = client.createTransaction("awesome_transaction");
    *
    * await transaction.begin();
-   * 
+   *
    * try {
    *   await transaction.rollback("unexistent_savepoint"); // Validation error
    * } catch (e) {
    *   console.log(e);
    *   await transaction.commit(); // Transaction will end, changes will be saved
    * }
-   * 
+   *
    * await client.end();
    * ```
    *
@@ -208,11 +208,11 @@ export abstract class QueryClient {
    * const transaction_1 = client_1.createTransaction("transaction_1");
    *
    * await transaction_1.begin();
-   * 
+   *
    * const snapshot = await transaction_1.getSnapshot();
    * const transaction_2 = client_2.createTransaction("new_transaction", { isolation_level: "repeatable_read", snapshot });
    * // transaction_2 now shares the same starting state that transaction_1 had
-   * 
+   *
    * await client_1.end();
    * await client_2.end();
    * ```
@@ -285,7 +285,7 @@ export abstract class QueryClient {
    * const { rows: rows2 } = await my_client.queryArray<[number, string]>(
    *   "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<[number, string]>
-   * 
+   *
    * await my_client.end();
    * ```
    */
@@ -319,7 +319,7 @@ export abstract class QueryClient {
    * const id = 12;
    * // Array<[number, string]>
    * const {rows} = await my_client.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
-   * 
+   *
    * await my_client.end();
    * ```
    */
@@ -373,7 +373,7 @@ export abstract class QueryClient {
    * const { rows: rows2 } = await my_client.queryObject<{id: number, name: string}>(
    *   "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<{id: number, name: string}>
-   * 
+   *
    * await my_client.end();
    * ```
    */
@@ -398,7 +398,7 @@ export abstract class QueryClient {
    *   fields: ["personal_id", "complete_name"],
    * });
    * console.log(rows2); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
-   * 
+   *
    * await my_client.end();
    * ```
    */
