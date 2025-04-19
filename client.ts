@@ -278,6 +278,11 @@ export abstract class QueryClient {
    * import { Client } from "jsr:@db/postgres";
    * const my_client = new Client();
    *
+   * await my_client.queryArray`CREATE TABLE IF NOT EXISTS CLIENTS (
+   *   id SERIAL PRIMARY KEY,
+   *   name TEXT NOT NULL
+   * )`
+   *
    * const { rows: rows1 } = await my_client.queryArray(
    *   "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<unknown[]>
