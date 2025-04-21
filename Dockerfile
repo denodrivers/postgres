@@ -1,4 +1,4 @@
-FROM denoland/deno:alpine-1.40.3
+FROM denoland/deno:alpine-2.2.11
 WORKDIR /app
 
 # Install wait utility
@@ -11,7 +11,6 @@ USER deno
 # Cache external libraries
 # Test deps caches all main dependencies as well
 COPY tests/test_deps.ts tests/test_deps.ts
-COPY deps.ts deps.ts
 RUN deno cache tests/test_deps.ts
 
 ADD . .

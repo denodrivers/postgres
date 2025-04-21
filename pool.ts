@@ -14,18 +14,19 @@ import { DeferredAccessStack } from "./utils/deferred.ts";
  * with their PostgreSQL database
  *
  * ```ts
- * import { Pool } from "https://deno.land/x/postgres/mod.ts";
+ * import { Pool } from "jsr:@db/postgres";
  * const pool = new Pool({
- *   database: "database",
- *   hostname: "hostname",
- *   password: "password",
- *   port: 5432,
- *   user: "user",
+ *   database: Deno.env.get("PGDATABASE"),
+ *   hostname: Deno.env.get("PGHOST"),
+ *   password: Deno.env.get("PGPASSWORD"),
+ *   port: Deno.env.get("PGPORT"),
+ *   user: Deno.env.get("PGUSER"),
  * }, 10); // Creates a pool with 10 available connections
  *
  * const client = await pool.connect();
  * await client.queryArray`SELECT 1`;
  * client.release();
+ * await pool.end();
  * ```
  *
  * You can also opt to not initialize all your connections at once by passing the `lazy`
@@ -34,7 +35,7 @@ import { DeferredAccessStack } from "./utils/deferred.ts";
  * available connections in the pool
  *
  * ```ts
- * import { Pool } from "https://deno.land/x/postgres/mod.ts";
+ * import { Pool } from "jsr:@db/postgres";
  * // Creates a pool with 10 max available connections
  * // Connection with the database won't be established until the user requires it
  * const pool = new Pool({}, 10, true);
@@ -53,6 +54,7 @@ import { DeferredAccessStack } from "./utils/deferred.ts";
  * const client_3 = await pool.connect();
  * client_2.release();
  * client_3.release();
+ * await pool.end();
  * ```
  */
 export class Pool {
@@ -117,11 +119,12 @@ export class Pool {
    * with the database if no other connections are available
    *
    * ```ts
-   * import { Pool } from "https://deno.land/x/postgres/mod.ts";
+   * import { Pool } from "jsr:@db/postgres";
    * const pool = new Pool({}, 10);
    * const client = await pool.connect();
-   * await client.queryArray`UPDATE MY_TABLE SET X = 1`;
+   * await client.queryArray`SELECT * FROM CLIENTS`;
    * client.release();
+   * await pool.end();
    * ```
    */
   async connect(): Promise<PoolClient> {
@@ -138,24 +141,29 @@ export class Pool {
    * This will close all open connections and set a terminated status in the pool
    *
    * ```ts
-   * import { Pool } from "https://deno.land/x/postgres/mod.ts";
+   * import { Pool } from "jsr:@db/postgres";
    * const pool = new Pool({}, 10);
    *
    * await pool.end();
    * console.assert(pool.available === 0, "There are connections available after ending the pool");
-   * await pool.end(); // An exception will be thrown, pool doesn't have any connections to close
+   * try {
+   *   await pool.end(); // An exception will be thrown, pool doesn't have any connections to close
+   * } catch (e) {
+   *   console.log(e);
+   * }
    * ```
    *
    * However, a terminated pool can be reused by using the "connect" method, which
    * will reinitialize the connections according to the original configuration of the pool
    *
    * ```ts
-   * import { Pool } from "https://deno.land/x/postgres/mod.ts";
+   * import { Pool } from "jsr:@db/postgres";
    * const pool = new Pool({}, 10);
    * await pool.end();
    * const client = await pool.connect();
    * await client.queryArray`SELECT 1`; // Works!
    * client.release();
+   * await pool.end();
    * ```
    */
   async end(): Promise<void> {

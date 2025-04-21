@@ -25,7 +25,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { copy } from "../deps.ts";
+import { copy } from "@std/bytes/copy";
 import { readInt16BE, readInt32BE } from "../utils/utils.ts";
 
 export class PacketReader {

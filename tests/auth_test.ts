@@ -1,4 +1,8 @@
-import { assertEquals, assertNotEquals, assertRejects } from "./test_deps.ts";
+import {
+  assertEquals,
+  assertNotEquals,
+  assertRejects,
+} from "jsr:@std/assert@1.0.10";
 import { Client as ScramClient, Reason } from "../connection/scram.ts";
 
 Deno.test("Scram client reproduces RFC 7677 example", async () => {

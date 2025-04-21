@@ -1,6 +1,6 @@
 import { parseConnectionUri } from "../utils/utils.ts";
 import { ConnectionParamsError } from "../client/error.ts";
-import { fromFileUrl, isAbsolute } from "../deps.ts";
+import { fromFileUrl, isAbsolute } from "@std/path";
 import type { OidType } from "../query/oid.ts";
 import type { DebugControls } from "../debug.ts";
 import type { ParseArrayFunction } from "../query/array_parser.ts";
@@ -149,15 +149,14 @@ export type ClientControls = {
    *
    * @example
    * ```ts
-   * import dayjs from 'https://esm.sh/dayjs';
-   * import { Oid,Decoders } from '../mod.ts'
+   * import { Oid, Decoders } from '../mod.ts'
    *
    * {
    *   const decoders: Decoders = {
    *     //   16 = Oid.bool : convert all boolean values to numbers
    *     '16': (value: string) => value === 't' ? 1 : 0,
-   *     // 1082 = Oid.date : convert all dates to dayjs objects
-   *     1082: (value: string) => dayjs(value),
+   *     // 1082 = Oid.date : convert all dates to Date objects
+   *     1082: (value: string) => new Date(value),
    *     //   23 = Oid.int4 : convert all integers to positive numbers
    *     [Oid.int4]: (value: string) => Math.max(0, parseInt(value || '0', 10)),
    *   }
@@ -423,7 +422,12 @@ export function createParams(
     // In Deno v1, Deno permission errors resulted in a Deno.errors.PermissionDenied exception. In Deno v2, a new
     // Deno.errors.NotCapable exception was added to replace this. The "in" check makes this code safe for both Deno
     // 1 and Deno 2
-    if (e instanceof Deno.errors.PermissionDenied || ('NotCapable' in Deno.errors && e instanceof Deno.errors.NotCapable)) {
+    if (
+      e instanceof
+        ("NotCapable" in Deno.errors
+          ? Deno.errors.NotCapable
+          : Deno.errors.PermissionDenied)
+    ) {
       has_env_access = false;
     } else {
       throw e;

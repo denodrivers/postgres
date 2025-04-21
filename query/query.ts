@@ -15,13 +15,14 @@ import type { ClientControls } from "../connection/connection_params.ts";
  * They will take the position according to the order in which they were provided
  *
  * ```ts
- * import { Client } from "https://deno.land/x/postgres/mod.ts";
+ * import { Client } from "jsr:@db/postgres";
  * const my_client = new Client();
  *
- * await my_client.queryArray("SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2", [
- *   10, // $1
- *   20, // $2
+ * await my_client.queryArray("SELECT ID, NAME FROM CLIENTS WHERE NAME = $1", [
+ *   "John", // $1
  * ]);
+ *
+ * await my_client.end();
  * ```
  */
 
@@ -155,7 +156,7 @@ export interface QueryObjectOptions extends QueryOptions {
 /**
  * This class is used to handle the result of a query
  */
-export class QueryResult {
+export abstract class QueryResult {
   /**
    * Type of query executed for this result
    */
@@ -225,9 +226,7 @@ export class QueryResult {
    *
    * This function can throw on validation, so any errors must be handled in the message loop accordingly
    */
-  insertRow(_row: Uint8Array[]): void {
-    throw new Error("No implementation for insertRow is defined");
-  }
+  abstract insertRow(_row: Uint8Array[]): void;
 }
 
 /**

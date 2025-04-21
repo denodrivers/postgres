@@ -1,6 +1,6 @@
 name: ci
 
-on: [ push, pull_request, release ]
+on: [push, pull_request, release]
 
 jobs:
   code_quality:
@@ -12,16 +12,25 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.x
-      
+          deno-version: v2.x
+
       - name: Format
         run: deno fmt --check
-      
+
       - name: Lint
         run: deno lint
 
-      - name: Documentation tests
-        run: deno test --doc client.ts mod.ts pool.ts client/ connection/ query/ utils/
+  test_docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@master
+
+      - name: Build tests container
+        run: docker compose build tests
+
+      - name: Run doc tests
+        run: docker compose run doc_tests
 
   test:
     runs-on: ubuntu-latest
@@ -31,43 +40,9 @@ jobs:
 
       - name: Build tests container
         run: docker compose build tests
-      
+
       - name: Run tests
         run: docker compose run tests
 
       - name: Run tests without typechecking
-        id: no_typecheck
-        uses: mathiasvr/command-output@v2.0.0
-        with:
-          run: docker compose run no_check_tests
-        continue-on-error: true
-
-      - name: Report no typechecking tests status
-        id: no_typecheck_status
-        if: steps.no_typecheck.outcome == 'success'
-        run: echo "name=status::success" >> $GITHUB_OUTPUT
-    outputs:
-      no_typecheck: ${{ steps.no_typecheck.outputs.stdout }}
-      no_typecheck_status: ${{ steps.no_typecheck_status.outputs.status }}
-
-  report_warnings:
-    needs: [ code_quality, test ]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set no-typecheck fail comment
-        if: ${{ needs.test.outputs.no_typecheck_status != 'success' && github.event_name == 'push' }}
-        uses: peter-evans/commit-comment@v3
-        with:
-          body: |
-            # No typecheck tests failure
-
-            This error was most likely caused by incorrect type stripping from the SWC crate
-
-            Please report the following failure to https://github.com/denoland/deno with a reproduction of the current commit
-
-            <details>
-              <summary>Failure log</summary>
-              <pre><code>
-            ${{ needs.test.outputs.no_typecheck }}
-              </code></pre>
-            </details>
+        run: docker compose run no_check_tests

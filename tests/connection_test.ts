@@ -1,9 +1,5 @@
-import {
-  assertEquals,
-  assertRejects,
-  copyStream,
-  joinPath,
-} from "./test_deps.ts";
+import { assertEquals, assertRejects } from "jsr:@std/assert@1.0.10";
+import { join as joinPath } from "@std/path";
 import {
   getClearConfiguration,
   getClearSocketConfiguration,
@@ -25,26 +21,20 @@ function createProxy(
 
   const proxy = (async () => {
     for await (const conn of target) {
-      let aborted = false;
-
       const outbound = await Deno.connect({
         hostname: source.hostname,
         port: source.port,
       });
+
       aborter.signal.addEventListener("abort", () => {
         conn.close();
         outbound.close();
-        aborted = true;
       });
-      await Promise.all([
-        copyStream(conn, outbound),
-        copyStream(outbound, conn),
-      ]).catch(() => {});
 
-      if (!aborted) {
-        conn.close();
-        outbound.close();
-      }
+      await Promise.all([
+        conn.readable.pipeTo(outbound.writable),
+        outbound.readable.pipeTo(conn.writable),
+      ]).catch(() => {});
     }
   })();
 
@@ -399,7 +389,7 @@ Deno.test("Closes connection on bad TLS availability verification", async functi
     await client.connect();
   } catch (e) {
     if (
-      e instanceof Error ||
+      e instanceof Error &&
       e.message.startsWith("Could not check if server accepts SSL connections")
     ) {
       bad_tls_availability_message = true;
@@ -586,19 +576,19 @@ Deno.test("Attempts reconnection on socket disconnection", async () => {
 // TODO
 // Find a way to unlink the socket to simulate unexpected socket disconnection
 
-Deno.test("Attempts reconnection when connection is lost", async function () {
+Deno.test("Attempts reconnection when connection is lost", async () => {
   const cfg = getMainConfiguration();
   const listener = Deno.listen({ hostname: "127.0.0.1", port: 0 });
 
   const { aborter, proxy } = createProxy(listener, {
     hostname: cfg.hostname,
-    port: Number(cfg.port),
+    port: cfg.port,
   });
 
   const client = new Client({
     ...cfg,
     hostname: "127.0.0.1",
-    port: (listener.addr as Deno.NetAddr).port,
+    port: listener.addr.port,
     tls: {
       enabled: false,
     },

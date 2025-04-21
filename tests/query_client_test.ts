@@ -12,7 +12,7 @@ import {
   assertObjectMatch,
   assertRejects,
   assertThrows,
-} from "./test_deps.ts";
+} from "jsr:@std/assert@1.0.10";
 import { getMainConfiguration } from "./config.ts";
 import type { PoolClient, QueryClient } from "../client.ts";
 import type { ClientOptions } from "../connection/connection_params.ts";

@@ -1,6 +1,13 @@
 {
-  "lock": false,
-  "name": "@bartlomieju/postgres",
-  "version": "0.19.3",
-  "exports": "./mod.ts"
+  "name": "@db/postgres",
+  "version": "0.19.4",
+  "exports": "./mod.ts",
+  "imports": {
+    "@std/bytes": "jsr:@std/bytes@^1.0.5",
+    "@std/crypto": "jsr:@std/crypto@^1.0.4",
+    "@std/encoding": "jsr:@std/encoding@^1.0.9",
+    "@std/fmt": "jsr:@std/fmt@^1.0.6",
+    "@std/path": "jsr:@std/path@^1.0.8"
+  },
+  "lock": false
 }

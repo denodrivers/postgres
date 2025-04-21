@@ -5,12 +5,7 @@ export {
   TransactionError,
 } from "./client/error.ts";
 export { Pool } from "./pool.ts";
-export { Oid, OidTypes } from "./query/oid.ts";
-
-// TODO
-// Remove the following reexports after https://doc.deno.land
-// supports two level depth exports
-export type { OidType, OidValue } from "./query/oid.ts";
+export { Oid, type OidType, OidTypes, type OidValue } from "./query/oid.ts";
 export type {
   ClientOptions,
   ConnectionOptions,
