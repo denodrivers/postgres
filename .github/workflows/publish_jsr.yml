@@ -1,7 +1,9 @@
 name: Publish to JSR
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   publish:
@@ -70,5 +72,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish to JSR
-        run: deno publish --allow-dirty
+      - name: Publish package
+        run: deno publish
