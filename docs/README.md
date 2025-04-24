@@ -1,7 +1,7 @@
 # deno-postgres
 
 ![Build Status](https://img.shields.io/github/actions/workflow/status/denodrivers/postgres/ci.yml?branch=main&label=Build&logo=github&style=flat-square)
-[![Discord server](https://img.shields.io/discord/768918486575480863?color=blue&label=Ask%20for%20help%20here&logo=discord&style=flat-square)](https://discord.gg/sCNaAvQeEa)
+[![Discord server](https://img.shields.io/discord/768918486575480863?color=blue&label=Ask%20for%20help%20here&logo=discord&style=flat-square)](https://discord.com/invite/HEdTCvZUSf)
 [![JSR](https://jsr.io/badges/@db/postgres?style=flat-square)](https://jsr.io/@db/postgres)
 [![JSR Score](https://jsr.io/badges/@db/postgres/score?style=flat-square)](https://jsr.io/@db/postgres)
 [![Manual](https://img.shields.io/github/v/release/denodrivers/postgres?color=orange&label=Manual&logo=deno&style=flat-square)](https://deno-postgres.com)

@@ -1,26 +1,34 @@
+<div align="center">
+
 # deno-postgres
 
+<img src="./docs/deno-postgres.png" width="164" style="padding-bottom:20px;" />
+</div>
+
+<div align="center">
+
 ![Build Status](https://img.shields.io/github/actions/workflow/status/denodrivers/postgres/ci.yml?branch=main&label=Build&logo=github&style=flat-square)
-[![Discord server](https://img.shields.io/discord/768918486575480863?color=blue&label=Ask%20for%20help%20here&logo=discord&style=flat-square)](https://discord.gg/sCNaAvQeEa)
+[![Discord server](https://img.shields.io/discord/768918486575480863?color=blue&label=Join%20us&logo=discord&style=flat-square)](https://discord.com/invite/HEdTCvZUSf)
 [![JSR](https://jsr.io/badges/@db/postgres?style=flat-square)](https://jsr.io/@db/postgres)
 [![JSR Score](https://jsr.io/badges/@db/postgres/score?style=flat-square)](https://jsr.io/@db/postgres)
 [![Manual](https://img.shields.io/github/v/release/denodrivers/postgres?color=orange&label=Manual&logo=deno&style=flat-square)](https://deno-postgres.com)
 [![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://jsr.io/@db/postgres/doc)
 [![License](https://img.shields.io/github/license/denodrivers/postgres?color=yellowgreen&label=License&style=flat-square)](LICENSE)
 
-A lightweight PostgreSQL driver for Deno focused on developer experience.
-
+A lightweight PostgreSQL driver for Deno focused on developer experience.\
 `deno-postgres` is inspired by the excellent work of
 [node-postgres](https://github.com/brianc/node-postgres) and
 [pq](https://github.com/lib/pq).
 
+</div>
+
 ## Documentation
 
 The documentation is available on the
-[`deno-postgres` website](https://deno-postgres.com/).
+[`deno-postgres`](https://deno-postgres.com/) website.
 
-Join the [Discord](https://discord.gg/sCNaAvQeEa) as well! It's a good place to
-discuss bugs and features before opening issues.
+Join the [Discord](https://discord.com/invite/HEdTCvZUSf) as well! It's a good
+place to discuss bugs and features before opening issues.
 
 ## Examples
 
@@ -70,24 +78,26 @@ alongside the driver.
 
 This situation will stabilize as `deno-postgres` approach version 1.0.
 
-| Deno version  | Min driver version | Max version         | Note                                                                           |
-| ------------- | ------------------ | ------------------- | ------------------------------------------------------------------------------ |
-| 1.8.x         | 0.5.0              | 0.10.0              |                                                                                |
-| 1.9.0         | 0.11.0             | 0.11.1              |                                                                                |
-| 1.9.1 and up  | 0.11.2             | 0.11.3              |                                                                                |
-| 1.11.0 and up | 0.12.0             | 0.12.0              |                                                                                |
-| 1.14.0 and up | 0.13.0             | 0.13.0              |                                                                                |
-| 1.16.0        | 0.14.0             | 0.14.3              |                                                                                |
-| 1.17.0        | 0.15.0             | 0.17.1              |                                                                                |
-| 1.40.0        | 0.17.2             | currently supported | 0.17.2 [on JSR](https://jsr.io/@bartlomieju/postgres)                          |
-| 2.0.0 and up  | 0.19.4             | currently supported | All versions available as [`@db/postgres` on JSR](https://jsr.io/@db/postgres) |
+| Deno version  | Min driver version | Max version | Note                                                                       |
+| ------------- | ------------------ | ----------- | -------------------------------------------------------------------------- |
+| 1.8.x         | 0.5.0              | 0.10.0      |                                                                            |
+| 1.9.0         | 0.11.0             | 0.11.1      |                                                                            |
+| 1.9.1 and up  | 0.11.2             | 0.11.3      |                                                                            |
+| 1.11.0 and up | 0.12.0             | 0.12.0      |                                                                            |
+| 1.14.0 and up | 0.13.0             | 0.13.0      |                                                                            |
+| 1.16.0        | 0.14.0             | 0.14.3      |                                                                            |
+| 1.17.0        | 0.15.0             | 0.17.1      |                                                                            |
+| 1.40.0        | 0.17.2             | 0.19.3      | 0.19.3 and down are available in [deno.land](https://deno.land/x/postgres) |
+| 2.0.0 and up  | 0.19.4             | -           | Available on JSR! [`@db/postgres`](https://jsr.io/@db/postgres)            |
 
 ## Breaking changes
 
 Although `deno-postgres` is reasonably stable and robust, it is a WIP, and we're
 still exploring the design. Expect some breaking changes as we reach version 1.0
-and enhance the feature set. Please check the Releases for more info on breaking
-changes. Please reach out if there are any undocumented breaking changes.
+and enhance the feature set. Please check the
+[Releases](https://github.com/denodrivers/postgres/releases) for more info on
+breaking changes. Please reach out if there are any undocumented breaking
+changes.
 
 ## Found issues?
 

@@ -11,19 +11,33 @@ jobs:
     timeout-minutes: 30
 
     permissions:
-      contents: read
+      contents: write
       id-token: write
 
     steps:
-      - name: Clone repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: true
+          fetch-depth: 0
 
       - name: Set up Deno
         uses: denoland/setup-deno@v1
         with:
           deno-version: v2.x
+
+      - name: Extract version from deno.json
+        id: get_version
+        run: |
+          VERSION=$(jq -r .version < deno.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if version tag already exists
+        run: |
+          TAG="v${{ steps.get_version.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "🚫 Tag $TAG already exists. Aborting."
+            exit 1
+          fi
 
       - name: Check Format
         run: deno fmt --check
@@ -43,10 +57,20 @@ jobs:
       - name: Run doc tests
         run: docker compose run doc_tests
 
-      - name: Publish (dry run)
-        if: startsWith(github.ref, 'refs/tags/') == false
-        run: deno publish --dry-run --allow-dirty
+      - name: Create tag for release
+        run: |
+          TAG="v${{ steps.get_version.outputs.version }}"
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git tag "$TAG"
+          git push origin "$TAG"
 
-      - name: Publish (real)
-        if: startsWith(github.ref, 'refs/tags/')
-        run: deno publish --allow-dirty
+      - name: Create GitHub Release
+        run: |
+          gh release create "v${{ steps.get_version.outputs.version }}" \
+            --title "v${{ steps.get_version.outputs.version }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish package
+        run: deno publish

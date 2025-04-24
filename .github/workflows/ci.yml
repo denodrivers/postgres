@@ -1,6 +1,9 @@
-name: ci
+name: Checks
 
-on: [push, pull_request, release]
+on:
+  pull_request:
+    branches:
+      - main
 
 jobs:
   code_quality:
