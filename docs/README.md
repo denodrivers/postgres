@@ -300,7 +300,7 @@ const path = "/var/run/postgresql";
 
 const client = new Client(
   // postgres://user:password@%2Fvar%2Frun%2Fpostgresql:port/database_name
-  `postgres://user:password@${encodeURIComponent(path)}:port/database_name`
+  `postgres://user:password@${encodeURIComponent(path)}:port/database_name`,
 );
 ```
 
@@ -308,7 +308,7 @@ Additionally, you can specify the host using the `host` URL parameter
 
 ```ts
 const client = new Client(
-  `postgres://user:password@:port/database_name?host=/var/run/postgresql`
+  `postgres://user:password@:port/database_name?host=/var/run/postgresql`,
 );
 ```
 
@@ -355,7 +355,7 @@ const client = new Client({
   tls: {
     caCertificates: [
       await Deno.readTextFile(
-        new URL("./my_ca_certificate.crt", import.meta.url)
+        new URL("./my_ca_certificate.crt", import.meta.url),
       ),
     ],
     enabled: false,
@@ -582,7 +582,7 @@ variables required, and then provide said variables in an array of arguments
 {
   const result = await client.queryArray(
     "SELECT ID, NAME FROM PEOPLE WHERE AGE > $1 AND AGE < $2",
-    [10, 20]
+    [10, 20],
   );
   console.log(result.rows);
 }
@@ -605,7 +605,7 @@ replaced at runtime with an argument object
 {
   const result = await client.queryArray(
     "SELECT ID, NAME FROM PEOPLE WHERE AGE > $MIN AND AGE < $MAX",
-    { min: 10, max: 20 }
+    { min: 10, max: 20 },
   );
   console.log(result.rows);
 }
@@ -632,7 +632,7 @@ places in your query
 		FROM PEOPLE
 		WHERE NAME ILIKE $SEARCH
 		OR LASTNAME ILIKE $SEARCH`,
-    { search: "JACKSON" }
+    { search: "JACKSON" },
   );
   console.log(result.rows);
 }
@@ -654,16 +654,16 @@ prepared statements with a nice and clear syntax for your queries
 
 ```ts
 {
-  const result =
-    await client.queryArray`SELECT ID, NAME FROM PEOPLE WHERE AGE > ${10} AND AGE < ${20}`;
+  const result = await client
+    .queryArray`SELECT ID, NAME FROM PEOPLE WHERE AGE > ${10} AND AGE < ${20}`;
   console.log(result.rows);
 }
 
 {
   const min = 10;
   const max = 20;
-  const result =
-    await client.queryObject`SELECT ID, NAME FROM PEOPLE WHERE AGE > ${min} AND AGE < ${max}`;
+  const result = await client
+    .queryObject`SELECT ID, NAME FROM PEOPLE WHERE AGE > ${min} AND AGE < ${max}`;
   console.log(result.rows);
 }
 ```
@@ -712,7 +712,8 @@ await client.queryArray`UPDATE TABLE X SET Y = 0 WHERE Z = ${my_id}`;
 // Invalid attempt to replace a specifier
 const my_table = "IMPORTANT_TABLE";
 const my_other_id = 41;
-await client.queryArray`DELETE FROM ${my_table} WHERE MY_COLUMN = ${my_other_id};`;
+await client
+  .queryArray`DELETE FROM ${my_table} WHERE MY_COLUMN = ${my_other_id};`;
 ```
 
 ### Result decoding
@@ -752,7 +753,7 @@ available:
   });
 
   const result = await client.queryArray(
-    "SELECT ID, NAME, AGE, BIRTHDATE FROM PEOPLE WHERE ID = 1"
+    "SELECT ID, NAME, AGE, BIRTHDATE FROM PEOPLE WHERE ID = 1",
   );
   console.log(result.rows); // [[1, "Laura", 25, Date('1996-01-01') ]]
 
@@ -768,7 +769,7 @@ available:
   });
 
   const result = await client.queryArray(
-    "SELECT ID, NAME, AGE, BIRTHDATE FROM PEOPLE WHERE ID = 1"
+    "SELECT ID, NAME, AGE, BIRTHDATE FROM PEOPLE WHERE ID = 1",
   );
   console.log(result.rows); // [["1", "Laura", "25", "1996-01-01"]]
 }
@@ -804,7 +805,7 @@ the strategy and internal decoders.
   });
 
   const result = await client.queryObject(
-    "SELECT ID, NAME, IS_ACTIVE FROM PEOPLE"
+    "SELECT ID, NAME, IS_ACTIVE FROM PEOPLE",
   );
   console.log(result.rows[0]);
   // {id: '1', name: 'Javier',  is_active: { value: false, type: "boolean"}}
@@ -833,7 +834,7 @@ for the array type itself.
   });
 
   const result = await client.queryObject(
-    "SELECT ARRAY[ 2, 2, 3, 1 ] AS scores, 8 final_score;"
+    "SELECT ARRAY[ 2, 2, 3, 1 ] AS scores, 8 final_score;",
   );
   console.log(result.rows[0]);
   // { scores: [ 200, 200, 300, 100 ], final_score: 800 }
@@ -849,7 +850,7 @@ IntelliSense
 ```ts
 {
   const array_result = await client.queryArray<[number, string]>(
-    "SELECT ID, NAME FROM PEOPLE WHERE ID = 17"
+    "SELECT ID, NAME FROM PEOPLE WHERE ID = 17",
   );
   // [number, string]
   const person = array_result.rows[0];
@@ -865,7 +866,7 @@ IntelliSense
 
 {
   const object_result = await client.queryObject<{ id: number; name: string }>(
-    "SELECT ID, NAME FROM PEOPLE WHERE ID = 17"
+    "SELECT ID, NAME FROM PEOPLE WHERE ID = 17",
   );
   // {id: number, name: string}
   const person = object_result.rows[0];
@@ -930,7 +931,7 @@ one the user might expect
 
 ```ts
 const result = await client.queryObject(
-  "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE"
+  "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
 );
 
 const users = result.rows; // [{id: 1, substr: 'Ca'}, {id: 2, substr: 'Jo'}, ...]
@@ -958,7 +959,7 @@ interface User {
 }
 
 const result = await client.queryObject<User>(
-  "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE"
+  "SELECT ID, SUBSTR(NAME, 0, 2) FROM PEOPLE",
 );
 
 const users = result.rows; // TypeScript says this will be User[]
@@ -1183,7 +1184,8 @@ const transaction = client_1.createTransaction("transaction_1");
 
 await transaction.begin();
 
-await transaction.queryArray`CREATE TABLE TEST_RESULTS (USER_ID INTEGER, GRADE NUMERIC(10,2))`;
+await transaction
+  .queryArray`CREATE TABLE TEST_RESULTS (USER_ID INTEGER, GRADE NUMERIC(10,2))`;
 await transaction.queryArray`CREATE TABLE GRADUATED_STUDENTS (USER_ID INTEGER)`;
 
 // This operation takes several minutes
@@ -1239,7 +1241,8 @@ following levels of transaction isolation:
   const password_1 = rows[0].password;
 
   // Concurrent operation executed by a different user in a different part of the code
-  await client_2.queryArray`UPDATE IMPORTANT_TABLE SET PASSWORD = 'something_else' WHERE ID = ${the_same_id}`;
+  await client_2
+    .queryArray`UPDATE IMPORTANT_TABLE SET PASSWORD = 'something_else' WHERE ID = ${the_same_id}`;
 
   const { rows: query_2 } = await transaction.queryObject<{
     password: string;
@@ -1277,12 +1280,14 @@ following levels of transaction isolation:
   }>`SELECT PASSWORD FROM IMPORTANT_TABLE WHERE ID = ${my_id}`;
 
   // Concurrent operation executed by a different user in a different part of the code
-  await client_2.queryArray`UPDATE IMPORTANT_TABLE SET PASSWORD = 'something_else' WHERE ID = ${the_same_id}`;
+  await client_2
+    .queryArray`UPDATE IMPORTANT_TABLE SET PASSWORD = 'something_else' WHERE ID = ${the_same_id}`;
 
   // This statement will throw
   // Target was modified outside of the transaction
   // User may not be aware of the changes
-  await transaction.queryArray`UPDATE IMPORTANT_TABLE SET PASSWORD = 'shiny_new_password' WHERE ID = ${the_same_id}`;
+  await transaction
+    .queryArray`UPDATE IMPORTANT_TABLE SET PASSWORD = 'shiny_new_password' WHERE ID = ${the_same_id}`;
 
   // Transaction is aborted, no need to end it
 
@@ -1419,7 +1424,7 @@ explained above in the `Savepoint` documentation.
 
 ```ts
 const transaction = client.createTransaction(
-  "partially_rolled_back_transaction"
+  "partially_rolled_back_transaction",
 );
 await transaction.savepoint("undo");
 await transaction.queryArray`TRUNCATE TABLE DONT_DELETE_ME`; // Oops, wrong table
