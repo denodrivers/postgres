@@ -1,9 +1,7 @@
 name: Publish to JSR
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -18,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Needed for tags and logs
+          fetch-depth: 0
 
       - name: Set up Deno
         uses: denoland/setup-deno@v1
