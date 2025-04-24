@@ -1,6 +1,8 @@
 <div align="center">
-<h1>deno-postgres</h1>
-<img src="./docs/deno-postgres.png" width="128" style="padding-bottom:20px;" />
+
+# deno-postgres
+
+<img src="./docs/deno-postgres.png" width="164" style="padding-bottom:20px;" />
 </div>
 
 <div align="center">
@@ -49,8 +51,8 @@ await client.connect();
 }
 
 {
-  const result = await client
-    .queryArray`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
+  const result =
+    await client.queryArray`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
   console.log(result.rows); // [[1, 'Carlos']]
 }
 
@@ -60,8 +62,8 @@ await client.connect();
 }
 
 {
-  const result = await client
-    .queryObject`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
+  const result =
+    await client.queryObject`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
   console.log(result.rows); // [{id: 1, name: 'Carlos'}]
 }
 
