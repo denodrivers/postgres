@@ -105,47 +105,57 @@ export abstract class QueryClient {
    * In order to create a transaction, use the `createTransaction` method in your client as follows:
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
    * const transaction = client.createTransaction("my_transaction_name");
    *
    * await transaction.begin();
    * // All statements between begin and commit will happen inside the transaction
    * await transaction.commit(); // All changes are saved
+   * await client.end();
    * ```
    *
    * All statements that fail in query execution will cause the current transaction to abort and release
    * the client without applying any of the changes that took place inside it
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
-   * const transaction = client.createTransaction("transaction");
+   * const transaction = client.createTransaction("cool_transaction");
    *
    * await transaction.begin();
-   * await transaction.queryArray`INSERT INTO MY_TABLE (X) VALUES ${"some_value"}`;
+   *
    * try {
-   *   await transaction.queryArray`SELECT []`; // Invalid syntax, transaction aborted, changes won't be applied
-   * }catch(e){
-   *   await transaction.commit(); // Will throw, current transaction has already finished
+   *   try {
+   *     await transaction.queryArray`SELECT []`; // Invalid syntax, transaction aborted, changes won't be applied
+   *   } catch (e) {
+   *     await transaction.commit(); // Will throw, current transaction has already finished
+   *   }
+   * } catch (e) {
+   *   console.log(e);
    * }
+   *
+   * await client.end();
    * ```
    *
    * This however, only happens if the error is of execution in nature, validation errors won't abort
    * the transaction
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client = new Client();
-   * const transaction = client.createTransaction("transaction");
+   * const transaction = client.createTransaction("awesome_transaction");
    *
    * await transaction.begin();
-   * await transaction.queryArray`INSERT INTO MY_TABLE (X) VALUES ${"some_value"}`;
+   *
    * try {
    *   await transaction.rollback("unexistent_savepoint"); // Validation error
-   * } catch(e) {
+   * } catch (e) {
+   *   console.log(e);
    *   await transaction.commit(); // Transaction will end, changes will be saved
    * }
+   *
+   * await client.end();
    * ```
    *
    * A transaction has many options to ensure modifications made to the database are safe and
@@ -160,7 +170,7 @@ export abstract class QueryClient {
    * - Repeatable read: This isolates the transaction in a way that any external changes to the data we are reading
    *   won't be visible inside the transaction until it has finished
    *   ```ts
-   *   import { Client } from "https://deno.land/x/postgres/mod.ts";
+   *   import { Client } from "jsr:@db/postgres";
    *   const client = new Client();
    *   const transaction = await client.createTransaction("my_transaction", { isolation_level: "repeatable_read" });
    *   ```
@@ -168,7 +178,7 @@ export abstract class QueryClient {
    * - Serializable: This isolation level prevents the current transaction from making persistent changes
    *   if the data they were reading at the beginning of the transaction has been modified (recommended)
    *   ```ts
-   *   import { Client } from "https://deno.land/x/postgres/mod.ts";
+   *   import { Client } from "jsr:@db/postgres";
    *   const client = new Client();
    *   const transaction = await client.createTransaction("my_transaction", { isolation_level: "serializable" });
    *   ```
@@ -181,7 +191,7 @@ export abstract class QueryClient {
    *   is to in conjuction with the repeatable read isolation, ensuring the data you are reading does not change
    *   during the transaction, specially useful for data extraction
    *   ```ts
-   *   import { Client } from "https://deno.land/x/postgres/mod.ts";
+   *   import { Client } from "jsr:@db/postgres";
    *   const client = new Client();
    *   const transaction = await client.createTransaction("my_transaction", { read_only: true });
    *   ```
@@ -192,14 +202,19 @@ export abstract class QueryClient {
    * you can do the following:
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const client_1 = new Client();
    * const client_2 = new Client();
    * const transaction_1 = client_1.createTransaction("transaction_1");
    *
+   * await transaction_1.begin();
+   *
    * const snapshot = await transaction_1.getSnapshot();
    * const transaction_2 = client_2.createTransaction("new_transaction", { isolation_level: "repeatable_read", snapshot });
    * // transaction_2 now shares the same starting state that transaction_1 had
+   *
+   * await client_1.end();
+   * await client_2.end();
    * ```
    *
    * https://www.postgresql.org/docs/14/tutorial-transactions.html
@@ -260,8 +275,13 @@ export abstract class QueryClient {
    * Execute queries and retrieve the data as array entries. It supports a generic in order to type the entries retrieved by the query
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const my_client = new Client();
+   *
+   * await my_client.queryArray`CREATE TABLE IF NOT EXISTS CLIENTS (
+   *   id SERIAL PRIMARY KEY,
+   *   name TEXT NOT NULL
+   * )`
    *
    * const { rows: rows1 } = await my_client.queryArray(
    *   "SELECT ID, NAME FROM CLIENTS"
@@ -270,6 +290,8 @@ export abstract class QueryClient {
    * const { rows: rows2 } = await my_client.queryArray<[number, string]>(
    *   "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<[number, string]>
+   *
+   * await my_client.end();
    * ```
    */
   async queryArray<T extends Array<unknown>>(
@@ -280,12 +302,13 @@ export abstract class QueryClient {
    * Use the configuration object for more advance options to execute the query
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const my_client = new Client();
    * const { rows } = await my_client.queryArray<[number, string]>({
    *   text: "SELECT ID, NAME FROM CLIENTS",
    *   name: "select_clients",
    * }); // Array<[number, string]>
+   * await my_client.end();
    * ```
    */
   async queryArray<T extends Array<unknown>>(
@@ -295,12 +318,14 @@ export abstract class QueryClient {
    * Execute prepared statements with template strings
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const my_client = new Client();
    *
    * const id = 12;
    * // Array<[number, string]>
    * const {rows} = await my_client.queryArray<[number, string]>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
+   *
+   * await my_client.end();
    * ```
    */
   async queryArray<T extends Array<unknown>>(
@@ -343,7 +368,7 @@ export abstract class QueryClient {
    * Executed queries and retrieve the data as object entries. It supports a generic in order to type the entries retrieved by the query
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const my_client = new Client();
    *
    * const { rows: rows1 } = await my_client.queryObject(
@@ -353,6 +378,8 @@ export abstract class QueryClient {
    * const { rows: rows2 } = await my_client.queryObject<{id: number, name: string}>(
    *   "SELECT ID, NAME FROM CLIENTS"
    * ); // Array<{id: number, name: string}>
+   *
+   * await my_client.end();
    * ```
    */
   async queryObject<T>(
@@ -363,7 +390,7 @@ export abstract class QueryClient {
    * Use the configuration object for more advance options to execute the query
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const my_client = new Client();
    *
    * const { rows: rows1 } = await my_client.queryObject(
@@ -376,6 +403,8 @@ export abstract class QueryClient {
    *   fields: ["personal_id", "complete_name"],
    * });
    * console.log(rows2); // [{personal_id: 78, complete_name: "Frank"}, {personal_id: 15, complete_name: "Sarah"}]
+   *
+   * await my_client.end();
    * ```
    */
   async queryObject<T>(
@@ -385,11 +414,12 @@ export abstract class QueryClient {
    * Execute prepared statements with template strings
    *
    * ```ts
-   * import { Client } from "https://deno.land/x/postgres/mod.ts";
+   * import { Client } from "jsr:@db/postgres";
    * const my_client = new Client();
    * const id = 12;
    * // Array<{id: number, name: string}>
    * const { rows } = await my_client.queryObject<{id: number, name: string}>`SELECT ID, NAME FROM CLIENTS WHERE ID = ${id}`;
+   * await my_client.end();
    * ```
    */
   async queryObject<T>(
@@ -447,10 +477,10 @@ export abstract class QueryClient {
  * statements asynchronously
  *
  * ```ts
- * import { Client } from "https://deno.land/x/postgres/mod.ts";
+ * import { Client } from "jsr:@db/postgres";
  * const client = new Client();
  * await client.connect();
- * await client.queryArray`UPDATE MY_TABLE SET MY_FIELD = 0`;
+ * await client.queryArray`SELECT * FROM CLIENTS`;
  * await client.end();
  * ```
  *
@@ -458,18 +488,17 @@ export abstract class QueryClient {
  * for concurrency capabilities check out connection pools
  *
  * ```ts
- * import { Client } from "https://deno.land/x/postgres/mod.ts";
+ * import { Client } from "jsr:@db/postgres";
  * const client_1 = new Client();
  * await client_1.connect();
  * // Even if operations are not awaited, they will be executed in the order they were
  * // scheduled
- * client_1.queryArray`UPDATE MY_TABLE SET MY_FIELD = 0`;
- * client_1.queryArray`DELETE FROM MY_TABLE`;
+ * client_1.queryArray`DELETE FROM CLIENTS`;
  *
  * const client_2 = new Client();
  * await client_2.connect();
  * // `client_2` will execute it's queries in parallel to `client_1`
- * const {rows: result} = await client_2.queryArray`SELECT * FROM MY_TABLE`;
+ * const {rows: result} = await client_2.queryArray`SELECT * FROM CLIENTS`;
  *
  * await client_1.end();
  * await client_2.end();
@@ -514,5 +543,9 @@ export class PoolClient extends QueryClient {
 
     // Cleanup all session related metadata
     this.resetSessionMetadata();
+  }
+
+  [Symbol.dispose]() {
+    this.release();
   }
 }

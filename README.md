@@ -1,30 +1,40 @@
+<div align="center">
+
 # deno-postgres
 
-![Build Status](https://img.shields.io/github/workflow/status/denodrivers/postgres/ci?label=Build&logo=github&style=flat-square)
-[![Discord server](https://img.shields.io/discord/768918486575480863?color=blue&label=Ask%20for%20help%20here&logo=discord&style=flat-square)](https://discord.gg/HEdTCvZUSf)
+<img src="./docs/deno-postgres.png" width="164" style="padding-bottom:20px;" />
+</div>
+
+<div align="center">
+
+![Build Status](https://img.shields.io/github/actions/workflow/status/denodrivers/postgres/ci.yml?branch=main&label=Build&logo=github&style=flat-square)
+[![Discord server](https://img.shields.io/discord/768918486575480863?color=blue&label=Join%20us&logo=discord&style=flat-square)](https://discord.com/invite/HEdTCvZUSf)
+[![JSR](https://jsr.io/badges/@db/postgres?style=flat-square)](https://jsr.io/@db/postgres)
+[![JSR Score](https://jsr.io/badges/@db/postgres/score?style=flat-square)](https://jsr.io/@db/postgres)
 [![Manual](https://img.shields.io/github/v/release/denodrivers/postgres?color=orange&label=Manual&logo=deno&style=flat-square)](https://deno-postgres.com)
-[![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://doc.deno.land/https/deno.land/x/postgres/mod.ts)
+[![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://jsr.io/@db/postgres/doc)
 [![License](https://img.shields.io/github/license/denodrivers/postgres?color=yellowgreen&label=License&style=flat-square)](LICENSE)
 
-A lightweight PostgreSQL driver for Deno focused on developer experience.
-
-`deno-postgres` is being developed inspired by the excellent work of
+A lightweight PostgreSQL driver for Deno focused on developer experience.\
+`deno-postgres` is inspired by the excellent work of
 [node-postgres](https://github.com/brianc/node-postgres) and
 [pq](https://github.com/lib/pq).
 
+</div>
+
 ## Documentation
 
-The documentation is available on the `deno-postgres` website
-[https://deno-postgres.com/](https://deno-postgres.com/)
+The documentation is available on the
+[`deno-postgres`](https://deno-postgres.com/) website.
 
-Join the [Discord](https://discord.gg/HEdTCvZUSf) as well! It's a good place to
-discuss bugs and features before opening issues.
+Join the [Discord](https://discord.com/invite/HEdTCvZUSf) as well! It's a good
+place to discuss bugs and features before opening issues.
 
 ## Examples
 
 ```ts
 // deno run --allow-net --allow-read mod.ts
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+import { Client } from "jsr:@db/postgres";
 
 const client = new Client({
   user: "user",
@@ -32,6 +42,7 @@ const client = new Client({
   hostname: "localhost",
   port: 5432,
 });
+
 await client.connect();
 
 {
@@ -59,6 +70,42 @@ await client.connect();
 await client.end();
 ```
 
+## Deno compatibility
+
+Due to breaking changes introduced in the unstable APIs `deno-postgres` uses,
+there has been some fragmentation regarding what versions of Deno can be used
+alongside the driver.
+
+This situation will stabilize as `deno-postgres` approach version 1.0.
+
+| Deno version  | Min driver version | Max version | Note                                                                       |
+| ------------- | ------------------ | ----------- | -------------------------------------------------------------------------- |
+| 1.8.x         | 0.5.0              | 0.10.0      |                                                                            |
+| 1.9.0         | 0.11.0             | 0.11.1      |                                                                            |
+| 1.9.1 and up  | 0.11.2             | 0.11.3      |                                                                            |
+| 1.11.0 and up | 0.12.0             | 0.12.0      |                                                                            |
+| 1.14.0 and up | 0.13.0             | 0.13.0      |                                                                            |
+| 1.16.0        | 0.14.0             | 0.14.3      |                                                                            |
+| 1.17.0        | 0.15.0             | 0.17.1      |                                                                            |
+| 1.40.0        | 0.17.2             | 0.19.3      | 0.19.3 and down are available in [deno.land](https://deno.land/x/postgres) |
+| 2.0.0 and up  | 0.19.4             | -           | Available on JSR! [`@db/postgres`](https://jsr.io/@db/postgres)            |
+
+## Breaking changes
+
+Although `deno-postgres` is reasonably stable and robust, it is a WIP, and we're
+still exploring the design. Expect some breaking changes as we reach version 1.0
+and enhance the feature set. Please check the
+[Releases](https://github.com/denodrivers/postgres/releases) for more info on
+breaking changes. Please reach out if there are any undocumented breaking
+changes.
+
+## Found issues?
+
+Please
+[file an issue](https://github.com/denodrivers/postgres/issues/new/choose) with
+any problems with the driver. If you would like to help, please look at the
+issues as well. You can pick up one of them and try to implement it.
+
 ## Contributing
 
 ### Prerequisites
@@ -73,8 +120,8 @@ await client.end();
   it to run the linter and formatter locally
 
   - https://deno.land/
-  - `deno upgrade --version 1.40.0`
-  - `dvm install 1.40.0 && dvm use 1.40.0`
+  - `deno upgrade stable`
+  - `dvm install stable && dvm use stable`
 
 - You don't need to install Postgres locally on your machine to test the
   library; it will run as a service in the Docker container when you build it
@@ -86,8 +133,8 @@ result assertions.
 
 To run the tests, run the following commands:
 
-1. `docker-compose build tests`
-2. `docker-compose run tests`
+1. `docker compose build tests`
+2. `docker compose run tests`
 
 The build step will check linting and formatting as well and report it to the
 command line
@@ -96,8 +143,8 @@ It is recommended that you don't rely on any previously initialized data for
 your tests instead create all the data you need at the moment of running the
 tests
 
-For example, the following test will create a temporal table that will disappear
-once the test has been completed
+For example, the following test will create a temporary table that will
+disappear once the test has been completed
 
 ```ts
 Deno.test("INSERT works correctly", async () => {
@@ -134,41 +181,6 @@ a local testing environment, as shown in the following steps:
 3. Run the tests manually by using the command\
    `deno test -A`
 
-## Deno compatibility
-
-Due to breaking changes introduced in the unstable APIs `deno-postgres` uses,
-there has been some fragmentation regarding what versions of Deno can be used
-alongside the driver.
-
-This situation will stabilize as `std` and `deno-postgres` approach version 1.0.
-
-| Deno version  | Min driver version | Max driver version | Note                 |
-| ------------- | ------------------ | ------------------ | -------------------- |
-| 1.8.x         | 0.5.0              | 0.10.0             |                      |
-| 1.9.0         | 0.11.0             | 0.11.1             |                      |
-| 1.9.1 and up  | 0.11.2             | 0.11.3             |                      |
-| 1.11.0 and up | 0.12.0             | 0.12.0             |                      |
-| 1.14.0 and up | 0.13.0             | 0.13.0             |                      |
-| 1.16.0        | 0.14.0             | 0.14.3             |                      |
-| 1.17.0        | 0.15.0             | 0.17.1             |                      |
-| 1.40.0        | 0.17.2             |                    | Now available on JSR |
-
-## Breaking changes
-
-Although `deno-postgres` is reasonably stable and robust, it is a WIP, and we're
-still exploring the design. Expect some breaking changes as we reach version 1.0
-and enhance the feature set. Please check the Releases for more info on breaking
-changes. Please reach out if there are any undocumented breaking changes.
-
-## Found issues?
-
-Please
-[file an issue](https://github.com/denodrivers/postgres/issues/new/choose) with
-any problems with the driver in this repository's issue section. If you would
-like to help, please look at the
-[issues](https://github.com/denodrivers/postgres/issues) as well. You can pick
-up one of them and try to implement it.
-
 ## Contributing guidelines
 
 When contributing to the repository, make sure to:
@@ -194,5 +206,5 @@ preserved their individual licenses and copyrights.
 
 Everything is licensed under the MIT License.
 
-All additional work is copyright 2018 - 2024 — Bartłomiej Iwańczuk, Steven
+All additional work is copyright 2018 - 2025 — Bartłomiej Iwańczuk, Steven
 Guerrero, Hector Ayala — All rights reserved.

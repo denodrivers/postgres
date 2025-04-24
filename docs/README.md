@@ -1,17 +1,19 @@
 # deno-postgres
 
-![Build Status](https://img.shields.io/github/workflow/status/denodrivers/postgres/ci?label=Build&logo=github&style=flat-square)
-[![Discord server](https://img.shields.io/discord/768918486575480863?color=blue&label=Ask%20for%20help%20here&logo=discord&style=flat-square)](https://discord.gg/HEdTCvZUSf)
-![Manual](https://img.shields.io/github/v/release/denodrivers/postgres?color=orange&label=Manual&logo=deno&style=flat-square)
-[![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://doc.deno.land/https/deno.land/x/postgres/mod.ts)
-![License](https://img.shields.io/github/license/denodrivers/postgres?color=yellowgreen&label=License&style=flat-square)
+![Build Status](https://img.shields.io/github/actions/workflow/status/denodrivers/postgres/ci.yml?branch=main&label=Build&logo=github&style=flat-square)
+[![Discord server](https://img.shields.io/discord/768918486575480863?color=blue&label=Ask%20for%20help%20here&logo=discord&style=flat-square)](https://discord.com/invite/HEdTCvZUSf)
+[![JSR](https://jsr.io/badges/@db/postgres?style=flat-square)](https://jsr.io/@db/postgres)
+[![JSR Score](https://jsr.io/badges/@db/postgres/score?style=flat-square)](https://jsr.io/@db/postgres)
+[![Manual](https://img.shields.io/github/v/release/denodrivers/postgres?color=orange&label=Manual&logo=deno&style=flat-square)](https://deno-postgres.com)
+[![Documentation](https://img.shields.io/github/v/release/denodrivers/postgres?color=yellow&label=Documentation&logo=deno&style=flat-square)](https://jsr.io/@db/postgres/doc)
+[![License](https://img.shields.io/github/license/denodrivers/postgres?color=yellowgreen&label=License&style=flat-square)](LICENSE)
 
 `deno-postgres` is a lightweight PostgreSQL driver for Deno focused on user
 experience. It provides abstractions for most common operations such as typed
 queries, prepared statements, connection pools, and transactions.
 
 ```ts
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+import { Client } from "jsr:@db/postgres";
 
 const client = new Client({
   user: "user",
@@ -38,7 +40,7 @@ All `deno-postgres` clients provide the following options to authenticate and
 manage your connections
 
 ```ts
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+import { Client } from "jsr:@db/postgres";
 
 let config;
 
@@ -114,7 +116,7 @@ of search parameters such as the following:
 - password: If password is not specified in the url, this will be taken instead
 - port: If port is not specified in the url, this will be taken instead
 - options: This parameter can be used by other database engines usable through
-  the Postgres protocol (such as Cockroachdb for example) to send additional
+  the Postgres protocol (such as CockroachDB for example) to send additional
   values for connection (ej: options=--cluster=your_cluster_name)
 - sslmode: Allows you to specify the tls configuration for your client; the
   allowed values are the following:
@@ -231,9 +233,6 @@ instead of TCP by providing the route to the socket file your Postgres database
 creates automatically. You can manually set the protocol used with the
 `host_type` property in the client options
 
-**Note**: This functionality is only available on UNIX systems under the
-`--unstable` flag
-
 In order to connect to the socket you can pass the path as a host in the client
 initialization. Alternatively, you can specify the port the database is
 listening on and the parent folder of the socket as a host (The equivalent of
@@ -343,8 +342,8 @@ certificate to encrypt your connection that, if not taken care of, can render
 your certificate invalid.
 
 When using a self-signed certificate, make sure to specify the PEM encoded CA
-certificate using the `--cert` option when starting Deno (Deno 1.12.2 or later)
-or in the `tls.caCertificates` option when creating a client (Deno 1.15.0 later)
+certificate using the `--cert` option when starting Deno or in the
+`tls.caCertificates` option when creating a client
 
 ```ts
 const client = new Client({
@@ -381,7 +380,7 @@ https://www.postgresql.org/docs/14/libpq-envars.html)
 
 ```ts
 // PGUSER=user PGPASSWORD=admin PGDATABASE=test deno run --allow-net --allow-env database.js
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+import { Client } from "jsr:@db/postgres";
 
 const client = new Client();
 await client.connect();
@@ -450,9 +449,12 @@ const dbPool = new Pool(
   POOL_CONNECTIONS,
 );
 
-const client = await dbPool.connect(); // 19 connections are still available
-await client.queryArray`UPDATE X SET Y = 'Z'`;
-client.release(); // This connection is now available for use again
+// Note the `using` keyword in block scope
+{
+  using client = await dbPool.connect();
+  // 19 connections are still available
+  await client.queryArray`UPDATE X SET Y = 'Z'`;
+} // This connection is now available for use again
 ```
 
 The number of pools is up to you, but a pool of 20 is good for small
@@ -515,9 +517,9 @@ await client_3.release();
 
 #### Pools made simple
 
-The following example is a simple abstraction over pools that allows you to
-execute one query and release the used client after returning the result in a
-single function call
+Because of `using` keyword there is no need for manually releasing pool client.
+
+Legacy code like this
 
 ```ts
 async function runQuery(query: string) {
@@ -532,7 +534,27 @@ async function runQuery(query: string) {
 }
 
 await runQuery("SELECT ID, NAME FROM USERS"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
-await runQuery("SELECT ID, NAME FROM USERS WHERE ID = '1'"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+await runQuery("SELECT ID, NAME FROM USERS WHERE ID = '1'"); // [{id: 1, name: 'Carlos'}]
+```
+
+Can now be written simply as
+
+```ts
+async function runQuery(query: string) {
+  using client = await pool.connect();
+  return await client.queryObject(query);
+}
+
+await runQuery("SELECT ID, NAME FROM USERS"); // [{id: 1, name: 'Carlos'}, {id: 2, name: 'John'}, ...]
+await runQuery("SELECT ID, NAME FROM USERS WHERE ID = '1'"); // [{id: 1, name: 'Carlos'}]
+```
+
+But you can release pool client manually if you wish
+
+```ts
+const client = await dbPool.connect(); // note the `const` instead of `using` keyword
+await client.queryArray`UPDATE X SET Y = 'Z'`;
+client.release(); // This connection is now available for use again
 ```
 
 ## Executing queries
@@ -1104,16 +1126,16 @@ const transaction = client.createTransaction("abortable");
 await transaction.begin();
 
 let savepoint;
-try{
+try {
   // Oops, savepoints can't start with a number
   // Validation error, transaction won't be ended
   savepoint = await transaction.savepoint("1");
-}catch(e){
+} catch (e) {
   // We validate the error was not related to transaction execution
-  if(!(e instance of TransactionError)){
+  if (!(e instanceof TransactionError)) {
     // We create a good savepoint we can use
     savepoint = await transaction.savepoint("a_valid_name");
-  }else{
+  } else {
     throw e;
   }
 }
@@ -1429,7 +1451,7 @@ await transaction.commit();
 The driver can provide different types of logs if as needed. By default, logs
 are disabled to keep your environment as uncluttered as possible. Logging can be
 enabled by using the `debug` option in the Client `controls` parameter. Pass
-`true` to enable all logs, or turn on logs granulary by enabling the following
+`true` to enable all logs, or turn on logs granularity by enabling the following
 options:
 
 - `queries` : Logs all SQL queries executed by the client
@@ -1442,7 +1464,7 @@ options:
 
 ```ts
 // debug_test.ts
-import { Client } from "./mod.ts";
+import { Client } from "jsr:@db/postgres";
 
 const client = new Client({
   user: "postgres",
@@ -1474,7 +1496,7 @@ AS $function$
   BEGIN
     RAISE INFO 'This function generates a random UUID :)';
     RAISE NOTICE 'A UUID takes up 128 bits in memory.';
-    RAISE WARNING 'UUIDs must follow a specific format and lenght in order to be valid!';
+    RAISE WARNING 'UUIDs must follow a specific format and length in order to be valid!';
     RETURN gen_random_uuid();
   END;
 $function$;;

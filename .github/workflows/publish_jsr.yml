@@ -11,40 +11,66 @@ jobs:
     timeout-minutes: 30
 
     permissions:
-      contents: read
+      contents: write
       id-token: write
 
     steps:
-      - name: Clone repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: true
+          fetch-depth: 0
 
       - name: Set up Deno
         uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
 
-      - name: Convert to JSR package
-        run: deno run -A tools/convert_to_jsr.ts
+      - name: Extract version from deno.json
+        id: get_version
+        run: |
+          VERSION=$(jq -r .version < deno.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if version tag already exists
+        run: |
+          TAG="v${{ steps.get_version.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "🚫 Tag $TAG already exists. Aborting."
+            exit 1
+          fi
+
+      - name: Check Format
+        run: deno fmt --check
 
       - name: Format
-        run: deno fmt --check
-      
+        run: deno fmt
+
       - name: Lint
         run: deno lint
 
-      - name: Documentation tests
-        run: deno test --doc client.ts mod.ts pool.ts client/ connection/ query/ utils/
-
       - name: Build tests container
-        run: docker-compose build tests
-      
+        run: docker compose build tests
+
       - name: Run tests
-        run: docker-compose run tests
+        run: docker compose run tests
 
-      - name: Publish (dry run)
-        if: startsWith(github.ref, 'refs/tags/') == false
-        run: deno publish --dry-run
+      - name: Run doc tests
+        run: docker compose run doc_tests
 
-      - name: Publish (real)
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Create tag for release
+        run: |
+          TAG="v${{ steps.get_version.outputs.version }}"
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git tag "$TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub Release
+        run: |
+          gh release create "v${{ steps.get_version.outputs.version }}" \
+            --title "v${{ steps.get_version.outputs.version }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish package
         run: deno publish

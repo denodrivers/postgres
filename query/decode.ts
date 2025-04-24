@@ -1,5 +1,5 @@
-import { Oid, OidType, OidTypes, OidValue } from "./oid.ts";
-import { bold, yellow } from "../deps.ts";
+import { Oid, type OidType, OidTypes, type OidValue } from "./oid.ts";
+import { bold, yellow } from "@std/fmt/colors";
 import {
   decodeBigint,
   decodeBigintArray,
@@ -35,7 +35,7 @@ import {
   decodeTid,
   decodeTidArray,
 } from "./decoders.ts";
-import { ClientControls } from "../connection/connection_params.ts";
+import type { ClientControls } from "../connection/connection_params.ts";
 import { parseArray } from "./array_parser.ts";
 
 export class Column {
@@ -46,7 +46,7 @@ export class Column {
     public typeOid: number,
     public columnLength: number,
     public typeModifier: number,
-    public format: Format,
+    public format: Format
   ) {}
 }
 
@@ -196,12 +196,12 @@ function decodeText(value: string, typeOid: number) {
         // them as they see fit
         return value;
     }
-  } catch (_e) {
+  } catch (e) {
     console.error(
       bold(yellow(`Error decoding type Oid ${typeOid} value`)) +
-        _e.message +
+        (e instanceof Error ? e.message : e) +
         "\n" +
-        bold("Defaulting to null."),
+        bold("Defaulting to null.")
     );
     // If an error occurred during decoding, return null
     return null;
@@ -211,7 +211,7 @@ function decodeText(value: string, typeOid: number) {
 export function decode(
   value: Uint8Array,
   column: Column,
-  controls?: ClientControls,
+  controls?: ClientControls
 ) {
   const strValue = decoder.decode(value);
 
@@ -219,24 +219,24 @@ export function decode(
   if (controls?.decoders) {
     const oidType = OidTypes[column.typeOid as OidValue];
     // check if there is a custom decoder by oid (number) or by type name (string)
-    const decoderFunc = controls.decoders?.[column.typeOid] ||
-      controls.decoders?.[oidType];
+    const decoderFunc =
+      controls.decoders?.[column.typeOid] || controls.decoders?.[oidType];
 
     if (decoderFunc) {
       return decoderFunc(strValue, column.typeOid, parseArray);
     } // if no custom decoder is found and the oid is for an array type, check if there is
     // a decoder for the base type and use that with the array parser
-    else if (oidType.includes("_array")) {
+    else if (oidType?.includes("_array")) {
       const baseOidType = oidType.replace("_array", "") as OidType;
       // check if the base type is in the Oid object
       if (baseOidType in Oid) {
         // check if there is a custom decoder for the base type by oid (number) or by type name (string)
-        const decoderFunc = controls.decoders?.[Oid[baseOidType]] ||
+        const decoderFunc =
+          controls.decoders?.[Oid[baseOidType]] ||
           controls.decoders?.[baseOidType];
         if (decoderFunc) {
-          return parseArray(
-            strValue,
-            (value: string) => decoderFunc(value, column.typeOid, parseArray),
+          return parseArray(strValue, (value: string) =>
+            decoderFunc(value, column.typeOid, parseArray)
           );
         }
       }
