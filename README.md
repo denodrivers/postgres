@@ -16,9 +16,11 @@ A lightweight PostgreSQL driver for Deno focused on developer experience.
 
 ## Documentation
 
-The documentation is available on the [`deno-postgres` website](https://deno-postgres.com/).
+The documentation is available on the
+[`deno-postgres` website](https://deno-postgres.com/).
 
-Join the [Discord](https://discord.com/invite/HEdTCvZUSf) as well! It's a good place to discuss bugs and features before opening issues.
+Join the [Discord](https://discord.com/invite/HEdTCvZUSf) as well! It's a good
+place to discuss bugs and features before opening issues.
 
 ## Examples
 
@@ -41,8 +43,8 @@ await client.connect();
 }
 
 {
-  const result =
-    await client.queryArray`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
+  const result = await client
+    .queryArray`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
   console.log(result.rows); // [[1, 'Carlos']]
 }
 
@@ -52,8 +54,8 @@ await client.connect();
 }
 
 {
-  const result =
-    await client.queryObject`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
+  const result = await client
+    .queryObject`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
   console.log(result.rows); // [{id: 1, name: 'Carlos'}]
 }
 
