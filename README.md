@@ -51,8 +51,8 @@ await client.connect();
 }
 
 {
-  const result =
-    await client.queryArray`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
+  const result = await client
+    .queryArray`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
   console.log(result.rows); // [[1, 'Carlos']]
 }
 
@@ -62,8 +62,8 @@ await client.connect();
 }
 
 {
-  const result =
-    await client.queryObject`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
+  const result = await client
+    .queryObject`SELECT ID, NAME FROM PEOPLE WHERE ID = ${1}`;
   console.log(result.rows); // [{id: 1, name: 'Carlos'}]
 }
 
