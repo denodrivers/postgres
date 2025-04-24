@@ -1,6 +1,7 @@
 {
   "name": "@db/postgres",
   "version": "0.19.4",
+  "license": "MIT",
   "exports": "./mod.ts",
   "imports": {
     "@std/bytes": "jsr:@std/bytes@^1.0.5",
