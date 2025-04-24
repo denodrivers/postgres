@@ -46,7 +46,7 @@ export class Column {
     public typeOid: number,
     public columnLength: number,
     public typeModifier: number,
-    public format: Format
+    public format: Format,
   ) {}
 }
 
@@ -201,7 +201,7 @@ function decodeText(value: string, typeOid: number) {
       bold(yellow(`Error decoding type Oid ${typeOid} value`)) +
         (e instanceof Error ? e.message : e) +
         "\n" +
-        bold("Defaulting to null.")
+        bold("Defaulting to null."),
     );
     // If an error occurred during decoding, return null
     return null;
@@ -211,7 +211,7 @@ function decodeText(value: string, typeOid: number) {
 export function decode(
   value: Uint8Array,
   column: Column,
-  controls?: ClientControls
+  controls?: ClientControls,
 ) {
   const strValue = decoder.decode(value);
 
@@ -219,8 +219,8 @@ export function decode(
   if (controls?.decoders) {
     const oidType = OidTypes[column.typeOid as OidValue];
     // check if there is a custom decoder by oid (number) or by type name (string)
-    const decoderFunc =
-      controls.decoders?.[column.typeOid] || controls.decoders?.[oidType];
+    const decoderFunc = controls.decoders?.[column.typeOid] ||
+      controls.decoders?.[oidType];
 
     if (decoderFunc) {
       return decoderFunc(strValue, column.typeOid, parseArray);
@@ -231,12 +231,12 @@ export function decode(
       // check if the base type is in the Oid object
       if (baseOidType in Oid) {
         // check if there is a custom decoder for the base type by oid (number) or by type name (string)
-        const decoderFunc =
-          controls.decoders?.[Oid[baseOidType]] ||
+        const decoderFunc = controls.decoders?.[Oid[baseOidType]] ||
           controls.decoders?.[baseOidType];
         if (decoderFunc) {
-          return parseArray(strValue, (value: string) =>
-            decoderFunc(value, column.typeOid, parseArray)
+          return parseArray(
+            strValue,
+            (value: string) => decoderFunc(value, column.typeOid, parseArray),
           );
         }
       }
