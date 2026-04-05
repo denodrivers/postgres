@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@1.0.10";
+import { assertEquals } from "@std/assert";
 import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
 import { getMainConfiguration } from "./config.ts";
 import { generateSimpleClientTest } from "./helpers.ts";

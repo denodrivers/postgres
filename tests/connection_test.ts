@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from "jsr:@std/assert@1.0.10";
+import { assertEquals, assertRejects } from "@std/assert";
 import { join as joinPath } from "@std/path";
 import {
   getClearConfiguration,

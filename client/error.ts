@@ -58,7 +58,10 @@ export class TransactionError extends Error {
   /**
    * Create a transaction error with a message and a cause
    */
-  constructor(transaction_name: string, cause: PostgresError) {
+  constructor(
+    transaction_name: string,
+    cause: PostgresError | Deno.errors.BrokenPipe,
+  ) {
     super(`The transaction "${transaction_name}" has been aborted`, { cause });
     this.name = "TransactionError";
   }

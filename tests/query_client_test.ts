@@ -12,7 +12,8 @@ import {
   assertObjectMatch,
   assertRejects,
   assertThrows,
-} from "jsr:@std/assert@1.0.10";
+} from "@std/assert";
+import { MockError, stub } from "@std/testing/mock";
 import { getMainConfiguration } from "./config.ts";
 import type { PoolClient, QueryClient } from "../client.ts";
 import type { ClientOptions } from "../connection/connection_params.ts";
@@ -608,13 +609,13 @@ Deno.test(
   "Handles parameter status messages on array query",
   withClient(async (client) => {
     const { rows: result_1 } = await client
-      .queryArray`SET TIME ZONE 'HongKong'`;
+      .queryArray`SET TIME ZONE 'Asia/Hong_Kong'`;
 
     assertEquals(result_1, []);
 
     const { rows: result_2 } = await client.queryObject({
       fields: ["result"],
-      text: "SET TIME ZONE 'HongKong'; SELECT 1",
+      text: "SET TIME ZONE 'Asia/Hong_Kong'; SELECT 1",
     });
 
     assertEquals(result_2, [{ result: 1 }]);
@@ -629,7 +630,7 @@ Deno.test(
     await client
       .queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE(RES INTEGER) RETURNS INT AS $$
 			BEGIN
-			SET TIME ZONE 'HongKong';
+			SET TIME ZONE 'Asia/Hong_Kong';
 			END;
 			$$ LANGUAGE PLPGSQL;`;
 
@@ -645,7 +646,7 @@ Deno.test(
     await client
       .queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE(RES INTEGER) RETURNS INT AS $$
 			BEGIN
-			SET TIME ZONE 'HongKong';
+			SET TIME ZONE 'Asia/Hong_Kong';
 			RETURN RES;
 			END;
 			$$ LANGUAGE PLPGSQL;`;
@@ -666,7 +667,7 @@ Deno.test(
     await client
       .queryArray`CREATE OR REPLACE FUNCTION PG_TEMP.CHANGE_TIMEZONE() RETURNS INT AS $$
 			BEGIN
-			SET TIME ZONE 'HongKong';
+			SET TIME ZONE 'Asia/Hong_Kong';
 			END;
 			$$ LANGUAGE PLPGSQL;`;
 
@@ -694,9 +695,13 @@ Deno.test(
 );
 
 // This test depends on the assumption that all clients will default to
-// one reconneciton by default
+// one reconnection by default
+//
+// It also specifically tests the case where the database system sends a
+// graceful disconnect, not the case where the database connection is just
+// closed due to the database process crashing or being killed.
 Deno.test(
-  "Default reconnection",
+  "Default reconnection after graceful database connection close",
   withClient(async (client) => {
     await assertRejects(
       () =>
@@ -709,6 +714,64 @@ Deno.test(
       fields: ["res"],
     });
     assertEquals(result[0].res, 1);
+
+    assertEquals(client.connected, true);
+  }),
+);
+
+// This test depends on the assumption that all clients will default to
+// one reconnection by default
+Deno.test(
+  "Default reconnection after connection drop",
+  withClient(async (client) => {
+    // Test that connection is OK
+    const { rows: result } = await client.queryObject<{ res: number }>({
+      text: `SELECT 1`,
+      fields: ["res"],
+    });
+    assertEquals(result[0].res, 1);
+
+    // Use mock simulate irrecoverably broken pipe
+    const connWrite = stub(
+      WritableStreamDefaultWriter.prototype,
+      "write",
+      (_buffer) => {
+        throw new Deno.errors.BrokenPipe();
+      },
+    );
+    try {
+      await assertRejects(
+        () => client.queryArray`SELECT 1`,
+        Deno.errors.BrokenPipe,
+      );
+    } finally {
+      connWrite.restore();
+    }
+
+    // Use mock simulate broken pipe, that can be healed by reconnecting
+    const connWrite2 = stub(
+      WritableStreamDefaultWriter.prototype,
+      "write",
+      (_buffer) => {
+        connWrite2.restore();
+        throw new Deno.errors.BrokenPipe();
+      },
+    );
+    try {
+      const { rows: result2 } = await client.queryObject<{ res: number }>({
+        text: `SELECT 1`,
+        fields: ["res"],
+      });
+      assertEquals(result2[0].res, 1);
+    } finally {
+      // Restoring must fail here because it already happened
+      //
+      // If this fails, it means the Mock was never invoked and the test must be updated!
+      assertThrows(
+        () => connWrite2.restore(),
+        MockError,
+      );
+    }
 
     assertEquals(client.connected, true);
   }),
@@ -1495,6 +1558,40 @@ Deno.test(
       `The transaction "${name}" has been aborted`,
     );
     assertEquals(client.session.current_transaction, null);
+  }),
+);
+
+Deno.test(
+  "Transaction fails after connection drop",
+  withClient(async (client) => {
+    const name = "transactionFailsOnConnectionDrop";
+    const transaction = client.createTransaction(name);
+
+    await transaction.begin();
+
+    // Use mock simulate broken pipe
+    const connWrite = stub(
+      WritableStreamDefaultWriter.prototype,
+      "write",
+      (_buffer) => {
+        throw new Deno.errors.BrokenPipe();
+      },
+    );
+    try {
+      await assertRejects(
+        () => transaction.queryArray`SELECT 1`,
+        TransactionError,
+      );
+    } finally {
+      connWrite.restore();
+    }
+
+    // Test that connection is OK afterward
+    const { rows: result } = await client.queryObject<{ res: number }>({
+      text: `SELECT 1`,
+      fields: ["res"],
+    });
+    assertEquals(result[0].res, 1);
   }),
 );
 

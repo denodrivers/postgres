@@ -1012,8 +1012,8 @@ export class Connection {
   async end(): Promise<void> {
     if (this.connected) {
       const terminationMessage = new Uint8Array([0x58, 0x00, 0x00, 0x00, 0x04]);
-      await this.#connWritable.write(terminationMessage);
       try {
+        await this.#connWritable.write(terminationMessage);
         await this.#connWritable.ready;
       } catch (_e) {
         // This steps can fail if the underlying connection was closed ungracefully

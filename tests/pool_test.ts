@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@1.0.10";
+import { assertEquals } from "@std/assert";
 import { getMainConfiguration } from "./config.ts";
 import { generatePoolClientTest } from "./helpers.ts";
 
