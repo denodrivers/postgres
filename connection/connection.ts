@@ -280,6 +280,16 @@ export class Connection {
     // @ts-expect-error This will throw in runtime if the options passed to it are socket related and deno is running
     // on stable
     this.#conn = await Deno.connect(options);
+    // Disable Nagle's algorithm. The extended-query path (#preparedQuery) writes Parse, Bind,
+    // Describe, Execute and Sync as five separate, sub-MSS socket writes, and the server sends
+    // nothing back until it has seen Sync. With Nagle on, writes 2..5 are withheld until the peer
+    // ACKs write 1, so the server's delayed-ACK timer (~40 ms on Linux) fires first and EVERY
+    // parameterized query pays it. Measured over a container network: `select 1 as x` 0.5 ms,
+    // `select $1::int as x` 41.8 ms; with this line, 0.6 ms.
+    // A UnixConn has no setNoDelay and no Nagle to disable, hence the check.
+    if ("setNoDelay" in this.#conn) {
+      (this.#conn as Deno.TcpConn).setNoDelay(true);
+    }
     this.#connWritable = this.#conn.writable.getWriter();
   }
 
