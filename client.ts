@@ -1,4 +1,7 @@
-import { Connection } from "./connection/connection.ts";
+import {
+  Connection,
+  type NotificationListener,
+} from "./connection/connection.ts";
 import {
   type ClientConfiguration,
   type ClientOptions,
@@ -256,6 +259,7 @@ export abstract class QueryClient {
    * you to reconnect in order to execute further queries
    */
   async end(): Promise<void> {
+    this.#connection.removeNotificationListeners();
     await this.closeConnection();
 
     this.#terminated = true;
@@ -465,6 +469,45 @@ export abstract class QueryClient {
   }
 
   /**
+   * Registers a listener for the notifications sent to a channel through
+   * `NOTIFY` or `pg_notify`, the first listener of a channel executes `LISTEN`
+   * on it
+   */
+  protected async listen(
+    channel: string,
+    listener: NotificationListener,
+  ): Promise<void> {
+    this.#assertOpenConnection();
+
+    if (this.#transaction !== null) {
+      throw new Error(
+        `This connection is currently locked by the "${this.#transaction}" transaction`,
+      );
+    }
+
+    await this.#connection.listen(channel, listener);
+  }
+
+  /**
+   * Removes a listener from a channel, or all of them if no listener is passed.
+   * Once a channel has no listeners left, `UNLISTEN` is executed on it
+   */
+  protected async unlisten(
+    channel: string,
+    listener?: NotificationListener,
+  ): Promise<void> {
+    this.#assertOpenConnection();
+
+    if (this.#transaction !== null) {
+      throw new Error(
+        `This connection is currently locked by the "${this.#transaction}" transaction`,
+      );
+    }
+
+    await this.#connection.unlisten(channel, listener);
+  }
+
+  /**
    * Resets the transaction session metadata
    */
   protected resetSessionMetadata() {
@@ -514,6 +557,68 @@ export class Client extends QueryClient {
         await this.closeConnection();
       }),
     );
+  }
+
+  /**
+   * Listen to the notifications sent to a channel through `NOTIFY` or
+   * `pg_notify`. The listener will be called with every notification received
+   * until it is removed with `unlisten` or the client is ended
+   *
+   * ```ts
+   * import { Client, type Notification } from "jsr:@db/postgres";
+   * const client = new Client();
+   * await client.connect();
+   *
+   * const listener = ({ channel, payload, processId }: Notification) => {
+   *   console.log(`${processId} sent "${payload}" to ${channel}`);
+   * };
+   * await client.listen("jobs", listener);
+   *
+   * // Notifications are received even while no query is running
+   * await client.queryArray`SELECT PG_NOTIFY('jobs', 'new job')`;
+   *
+   * await client.unlisten("jobs", listener);
+   * await client.end();
+   * ```
+   *
+   * The channel name is used as is, as if it was a quoted identifier, so it must
+   * match the name passed to `pg_notify` exactly. Keep in mind that unquoted
+   * identifiers in a `NOTIFY` statement are folded to lower case.
+   *
+   * Notifications are only received while the client is connected. If the
+   * connection is lost, the channels are listened to again once the client
+   * reconnects, but the notifications sent in between are lost
+   *
+   * https://www.postgresql.org/docs/14/sql-listen.html
+   */
+  override async listen(
+    channel: string,
+    listener: NotificationListener,
+  ): Promise<void> {
+    await super.listen(channel, listener);
+  }
+
+  /**
+   * Remove a listener from a channel, or all the listeners of the channel if
+   * no listener is passed. The client stops listening to the channel once it
+   * has no listeners left
+   *
+   * ```ts
+   * import { Client } from "jsr:@db/postgres";
+   * const client = new Client();
+   * await client.connect();
+   *
+   * await client.listen("jobs", (notification) => console.log(notification));
+   * await client.unlisten("jobs");
+   *
+   * await client.end();
+   * ```
+   */
+  override async unlisten(
+    channel: string,
+    listener?: NotificationListener,
+  ): Promise<void> {
+    await super.unlisten(channel, listener);
   }
 }
 

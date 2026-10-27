@@ -54,6 +54,28 @@ export interface Notice {
   routine?: string;
 }
 
+/**
+ * A notification sent by the database through `NOTIFY` or `pg_notify`
+ */
+export interface Notification {
+  /** The name of the channel the notification was sent to */
+  channel: string;
+  /** The payload of the notification, an empty string if none was provided */
+  payload: string;
+  /** The process id of the database session that sent the notification */
+  processId: number;
+}
+
+/**
+ * https://www.postgresql.org/docs/14/protocol-message-formats.html
+ */
+export function parseNotificationMessage(message: Message): Notification {
+  const processId = message.reader.readInt32();
+  const channel = message.reader.readCString();
+  const payload = message.reader.readCString();
+  return { channel, payload, processId };
+}
+
 export function parseBackendKeyMessage(message: Message): {
   pid: number;
   secret_key: number;

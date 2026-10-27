@@ -1446,6 +1446,42 @@ await transaction.commit();
 // Transaction ends, client gets unlocked
 ```
 
+## Notifications
+
+Clients can subscribe to the notifications sent with
+[`NOTIFY`](https://www.postgresql.org/docs/current/sql-notify.html) or
+`pg_notify` by registering a listener for a channel. The client executes
+`LISTEN` for the channel and calls the listener with every notification received
+on it, even while no query is running.
+
+```ts
+const client = new Client();
+await client.connect();
+
+const listener = ({ channel, payload, processId }: Notification) => {
+  console.log(`Session ${processId} sent "${payload}" to ${channel}`);
+};
+await client.listen("jobs", listener);
+
+// Somewhere else
+await other_client.queryArray`SELECT PG_NOTIFY('jobs', 'new job')`;
+
+// Remove a single listener, or all the listeners of the channel by omitting it.
+// The client executes `UNLISTEN` once the channel has no listeners left
+await client.unlisten("jobs", listener);
+```
+
+The channel name is used as is, as if it was a quoted identifier, so it must
+match the name passed to `pg_notify` exactly (unquoted names in a `NOTIFY`
+statement are folded to lower case). While a client has listeners registered it
+keeps reading from the connection, so the process won't exit until the listeners
+are removed or the client is ended.
+
+Notifications are only delivered while the client is connected. If the
+connection is lost, the channels are listened to again once the client
+reconnects, but the notifications sent in between are lost. Listening is only
+available on `Client`, use a dedicated client instead of a pool client for it.
+
 ## Debugging
 
 The driver can provide different types of logs if as needed. By default, logs

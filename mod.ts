@@ -15,7 +15,8 @@ export type {
   TLSOptions,
 } from "./connection/connection_params.ts";
 export type { Session } from "./client.ts";
-export type { Notice } from "./connection/message.ts";
+export type { Notice, Notification } from "./connection/message.ts";
+export type { NotificationListener } from "./connection/connection.ts";
 export { PoolClient, QueryClient } from "./client.ts";
 export type {
   CommandType,

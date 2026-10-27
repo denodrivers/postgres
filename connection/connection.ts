@@ -34,14 +34,16 @@ import { PacketWriter } from "./packet.ts";
 import {
   Message,
   type Notice,
+  type Notification,
   parseBackendKeyMessage,
   parseCommandCompleteMessage,
   parseNoticeMessage,
+  parseNotificationMessage,
   parseRowDataMessage,
   parseRowDescriptionMessage,
 } from "./message.ts";
 import {
-  type Query,
+  Query,
   QueryArrayResult,
   QueryObjectResult,
   type QueryResult,
@@ -116,6 +118,20 @@ function logResults(rows: unknown[]) {
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
+/**
+ * A function that will be called with every notification received in the
+ * channel it was registered for
+ */
+export type NotificationListener = (notification: Notification) => void;
+
+/**
+ * Quotes a channel name so it can be used as an identifier in `LISTEN` and
+ * `UNLISTEN` statements
+ */
+function escapeIdentifier(identifier: string): string {
+  return `"${identifier.replaceAll('"', '""')}"`;
+}
+
 // TODO
 // - Refactor properties to not be lazily initialized
 //   or to handle their undefined value
@@ -134,6 +150,14 @@ export class Connection {
   #tls?: boolean;
   #transport?: "tcp" | "socket";
   #connWritable!: WritableStreamDefaultWriter<Uint8Array>;
+  #notificationListeners = new Map<string, Set<NotificationListener>>();
+  // A message read started while the connection was idle, it will be handed
+  // to the next query if one starts before the read finishes
+  #pendingRead: Promise<Message> | null = null;
+  // The idle read taken over by the running query
+  #queryRead: Promise<Message> | null = null;
+  // Whether the channels need to be listened again after a reconnection
+  #resubscribe = false;
 
   get pid(): number | undefined {
     return this.#pid;
@@ -208,6 +232,29 @@ export class Connection {
     await this.#readFull(body);
 
     return new Message(type, length, body);
+  }
+
+  /**
+   * Read the next message of a query, starting with the read taken over from
+   * the idle reader if there was one in progress
+   */
+  #nextMessage(): Promise<Message> {
+    const pending = this.#queryRead;
+    if (pending) {
+      this.#queryRead = null;
+      return pending;
+    }
+    return this.#readMessage();
+  }
+
+  #dispatchNotification(notification: Notification) {
+    const listeners = this.#notificationListeners.get(notification.channel);
+    if (!listeners) return;
+    for (const listener of [...listeners]) {
+      // Run listeners outside of the message processing so a failing listener
+      // can't break the protocol state of the connection
+      queueMicrotask(() => listener(notification));
+    }
   }
 
   async #serverAcceptsTLS(): Promise<boolean> {
@@ -322,6 +369,8 @@ export class Connection {
     this.#packetWriter = new PacketWriter();
     this.#pid = undefined;
     this.#queryLock = new DeferredStack(1, [undefined]);
+    this.#pendingRead = null;
+    this.#queryRead = null;
     this.#secretKey = undefined;
     this.#tls = undefined;
     this.#transport = undefined;
@@ -461,6 +510,7 @@ export class Connection {
       }
 
       this.connected = true;
+      this.#resubscribe = this.#notificationListeners.size > 0;
     } catch (e) {
       this.#closeConnection();
       throw e;
@@ -704,7 +754,7 @@ export class Connection {
     }
 
     let error: unknown | undefined;
-    let current_message = await this.#readMessage();
+    let current_message = await this.#nextMessage();
 
     // Process messages until ready signal is sent
     // Delay error handling until after the ready signal is sent
@@ -751,6 +801,9 @@ export class Connection {
           result.warnings.push(notice);
           break;
         }
+        case INCOMING_QUERY_MESSAGES.NOTIFICATION:
+          this.#dispatchNotification(parseNotificationMessage(current_message));
+          break;
         case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
           break;
         case INCOMING_QUERY_MESSAGES.READY:
@@ -767,7 +820,7 @@ export class Connection {
           );
       }
 
-      current_message = await this.#readMessage();
+      current_message = await this.#nextMessage();
     }
 
     if (error) throw error;
@@ -899,7 +952,7 @@ export class Connection {
     }
 
     let error: unknown | undefined;
-    let current_message = await this.#readMessage();
+    let current_message = await this.#nextMessage();
 
     while (current_message.type !== INCOMING_QUERY_MESSAGES.READY) {
       switch (current_message.type) {
@@ -947,6 +1000,9 @@ export class Connection {
           result.warnings.push(notice);
           break;
         }
+        case INCOMING_QUERY_MESSAGES.NOTIFICATION:
+          this.#dispatchNotification(parseNotificationMessage(current_message));
+          break;
         case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
           break;
         case INCOMING_QUERY_MESSAGES.PARSE_COMPLETE:
@@ -965,7 +1021,7 @@ export class Connection {
           );
       }
 
-      current_message = await this.#readMessage();
+      current_message = await this.#nextMessage();
     }
 
     if (error) throw error;
@@ -981,7 +1037,27 @@ export class Connection {
     }
 
     await this.#queryLock.pop();
+    // Take over the read started while the connection was idle before sending
+    // anything, so the response to the query can't be consumed by the idle reader
+    if (this.#pendingRead) {
+      this.#queryRead = this.#pendingRead;
+      this.#pendingRead = null;
+    }
     try {
+      if (this.#resubscribe) {
+        // The session was recreated, so the channels must be listened again
+        // before the query runs
+        const channels = [...this.#notificationListeners.keys()];
+        if (channels.length > 0) {
+          await this.#simpleQuery(
+            new Query(
+              channels.map((c) => `LISTEN ${escapeIdentifier(c)};`).join(""),
+              ResultType.ARRAY,
+            ),
+          );
+        }
+        this.#resubscribe = false;
+      }
       if (
         isDebugOptionEnabled("queries", this.#connection_params.controls?.debug)
       ) {
@@ -1006,7 +1082,153 @@ export class Connection {
       throw e;
     } finally {
       this.#queryLock.push(undefined);
+      this.#startIdleReader();
     }
+  }
+
+  /**
+   * Registers a listener for the notifications sent to a channel, executing
+   * `LISTEN` for the channel when it is the first listener registered for it
+   */
+  async listen(channel: string, listener: NotificationListener): Promise<void> {
+    if (!channel) {
+      throw new Error("Channel name must be a non-empty string");
+    }
+
+    let listeners = this.#notificationListeners.get(channel);
+    if (listeners) {
+      listeners.add(listener);
+      return;
+    }
+
+    listeners = new Set([listener]);
+    this.#notificationListeners.set(channel, listeners);
+    try {
+      await this.query(
+        new Query(`LISTEN ${escapeIdentifier(channel)}`, ResultType.ARRAY),
+      );
+    } catch (e) {
+      listeners.delete(listener);
+      if (
+        listeners.size === 0 &&
+        this.#notificationListeners.get(channel) === listeners
+      ) {
+        this.#notificationListeners.delete(channel);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Removes a listener from a channel, or all of them if no listener is passed,
+   * executing `UNLISTEN` for the channel once it has no listeners left
+   */
+  async unlisten(
+    channel: string,
+    listener?: NotificationListener,
+  ): Promise<void> {
+    const listeners = this.#notificationListeners.get(channel);
+    if (!listeners) return;
+
+    if (listener) {
+      listeners.delete(listener);
+    } else {
+      listeners.clear();
+    }
+    if (listeners.size > 0) return;
+
+    this.#notificationListeners.delete(channel);
+    if (this.connected) {
+      await this.query(
+        new Query(`UNLISTEN ${escapeIdentifier(channel)}`, ResultType.ARRAY),
+      );
+    }
+  }
+
+  /**
+   * Removes all the notification listeners without notifying the database,
+   * used when the session is being terminated
+   */
+  removeNotificationListeners() {
+    this.#notificationListeners.clear();
+  }
+
+  /**
+   * The database can send notifications at any time, so while there are
+   * listeners registered the connection keeps a message read in progress
+   * whenever no query is running. A query that starts takes that read over
+   * before sending any message, so there is a single reader of the socket at
+   * any time
+   */
+  #startIdleReader() {
+    if (
+      this.#pendingRead ||
+      // A read taken over by a query that couldn't process it
+      this.#queryRead ||
+      !this.connected ||
+      this.#notificationListeners.size === 0 ||
+      // A query is running or waiting to run
+      this.#queryLock.available === 0
+    ) {
+      return;
+    }
+
+    const conn = this.#conn;
+    const read = this.#readMessage();
+    this.#pendingRead = read;
+    read.then(
+      (message) => {
+        // The read was taken over by a query, which processes the message
+        if (this.#pendingRead !== read) return;
+        this.#pendingRead = null;
+        this.#processIdleMessage(message);
+      },
+      () => {
+        // The read was taken over by a query, which handles the error
+        if (this.#pendingRead !== read) return;
+        this.#pendingRead = null;
+        // The connection was closed on purpose
+        if (!this.connected || this.#conn !== conn) return;
+        // The session was terminated unexpectedly, the next query will
+        // attempt to reconnect and listen to the channels again
+        this.#closeAfterIdleFailure();
+      },
+    );
+  }
+
+  #processIdleMessage(message: Message) {
+    switch (message.type) {
+      case INCOMING_QUERY_MESSAGES.NOTIFICATION:
+        this.#dispatchNotification(parseNotificationMessage(message));
+        break;
+      case INCOMING_QUERY_MESSAGES.NOTICE_WARNING: {
+        const notice = parseNoticeMessage(message);
+        if (
+          isDebugOptionEnabled(
+            "notices",
+            this.#connection_params.controls?.debug,
+          )
+        ) {
+          logNotice(notice);
+        }
+        break;
+      }
+      case INCOMING_QUERY_MESSAGES.PARAMETER_STATUS:
+        break;
+      default:
+        // An error outside of a query means the session is being terminated
+        // (e.g. the server is shutting down), any other message means the
+        // connection is out of sync
+        this.#closeAfterIdleFailure();
+        return;
+    }
+
+    this.#startIdleReader();
+  }
+
+  #closeAfterIdleFailure() {
+    this.#closeConnection();
+    this.#onDisconnection().catch(() => {});
   }
 
   async end(): Promise<void> {
